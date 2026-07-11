@@ -1,6 +1,6 @@
 """Load English tickets from the Kaggle CSV into the tickets table.
 
-Usage: python scripts/ingest_tickets.py [--limit N] [--csv PATH]
+Usage (from project root): python -m scripts.ingest_tickets [--limit N] [--csv PATH]
 """
 
 import argparse
