@@ -625,7 +625,7 @@ Expected: all green (health + roundtrip).
 
 **Interfaces:**
 - Consumes: `models.Ticket`, `db.SessionLocal`.
-- Produces: `scripts.ingest_tickets.row_to_ticket(row: dict) -> Ticket | None` (returns `None` for non-English rows) — unit-testable pure function; CLI `python scripts/ingest_tickets.py [--limit N]`.
+- Produces: `scripts.ingest_tickets.row_to_ticket(row: dict) -> Ticket | None` (returns `None` for non-English rows) — unit-testable pure function; CLI `python -m scripts.ingest_tickets [--limit N]`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -672,7 +672,7 @@ Run: `pytest tests/unit/test_ingest_parsing.py -v` — Expected: FAIL (module mi
 ```python
 """Load English tickets from the Kaggle CSV into the tickets table.
 
-Usage: python scripts/ingest_tickets.py [--limit N] [--csv PATH]
+Usage: python -m scripts.ingest_tickets [--limit N] [--csv PATH]
 """
 
 import argparse
@@ -736,7 +736,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: Run the real ingest against the dev branch**
 
-Run: `python scripts/ingest_tickets.py`
+Run: `python -m scripts.ingest_tickets`
 Expected: `Done: ~11900 tickets inserted.` (English rows with non-empty bodies). Spot-check: `python -c "from triagedesk.db import SessionLocal; from triagedesk.models import Ticket; s=SessionLocal(); print(s.query(Ticket).count())"`
 
 - [ ] **Step 5: Commit, PR, merge**
@@ -1568,7 +1568,7 @@ if __name__ == "__main__":
     main()
 ```
 
-Run: `python scripts/embed_kb.py` → `Embedded 15 docs.` Sanity-check dims: `python -c "from triagedesk.embeddings import embed_query; print(len(embed_query('vpn drops')))"` → must print `1024`.
+Run: `python -m scripts.embed_kb` → `Embedded 15 docs.` Sanity-check dims: `python -c "from triagedesk.embeddings import embed_query; print(len(embed_query('vpn drops')))"` → must print `1024`.
 
 - [ ] **Step 5: Write the failing retrieval test**
 
@@ -2121,7 +2121,7 @@ if __name__ == "__main__":
     main()
 ```
 
-Run: `python scripts/compute_centroids.py` (~1,000 embeddings — pennies of free-tier quota, ~1 min). Commit the JSON (≈200 KB; it is a generated code artifact, not `data/`).
+Run: `python -m scripts.compute_centroids` (~1,000 embeddings — pennies of free-tier quota, ~1 min). Commit the JSON (≈200 KB; it is a generated code artifact, not `data/`).
 
 - [ ] **Step 3: Write the failing gate tests**
 
