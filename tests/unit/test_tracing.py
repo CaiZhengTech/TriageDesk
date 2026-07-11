@@ -27,7 +27,7 @@ class FakeSession:
 
 
 def test_compute_cost_sonnet():
-    # 1000 in @ $5/M + 1000 out @ $25/M = 0.005 + 0.025
+    # 1000 in @ $3/M + 1000 out @ $15/M = 0.003 + 0.015
     assert compute_cost("claude-sonnet-4-6", usage(1000, 1000)) == pytest.approx(0.018)
 
 
@@ -72,4 +72,27 @@ def test_budget_breach_raises(monkeypatch):
     span = Span(run_id=run.id, name="act", started_at=None, attributes={})
     response = SimpleNamespace(model="claude-sonnet-4-6", usage=usage(2000, 2000))
     with pytest.raises(BudgetExceededError):
-        tracer.record_llm_usage(span, response)  # $0.06 > $0.01 cap
+        tracer.record_llm_usage(span, response)  # $0.036 > $0.01 cap
+
+
+def test_budget_accumulates_across_calls(monkeypatch):
+    from triagedesk import tracing
+    from triagedesk.models import Span
+
+    monkeypatch.setattr(tracing.settings, "cost_cap_usd", 0.03)
+    run = Run(state="running", prompt_version="w1-v1", model="claude-sonnet-4-6",
+              ticket_id=1, total_cost_usd=0.0)
+    tracer = tracing.RunTracer(FakeSession(), run)
+
+    # First call: $0.018, under cap of $0.03 — should not raise
+    span1 = Span(run_id=run.id, name="act", started_at=None, attributes={})
+    response1 = SimpleNamespace(model="claude-sonnet-4-6", usage=usage(1000, 1000))
+    tracer.record_llm_usage(span1, response1)
+    assert run.total_cost_usd == pytest.approx(0.018)
+
+    # Second call: another $0.018, total $0.036 > $0.03 cap — should raise
+    span2 = Span(run_id=run.id, name="act", started_at=None, attributes={})
+    response2 = SimpleNamespace(model="claude-sonnet-4-6", usage=usage(1000, 1000))
+    with pytest.raises(BudgetExceededError):
+        tracer.record_llm_usage(span2, response2)
+    assert run.total_cost_usd == pytest.approx(0.036)
