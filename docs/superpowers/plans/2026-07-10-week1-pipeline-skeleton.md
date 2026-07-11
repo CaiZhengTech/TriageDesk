@@ -799,7 +799,7 @@ class FakeSession:
 
 
 def test_compute_cost_sonnet():
-    # 1000 in @ $5/M + 1000 out @ $25/M = 0.005 + 0.025
+    # 1000 in @ $3/M + 1000 out @ $15/M = 0.003 + 0.015
     assert compute_cost("claude-sonnet-4-6", usage(1000, 1000)) == pytest.approx(0.018)
 
 
@@ -844,7 +844,7 @@ def test_budget_breach_raises(monkeypatch):
     span = Span(run_id=run.id, name="act", started_at=None, attributes={})
     response = SimpleNamespace(model="claude-sonnet-4-6", usage=usage(2000, 2000))
     with pytest.raises(BudgetExceededError):
-        tracer.record_llm_usage(span, response)  # $0.06 > $0.01 cap
+        tracer.record_llm_usage(span, response)  # $0.036 > $0.01 cap
 ```
 
 Run: `pytest tests/unit/test_tracing.py -v` — Expected: FAIL (module missing).
