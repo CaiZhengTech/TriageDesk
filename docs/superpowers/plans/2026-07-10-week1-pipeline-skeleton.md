@@ -1138,6 +1138,16 @@ Run: `pytest tests/unit/test_llm_repair.py -v` — Expected: FAIL (module missin
 
 `triagedesk/llm.py`:
 
+> **SUPERSEDED IN REVIEW (2026-07-11):** `structured_call` shipped differently from the
+> code below. Review proved `messages.parse(output_format=...)` raises `ValidationError`
+> *inside* the SDK before returning (repair/refusal path unreachable), the repair turn
+> stacked two consecutive `user` messages (API 400), and `output_format=` is deprecated.
+> The committed code (`triagedesk/llm.py`, commit 8e3e55e) uses `messages.create` +
+> `output_config={"format": {"type": "json_schema", "schema": ...}}` with self-validation
+> via `schema.model_validate_json`, feeds real validation errors into the repair prompt,
+> and gives both exceptions a `StructuredCallError` base carrying `.responses`. The repo
+> is authoritative for this function; interface (signature, exception names) unchanged.
+
 ```python
 """Shared Anthropic client. One place for retries, model pinning, and the
 structured-output + single-repair-re-prompt policy.
