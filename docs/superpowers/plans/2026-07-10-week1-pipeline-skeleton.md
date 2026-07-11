@@ -6,7 +6,7 @@
 
 **Architecture:** A single FastAPI service backed by Neon Postgres (+pgvector). Pipeline stages are plain functions orchestrated by `runner.py`; every stage writes a span row *incrementally* (crash leaves a partial trace). LLM calls go through one shared Anthropic client (retry/backoff/structured-output repair). Embeddings come from Voyage AI. The gate uses two external signals only: retrieval similarity and an embedding-centroid classification margin — never the LLM's self-reported confidence.
 
-**Tech Stack:** Python 3.12, FastAPI, SQLAlchemy 2.0, Alembic, Neon Postgres + pgvector, Anthropic SDK (hand-written tool loop — deliberately no framework), Voyage AI embeddings, pytest, ruff, GitHub Actions.
+**Tech Stack:** Python 3.13, FastAPI, SQLAlchemy 2.0, Alembic, Neon Postgres + pgvector, Anthropic SDK (hand-written tool loop — deliberately no framework), Voyage AI embeddings, pytest, ruff, GitHub Actions.
 
 ## Global Constraints
 
@@ -97,10 +97,10 @@ VOYAGE_API_KEY=pa-...
 ```
 
 - [ ] **Step 5: GitHub Actions secret** — `gh secret set TEST_DATABASE_URL --body "<test branch connection string>"` (needed by CI from Task 2 on). Also `gh secret set ANTHROPIC_API_KEY` is **NOT** needed — unit tests never call the API.
-- [ ] **Step 6: Python 3.12 venv** — in the repo root:
+- [ ] **Step 6: Python 3.13 venv** — in the repo root:
 
 ```powershell
-python --version   # confirm 3.12.x
+python --version   # confirm 3.13.x
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 ```
@@ -252,7 +252,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           cache: pip
       - run: pip install -r requirements.txt
       - run: ruff check .
@@ -305,7 +305,7 @@ for implementation detail.
 
 ## Local setup
 
-1. Python 3.12, `python -m venv .venv`, activate, `pip install -r requirements.txt`
+1. Python 3.13, `python -m venv .venv`, activate, `pip install -r requirements.txt`
 2. Secrets: see `.env.example` — locally they live in a machine-level env file
    (path in `triagedesk/config.py`), never in the repo
 3. `alembic upgrade head` (dev DB), `pytest` (integration tests need `TEST_DATABASE_URL`)
