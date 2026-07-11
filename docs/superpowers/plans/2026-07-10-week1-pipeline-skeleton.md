@@ -12,9 +12,9 @@
 
 Copied from the spec (`docs/superpowers/specs/2026-07-10-triagedesk-design.md`) — every task implicitly includes these:
 
-- **Pinned LLM:** `claude-opus-4-8` (user decision 2026-07-10; alias is Anthropic's pinned form — Opus has no date-suffixed ID). Recorded on every run row. **Do NOT pass `temperature`/`top_p`/`top_k`** — Opus 4.8 rejects them with a 400. Omit `thinking` (off by default on 4.8).
+- **Pinned LLM:** `claude-sonnet-4-6` (user decision 2026-07-10, revised same day from Opus 4.8; alias is Anthropic's pinned form — no date-suffixed ID). Recorded on every run row. **Effort:** Sonnet 4.6 defaults to `high` (the user's chosen level); the act loop sets `output_config={"effort": "high"}` explicitly, structured calls rely on the default. **Thinking:** adaptive thinking (`thinking={"type": "adaptive"}`) is enabled in the act loop only — the agentic part; pre-check/classify are cheap structured calls and stay non-thinking. Sonnet 4.6 accepts `temperature` (at most one of `temperature`/`top_p`), but the pipeline doesn't use it.
 - **Embeddings:** Voyage AI `voyage-3.5-lite`, `output_dimension=1024`, `input_type="document"` for KB docs / `"query"` for tickets. `EMBED_DIMS = 1024` must match the pgvector column.
-- **Cost cap:** `COST_CAP_USD` env var, default `0.10`. **Fail closed:** if cost cannot be computed (unknown model, missing usage), treat as breach → escalate. Note: Opus 4.8 runs may brush the cap (~$0.05–0.12/run); the cap is a setting, not a constant, so Week 2 calibration can adjust it deliberately.
+- **Cost cap:** `COST_CAP_USD` env var, default `0.10`. **Fail closed:** if cost cannot be computed (unknown model, missing usage), treat as breach → escalate. Note: Sonnet 4.6 ($3/$15 per MTok) runs land well under the cap (~$0.02–0.06/run even with act-loop thinking); the cap is a setting, not a constant, so Week 2 calibration can adjust it deliberately.
 - **Retries:** API 429/5xx → SDK-managed backoff, `max_retries=3`, `timeout=60.0` seconds on the client. Then run → `failed`.
 - **Structured output:** Pydantic + exactly **one** repair re-prompt on validation failure, then escalate (`validation_failed`).
 - **Tool errors:** retry once, then escalate (`tool_error`).
@@ -27,7 +27,7 @@ Copied from the spec (`docs/superpowers/specs/2026-07-10-triagedesk-design.md`) 
 - **Queue labels (from the actual dataset, verified 2026-07-10):** `Technical Support`, `Product Support`, `Customer Service`, `IT Support`, `Billing and Payments`, `Returns and Exchanges`, `Service Outages and Maintenance`, `Sales and Pre-Sales`, `Human Resources`, `General Inquiry`.
 - **Dataset:** `data/customer-support-tickets/dataset-tickets-multi-lang-4-20k.csv` (20,000 rows; 11,923 English). Ingest English rows only.
 - **Process:** one branch + PR per code issue (`feat/NN-slug`), PR body `Closes #N`, self-review via the PR checklist, squash-merge. KB prose (Task 5a) gets no TDD ceremony — 2h timebox.
-- **Known Week-2 follow-up (do not solve now):** the judge spec says "pinned model, temp 0" — Opus 4.8 rejects `temperature`, so the Week 2 plan must either pin a temperature-capable model for the judge (e.g. `claude-sonnet-4-5-20250929`) or drop the param. Flagged here so it isn't forgotten.
+- **Week-2 judge note (resolved by the Sonnet 4.6 switch):** the judge spec says "pinned model, temp 0" — `claude-sonnet-4-6` accepts `temperature`, so the Week 2 judge can pin the same model at `temperature=0` as the spec asks. No workaround needed.
 
 ## File Structure (end state of Week 1)
 
@@ -798,9 +798,9 @@ class FakeSession:
     def commit(self): ...
 
 
-def test_compute_cost_opus():
+def test_compute_cost_sonnet():
     # 1000 in @ $5/M + 1000 out @ $25/M = 0.005 + 0.025
-    assert compute_cost("claude-opus-4-8", usage(1000, 1000)) == pytest.approx(0.030)
+    assert compute_cost("claude-sonnet-4-6", usage(1000, 1000)) == pytest.approx(0.018)
 
 
 def test_unknown_model_fails_closed():
@@ -810,11 +810,11 @@ def test_unknown_model_fails_closed():
 
 def test_missing_usage_fails_closed():
     with pytest.raises(CostUnknownError):
-        compute_cost("claude-opus-4-8", SimpleNamespace(input_tokens=None, output_tokens=5))
+        compute_cost("claude-sonnet-4-6", SimpleNamespace(input_tokens=None, output_tokens=5))
 
 
 def test_finish_run_sets_terminal_state():
-    run = Run(state="running", prompt_version="w1-v1", model="claude-opus-4-8", ticket_id=1)
+    run = Run(state="running", prompt_version="w1-v1", model="claude-sonnet-4-6", ticket_id=1)
     finish_run(FakeSession(), run, "escalated", reason="low_confidence")
     assert run.state == "escalated"
     assert run.escalation_reason == "low_confidence"
@@ -822,13 +822,13 @@ def test_finish_run_sets_terminal_state():
 
 
 def test_finish_run_rejects_double_transition():
-    run = Run(state="completed", prompt_version="w1-v1", model="claude-opus-4-8", ticket_id=1)
+    run = Run(state="completed", prompt_version="w1-v1", model="claude-sonnet-4-6", ticket_id=1)
     with pytest.raises(InvalidTransitionError):
         finish_run(FakeSession(), run, "failed")
 
 
 def test_finish_run_rejects_bogus_state():
-    run = Run(state="running", prompt_version="w1-v1", model="claude-opus-4-8", ticket_id=1)
+    run = Run(state="running", prompt_version="w1-v1", model="claude-sonnet-4-6", ticket_id=1)
     with pytest.raises(InvalidTransitionError):
         finish_run(FakeSession(), run, "paused")
 
@@ -838,11 +838,11 @@ def test_budget_breach_raises(monkeypatch):
     from triagedesk.models import Span
 
     monkeypatch.setattr(tracing.settings, "cost_cap_usd", 0.01)
-    run = Run(state="running", prompt_version="w1-v1", model="claude-opus-4-8",
+    run = Run(state="running", prompt_version="w1-v1", model="claude-sonnet-4-6",
               ticket_id=1, total_cost_usd=0.0)
     tracer = tracing.RunTracer(FakeSession(), run)
     span = Span(run_id=run.id, name="act", started_at=None, attributes={})
-    response = SimpleNamespace(model="claude-opus-4-8", usage=usage(2000, 2000))
+    response = SimpleNamespace(model="claude-sonnet-4-6", usage=usage(2000, 2000))
     with pytest.raises(BudgetExceededError):
         tracer.record_llm_usage(span, response)  # $0.06 > $0.01 cap
 ```
@@ -871,11 +871,11 @@ from triagedesk.models import RUN_STATES, Run, Span
 # USD per 1M tokens. Adding a model here is a deliberate, reviewed act —
 # anything absent fails closed.
 PRICES_PER_MTOK: dict[str, dict[str, float]] = {
-    "claude-opus-4-8": {
-        "input": 5.00,
-        "output": 25.00,
-        "cache_write": 6.25,  # 1.25x input
-        "cache_read": 0.50,   # 0.1x input
+    "claude-sonnet-4-6": {
+        "input": 3.00,
+        "output": 15.00,
+        "cache_write": 3.75,  # 1.25x input
+        "cache_read": 0.30,   # 0.1x input
     },
 }
 
@@ -999,7 +999,7 @@ gh pr merge --squash --delete-branch
 **Interfaces:**
 - Consumes: `settings.anthropic_api_key`.
 - Produces:
-  - `llm.PIPELINE_MODEL = "claude-opus-4-8"`
+  - `llm.PIPELINE_MODEL = "claude-sonnet-4-6"`
   - `llm.client` — configured `anthropic.Anthropic` (`max_retries=3`, `timeout=60.0`)
   - `llm.structured_call(system: str, user: str, schema: type[BaseModel], max_tokens: int = 1024, _client=None) -> tuple[BaseModel, list]` — returns `(parsed, responses)` where `responses` is every raw API response (callers feed each to `tracer.record_llm_usage`). Raises `llm.RepairFailedError` after the single repair attempt, `llm.LLMRefusalError` on `stop_reason == "refusal"`.
   - `schemas.PrecheckVerdict`, `schemas.ClassifyResult`, `schemas.Resolution`, `schemas.QUEUES`
@@ -1076,7 +1076,7 @@ def fake_response(parsed, stop_reason="end_turn"):
     return SimpleNamespace(
         parsed_output=parsed,
         stop_reason=stop_reason,
-        model="claude-opus-4-8",
+        model="claude-sonnet-4-6",
         usage=SimpleNamespace(input_tokens=100, output_tokens=20,
                               cache_creation_input_tokens=0, cache_read_input_tokens=0),
         content=[],
@@ -1142,8 +1142,9 @@ Run: `pytest tests/unit/test_llm_repair.py -v` — Expected: FAIL (module missin
 """Shared Anthropic client. One place for retries, model pinning, and the
 structured-output + single-repair-re-prompt policy.
 
-Opus 4.8 notes: no temperature/top_p/top_k (400 if sent); thinking is off
-when the parameter is omitted; structured outputs via messages.parse().
+Sonnet 4.6 notes: effort defaults to "high" (the chosen level) so structured
+calls don't pass it; thinking is off when the parameter is omitted (only the
+act loop enables it); structured outputs via messages.parse().
 The SDK itself retries 408/429/5xx/connection errors with exponential
 backoff (max_retries=3); after that, anthropic.APIError propagates and the
 runner marks the run `failed`.
@@ -1154,7 +1155,7 @@ from pydantic import BaseModel
 
 from triagedesk.config import settings
 
-PIPELINE_MODEL = "claude-opus-4-8"
+PIPELINE_MODEL = "claude-sonnet-4-6"
 
 client = Anthropic(
     api_key=settings.anthropic_api_key or None,
@@ -1338,7 +1339,7 @@ class FakeTracer:
 
 def fake_call_returning(parsed):
     def _call(**kwargs):
-        return parsed, [SimpleNamespace(model="claude-opus-4-8", usage=None)]
+        return parsed, [SimpleNamespace(model="claude-sonnet-4-6", usage=None)]
 
     return _call
 
@@ -1844,7 +1845,7 @@ def tool_use_block(name, tool_input, block_id="tu_1"):
 
 def response(blocks, stop_reason="tool_use"):
     return SimpleNamespace(content=blocks, stop_reason=stop_reason,
-                           model="claude-opus-4-8", usage=usage())
+                           model="claude-sonnet-4-6", usage=usage())
 
 
 class FakeMessages:
@@ -1982,10 +1983,12 @@ def run_act(ticket, classify_result, retrieval, tracer, _client=None) -> ActOutc
         for iteration in range(MAX_ITERATIONS):
             response = c.messages.create(
                 model=PIPELINE_MODEL,
-                max_tokens=2048,
+                max_tokens=4096,  # headroom: adaptive thinking counts against max_tokens
                 system=ACT_SYSTEM,
                 tools=TOOL_DEFS,
                 messages=messages,
+                thinking={"type": "adaptive"},
+                output_config={"effort": "high"},
             )
             tracer.record_llm_usage(span, response)
             tracer.set_attributes(span, **{"triage.act.iterations": iteration + 1})
