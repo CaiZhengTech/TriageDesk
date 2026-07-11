@@ -26,7 +26,8 @@ Copied from the spec (`docs/superpowers/specs/2026-07-10-triagedesk-design.md`) 
 - **Secrets:** local dev reads `C:\Users\Wonton Soup\.secrets\credentials.env`; repo carries only `.env.example`. Never commit secrets; `.gitignore` already covers `.env*`, `credentials*`, and `data/`.
 - **Queue labels (from the actual dataset, verified 2026-07-10):** `Technical Support`, `Product Support`, `Customer Service`, `IT Support`, `Billing and Payments`, `Returns and Exchanges`, `Service Outages and Maintenance`, `Sales and Pre-Sales`, `Human Resources`, `General Inquiry`.
 - **Dataset:** `data/customer-support-tickets/dataset-tickets-multi-lang-4-20k.csv` (20,000 rows; 11,923 English). Ingest English rows only.
-- **Process:** one branch + PR per code issue (`feat/NN-slug`), PR body `Closes #N`, self-review via the PR checklist, squash-merge. KB prose (Task 5a) gets no TDD ceremony — 2h timebox.
+- **Process:** one branch + PR per code issue (`feat/NN-slug`), PR body `Closes #N`, self-review via the PR checklist, squash-merge. KB prose (Task 5a) gets no TDD ceremony — 2h timebox. Merges require the CI `test` check green (branch protection, added 2026-07-11); controller verifies `gh pr checks` before merging.
+- **SDK-reality rule (council, 2026-07-11):** before writing code against any NEW Anthropic SDK surface (endpoint, stop reason, block type, tool-use shape), run a live smoke call first and **commit the observed response shapes as a test fixture**; build mocks from the fixture, never from remembered/planned API shapes. (Root cause of the Task 5 structured_call defect. Task 8 is explicitly gated on this.)
 - **Week-2 judge note (resolved by the Sonnet 4.6 switch):** the judge spec says "pinned model, temp 0" — `claude-sonnet-4-6` accepts `temperature`, so the Week 2 judge can pin the same model at `temperature=0` as the spec asks. No workaround needed.
 
 ## File Structure (end state of Week 1)
