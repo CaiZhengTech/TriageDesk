@@ -32,3 +32,4 @@ Thumbs.db
 # Local data / scratch
 *.sqlite3
 .ipynb_checkpoints/
+data/

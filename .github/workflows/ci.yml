@@ -1,0 +1,21 @@
+name: ci
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: ruff check .
+      - name: Run migrations on Neon test branch
+        if: ${{ env.TEST_DATABASE_URL != '' }}
+        run: alembic upgrade head
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+      - run: pytest -v
