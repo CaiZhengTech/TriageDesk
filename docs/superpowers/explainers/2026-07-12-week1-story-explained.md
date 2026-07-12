@@ -10,6 +10,10 @@ answer contains a denial — which triggers this project's most important safety
 *Companion docs: [QA hardening explainer](2026-07-12-week1-qa-explained.md) ·
 [PITCH.md](PITCH.md) (interview one-liners, one file).*
 
+*Each chapter has three layers: **the analogy** (10-second grasp), **Dana's journey**
+(watch it happen), and **Under the hood** (semi-technical — the actual components and
+terms, for when you want one level deeper without reading code).*
+
 ---
 
 ## What is TriageDesk, in one paragraph?
@@ -40,6 +44,12 @@ failing for two days (a configuration subtlety) — catching and fixing *that* l
 "branch protection": GitHub now physically refuses to merge code whose tests aren't
 green. The workshop enforces its own safety rules.
 
+**Under the hood:** a Python project configured in `pyproject.toml`; **pytest** runs
+the test suite and **ruff** enforces code style; a **GitHub Actions** workflow (the CI
+robot) runs both on every push; a minimal **FastAPI** web app with a `/health`
+endpoint proves the server skeleton works. Branch protection requires the CI check
+named `test` to pass before any merge into `main`.
+
 ---
 
 ## Issue #2 — Database + ticket ingest: *the filing cabinet and 11,922 real letters*
@@ -57,6 +67,13 @@ get lost.
 **Why it matters / builds on:** built inside the workshop from #1, tests and all. Using
 real tickets is a deliberate credibility choice: any demo where the AI triages a ticket
 is triaging the kind of ticket real support teams actually receive.
+
+**Under the hood:** **PostgreSQL** database hosted on Neon's free tier; tables defined
+as **SQLAlchemy 2.0** ORM models (tickets, runs, spans, kb_docs); schema changes are
+versioned with **Alembic migrations** — think "git history, but for the database's
+shape." The ingest script streams the 20,000-row Kaggle CSV and keeps the 11,922
+English-language rows. The `runs` table is append-only with a one-way state machine:
+`running → completed | escalated | failed`, one transition ever.
 
 ---
 
@@ -80,6 +97,15 @@ can always see inside. It also enforces one more rule: a run's story can only en
 (completed, escalated, or failed — never two endings), so the record can't be quietly
 rewritten.
 
+**Under the hood:** hand-rolled tracing (no vendor SDK): each pipeline stage writes a
+**span** — a database row with start/end times and a JSON blob of attributes that
+follow the **OpenTelemetry GenAI naming conventions** (`gen_ai.request.model`,
+`gen_ai.usage.input_tokens`, …), the industry-standard vocabulary for describing AI
+calls. Cost = token counts × a per-model price table, accumulated per run; a
+`BudgetExceededError` stops the run over the $0.10 cap, and a `CostUnknownError` does
+the same when cost *can't* be computed (fail closed). Spans are written incrementally,
+so even a crash mid-run leaves a partial evidence trail.
+
 ---
 
 ## Issue #4 — Safety screening + sorting (precheck & classify): *the mail room*
@@ -102,6 +128,15 @@ created the project's **SDK-reality rule**: never code against an API surface yo
 haven't personally observed live; capture the real response and build tests from it.
 This rule earned its keep twice more during the week.
 
+**Under the hood:** both stages call `claude-sonnet-4-6` through the official Anthropic
+SDK using **structured outputs** — the API is handed a JSON Schema and constrained to
+answer in exactly that shape — then the response is validated again locally with
+**Pydantic** models (`PrecheckVerdict`, `ClassifyResult`). On validation failure, the
+error text is fed back to the model in exactly **one** "repair" re-prompt, then the run
+escalates (`validation_failed`). The classifier scores all 10 queue labels; the
+**classification margin** — the gap between its top two choices — is the
+confidence-gap signal the gate consumes later.
+
 ---
 
 ## Issue #5 — Knowledge base + retrieval: *the reference library and the librarian*
@@ -122,6 +157,15 @@ article. Those three go into the AI's briefing packet. How *close* the best matc
 the library gives the AI *company-approved grounding* to answer from, instead of
 improvising from general knowledge. Grounding + a measurable relevance score = both an
 input and a safety signal.
+
+**Under the hood:** each of the 15 authored markdown docs is converted to an
+**embedding** — a 1,024-number vector from Voyage AI's `voyage-3.5-lite` model — and
+stored in Postgres using the **pgvector** extension (no separate vector database:
+one less moving part). Retrieval embeds the incoming ticket the same way and takes the
+top **k=3** docs by **cosine similarity** (the math for "how close on the meaning
+map"). Deliberately simple: whole-document embeddings, no chunking, no reranking —
+each cut is a documented trade-off, and the best-match similarity score is persisted
+per run as a gate signal.
 
 ---
 
@@ -147,6 +191,17 @@ AI sometimes uses both phone lines *simultaneously*), and review then caught an
 ordering bug in exactly that scenario — where the denial flag could have been missed if
 the rep filed the form in the same breath as a phone call. Fixed so evidence-gathering
 always completes before the form is honored.
+
+**Under the hood:** a hand-written **tool-use loop** on the raw Anthropic SDK — no
+LangChain or agent framework, every line owned and explainable. The model is offered
+three **tools** (functions it can request): `lookup_account_status` and
+`check_entitlement` (simulated against a seeded accounts file — Dana is customer-3,
+active, basic plan), plus `submit_resolution`, a **strict-schema** tool (the API
+guarantees its arguments match the schema exactly). The loop runs at most 5
+iterations with **adaptive extended thinking** enabled. The subtle fix: the model can
+request several tools *in one turn*, so the loop partitions them — evidence tools
+always execute (and can raise the `entitlement_denied` flag) before any
+`submit_resolution` in the same turn is honored.
 
 ---
 
@@ -179,6 +234,16 @@ more honest detail: both live runs' sorting-confidence signals were *below* the
 auto-send bar — as configured, nothing auto-resolves yet. That's deliberate: the bars
 are placeholder values, and Week 2's entire job is setting them from measured data
 instead of guesses.
+
+**Under the hood:** `gate.decide()` is a small **pure function** (same inputs → same
+answer, no hidden state — trivially testable) over external signals only: retrieval
+similarity ≥ 0.45, classification margin ≥ 0.02, plus the entitlement flags from the
+act loop. The **runner** orchestrates all five stages under one trace and maps every
+failure type to a terminal state (budget breach, validation failure, model refusal,
+tool error, loop exhaustion, API error, and — post-QA — a catch-all so nothing can
+strand a run mid-state). The **CLI** (`python -m triagedesk.cli run|trace`) executes a
+ticket and prints the full evidence trail. The two live runs cost 3.1¢ and 3.6¢,
+every span on record.
 
 ---
 

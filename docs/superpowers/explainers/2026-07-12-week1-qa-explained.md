@@ -160,6 +160,38 @@ rule. That habit — not the AI itself — is the product.
 
 ---
 
+## Under the hood (semi-technical appendix)
+
+For when you want one level deeper than the analogies, without reading code:
+
+- **The receipt mechanism:** the act loop's result object (`ActOutcome`) gained a
+  boolean field `entitlement_checked`, set to true the moment a `check_entitlement`
+  tool call actually *executes* — not when the model claims it did. Because it's set
+  by the loop's own tool-execution code, the model cannot fake it. The gate function
+  received a matching parameter, and its rulebook order is now: (1) denial or
+  denied-entitlement → escalate `adverse_action`; (2) model asked for a human →
+  escalate; (3) **"solve" without the receipt → escalate `no_entitlement_evidence`**;
+  (4) only then check the two confidence signals. The new signal also flows into the
+  run's trace, so every gate decision shows the evidence it was based on.
+- **The TDD proof:** the regression test constructs a "solve" outcome with strong
+  confidence scores but `entitlement_checked=False`. Run against the old gate, it
+  failed (the outcome would have auto-resolved) — that failure output is preserved in
+  the work report as evidence the hole existed. Against the new gate, it escalates.
+- **The cost-typing fix:** `record_llm_usage` used to read `response.model` and
+  `response.usage` directly; a malformed response raised a generic `AttributeError`,
+  which the runner's catch-all mapped to `failed` — technically safe, but not the
+  *budget* escalation the fail-closed rule promises. It now checks with `getattr` and
+  raises `CostUnknownError`, which the runner maps to `escalated/budget_breach`. Four
+  new boundary tests pin the policy, including "cost exactly at the cap is allowed"
+  (the cap uses `>`, deliberately).
+- **CI details:** the gitleaks step runs *inside* the existing `test` job — that
+  matters because branch protection requires a check literally named `test`; a
+  separate job wouldn't be required and could fail invisibly. Checkout now uses
+  `fetch-depth: 0` so gitleaks can scan full history. A workflow-level `concurrency`
+  group cancels superseded runs on rapid pushes.
+
+---
+
 *Technical record: PR #29, merged to `main` as `627f778`. Five commits: gate
 entitlement-evidence rule (TDD), cost fail-closed typing + boundary tests, test-gap
 minors + polish, CI gitleaks + concurrency, plan reconciliation note. 57 tests + ruff
