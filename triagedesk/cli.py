@@ -5,10 +5,15 @@
 """
 
 import argparse
+import sys
 import uuid
 
 from triagedesk.db import SessionLocal
 from triagedesk.models import Run, Span
+
+# Windows consoles default to cp1252, which crashes on characters the model
+# routinely emits (arrows, curly quotes). The trace dump must never crash.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 
 def cmd_run(args) -> None:

@@ -84,6 +84,16 @@ def test_repair_failure_escalates():
     assert len(excinfo.value.responses) == 2
 
 
+def test_schema_objects_forbid_additional_properties():
+    """The live API rejects output_config schemas whose object types lack an
+    explicit additionalProperties: false (found in the Week-1 E2E checkpoint;
+    Pydantic's model_json_schema() does not emit it)."""
+    client = make_client([fake_response(GOOD_JSON)])
+    structured_call(system="s", user="u", schema=PrecheckVerdict, _client=client)
+    schema = client.messages.calls[0]["output_config"]["format"]["schema"]
+    assert schema["additionalProperties"] is False
+
+
 def test_refusal_raises():
     client = make_client([fake_response(None, stop_reason="refusal")])
     with pytest.raises(LLMRefusalError) as excinfo:

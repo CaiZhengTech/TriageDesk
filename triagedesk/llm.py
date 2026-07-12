@@ -26,6 +26,21 @@ client = Anthropic(
 )
 
 
+def _strict_schema(node):
+    """The API requires every 'object' in an output_config schema to set
+    additionalProperties: false explicitly; Pydantic's model_json_schema()
+    omits it (found live in the Week-1 E2E checkpoint)."""
+    if isinstance(node, dict):
+        if node.get("type") == "object":
+            node.setdefault("additionalProperties", False)
+        for value in node.values():
+            _strict_schema(value)
+    elif isinstance(node, list):
+        for item in node:
+            _strict_schema(item)
+    return node
+
+
 class StructuredCallError(Exception):
     """Base for structured_call failures. Carries every raw API response so
     the caller can still record usage/cost for failed attempts."""
@@ -70,7 +85,10 @@ def structured_call(
             system=system,
             messages=messages,
             output_config={
-                "format": {"type": "json_schema", "schema": schema.model_json_schema()}
+                "format": {
+                    "type": "json_schema",
+                    "schema": _strict_schema(schema.model_json_schema()),
+                }
             },
         )
         responses.append(response)
