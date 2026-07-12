@@ -1931,6 +1931,13 @@ Run: `pytest tests/unit/test_act_loop.py -v` — Expected: FAIL (module missing)
 
 `triagedesk/pipeline/act.py`:
 
+> **SUPERSEDED IN REVIEW (2026-07-11, commit a324592):** the loop below returns immediately
+> upon seeing `submit_resolution`, which review flagged as order-dependent — a same-response
+> `check_entitlement` appearing after it would never execute, silently skipping the
+> adverse-action flag. The committed code partitions each turn's tool calls and ALWAYS
+> executes non-submit tools (updating `entitlement_denied`) before honoring the resolution.
+> The repo is authoritative; interface (`run_act`, `ActOutcome`, exceptions) unchanged.
+
 ```python
 """The hand-written agent loop — deliberately no framework.
 
