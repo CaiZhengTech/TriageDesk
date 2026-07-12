@@ -49,6 +49,7 @@ def run_ticket(ticket_id: int, session) -> Run:
                 retrieval_similarity=retrieval.top_similarity,
                 margin=margin,
                 outcome=outcome,
+                entitlement_checked=outcome.entitlement_checked,
             )
             run.gate_signals = decision.signals
             tracer.set_attributes(

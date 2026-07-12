@@ -28,6 +28,7 @@ class ToolFailedError(Exception):
 class ActOutcome:
     resolution: Resolution
     entitlement_denied: bool
+    entitlement_checked: bool
 
 
 def _run_tool_twice(name: str, tool_input: dict) -> dict:
@@ -57,6 +58,7 @@ def run_act(ticket, classify_result, retrieval, tracer, _client=None) -> ActOutc
     }]
 
     entitlement_denied = False
+    entitlement_checked = False
     with tracer.span("act") as span:
         for iteration in range(MAX_ITERATIONS):
             response = c.messages.create(
@@ -87,8 +89,10 @@ def run_act(ticket, classify_result, retrieval, tracer, _client=None) -> ActOutc
             results = []
             for block in others:  # ALWAYS execute non-submit tools first, regardless of order
                 result = _run_tool_twice(block.name, dict(block.input))
-                if block.name == "check_entitlement" and result.get("covered") is False:
-                    entitlement_denied = True
+                if block.name == "check_entitlement":
+                    entitlement_checked = True
+                    if result.get("covered") is False:
+                        entitlement_denied = True
                 results.append({
                     "type": "tool_result",
                     "tool_use_id": block.id,
@@ -102,10 +106,12 @@ def run_act(ticket, classify_result, retrieval, tracer, _client=None) -> ActOutc
                     **{
                         "triage.act.resolution_type": resolution.resolution_type,
                         "triage.act.entitlement_denied": entitlement_denied,
+                        "triage.act.entitlement_checked": entitlement_checked,
                     },
                 )
                 return ActOutcome(resolution=resolution,
-                                  entitlement_denied=entitlement_denied)
+                                  entitlement_denied=entitlement_denied,
+                                  entitlement_checked=entitlement_checked)
 
             messages = messages + [
                 {"role": "assistant", "content": response.content},

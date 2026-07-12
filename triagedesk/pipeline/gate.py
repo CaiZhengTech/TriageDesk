@@ -41,14 +41,23 @@ class GateDecision:
     signals: dict
 
 
-def decide(*, retrieval_similarity: float, margin: float, outcome: ActOutcome) -> GateDecision:
-    signals = {"retrieval_similarity": retrieval_similarity, "classification_margin": margin}
+def decide(*, retrieval_similarity: float, margin: float, outcome: ActOutcome,
+           entitlement_checked: bool) -> GateDecision:
+    signals = {
+        "retrieval_similarity": retrieval_similarity,
+        "classification_margin": margin,
+        "entitlement_checked": entitlement_checked,
+    }
 
     # Adverse-action rule first: never auto-deliver a denial, however confident.
     if outcome.resolution.resolution_type == "deny" or outcome.entitlement_denied:
         return GateDecision(False, "adverse_action", signals)
     if outcome.resolution.resolution_type == "needs_human":
         return GateDecision(False, "agent_requested_human", signals)
+    # A solve with no positive entitlement evidence is treated the same as a
+    # soft denial the model never flagged — escalate rather than trust it.
+    if outcome.resolution.resolution_type == "solve" and not entitlement_checked:
+        return GateDecision(False, "no_entitlement_evidence", signals)
     if retrieval_similarity < SIM_THRESHOLD or margin < MARGIN_THRESHOLD:
         return GateDecision(False, "low_confidence", signals)
     return GateDecision(True, None, signals)

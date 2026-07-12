@@ -85,6 +85,23 @@ def test_happy_path_lookup_then_resolve():
     assert submit_def["strict"] is True
 
 
+def test_entitlement_checked_reflects_check_entitlement_tool_execution():
+    checked_client = make_client([
+        response([tool_use_block("check_entitlement",
+                                 {"customer_ref": "customer-3", "feature": "dedicated_ip"})]),
+        response([RESOLUTION_CALL]),
+    ])
+    checked_outcome = run_act(TICKET, CLASSIFY, RETRIEVAL, FakeTracer(), _client=checked_client)
+    assert checked_outcome.entitlement_checked is True
+
+    unchecked_client = make_client([
+        response([tool_use_block("lookup_account_status", {"customer_ref": "customer-3"})]),
+        response([RESOLUTION_CALL]),
+    ])
+    unchecked_outcome = run_act(TICKET, CLASSIFY, RETRIEVAL, FakeTracer(), _client=unchecked_client)
+    assert unchecked_outcome.entitlement_checked is False
+
+
 def test_loop_exhaustion_escalates():
     lookup = tool_use_block("lookup_account_status", {"customer_ref": "customer-3"})
     client = make_client([response([lookup])] * 5)

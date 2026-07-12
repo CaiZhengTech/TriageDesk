@@ -35,8 +35,9 @@ def resolution(rtype="solve"):
     return Resolution(resolution_type=rtype, customer_reply="reply", internal_rationale="why")
 
 
-def outcome(rtype="solve", denied=False):
-    return ActOutcome(resolution=resolution(rtype), entitlement_denied=denied)
+def outcome(rtype="solve", denied=False, checked=True):
+    return ActOutcome(resolution=resolution(rtype), entitlement_denied=denied,
+                       entitlement_checked=checked)
 
 
 def patch_happy_stages(monkeypatch, *, act_outcome=None, top_similarity=0.8, margin=0.3):
@@ -93,6 +94,14 @@ def test_adverse_action_never_auto_resolves(monkeypatch):
     run = runner.run_ticket(3, FakeSession())
     assert run.state == "escalated"
     assert run.escalation_reason == "adverse_action"
+
+
+def test_solve_without_entitlement_evidence_escalates(monkeypatch):
+    patch_happy_stages(monkeypatch, act_outcome=outcome("solve", checked=False),
+                       top_similarity=0.8, margin=0.3)
+    run = runner.run_ticket(3, FakeSession())
+    assert run.state == "escalated"
+    assert run.escalation_reason == "no_entitlement_evidence"
 
 
 def test_budget_exceeded_maps_to_escalated_budget_breach(monkeypatch):
