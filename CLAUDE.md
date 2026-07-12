@@ -14,14 +14,19 @@ correctly `escalated/adverse_action`. ~$0.11 of the $20 budget spent.
 **→ RESUME HERE: read `docs/sessions/2026-07-12-week1-complete.md`** (council verdict,
 Week 2 mandate, ordered next steps). Per-task detail: `.superpowers/sdd/progress.md`.
 
-- **Council checkpoint verdict (2026-07-12):** merge approved (done). One real finding:
-  the adverse-action guarantee is enforced by model cooperation, not gate structure —
-  **first commit of Week 2 (before any golden-set/calibration work): gate must require
-  positive `check_entitlement` evidence before a `solve` may auto-resolve** (TDD, $0).
-  Gap is named in PR #27's description. Grooming issue **#28** holds all deferred items.
-- **Week 2 sequencing:** gate fix → judge structured-output live smoke + fixture
-  (SDK-reality rule) → prompt caching → golden set → harness/calibration → judge →
-  kappa → CI eval gate.
+- **QA hardening DONE (PR #29 → `627f778`):** the council-mandated gate fix landed —
+  gate now structurally requires `check_entitlement` execution evidence before any
+  `solve` auto-resolves (escalates `no_entitlement_evidence` otherwise; TDD'd). Plus:
+  CostUnknownError fail-closed typing, cost boundary tests, runner/act test gaps,
+  gitleaks in CI (inside the `test` job) + concurrency-cancel, filler tickets cleaned.
+  Issue **#28** tracks the two genuinely-Week-2 leftovers (judge live smoke; soft-denial
+  golden case). Recruiter-friendly write-up: `docs/superpowers/explainers/`.
+- **Week 2 sequencing:** judge structured-output live smoke + fixture (SDK-reality
+  rule, FIRST) → prompt caching → golden set (incl. soft-denial adversarial case) →
+  harness/calibration → judge → kappa → CI eval gate.
+- **Standing explanation rule (Cai, 2026-07-12):** every completed task gets (1) a plain
+  chat explanation, (2) an analogy-driven issue comment for non-technical readers,
+  (3) an explainer md in `docs/superpowers/explainers/` with interview one-liners.
 - **Model:** `claude-sonnet-4-6`, effort high; adaptive thinking in act loop only. Judge can
   run temp 0 on the same model.
 - **Infra facts:** branch protection on main (test check + up-to-date required; verify
