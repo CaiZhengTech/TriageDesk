@@ -5,27 +5,33 @@ Northeast US (NYC/Boston) new-grad SWE roles, fall 2026 cycle. The differentiato
 agent — it's the eval/observability/trust discipline around it (market research: eval design
 is the #1 hiring signal; plain RAG demos are a yellow flag).
 
-## Status (updated 2026-07-11, end of day)
+## Status (updated 2026-07-12)
 
-**Week 1 implementation — 7 of 9 tasks done; issues #1–#5 closed. ⛔ BLOCKED on Anthropic
-API credits** (Cai topping up; ~$10 covers Weeks 1–2 at ~5–9¢/full pipeline run).
-**→ RESUME HERE: read `docs/sessions/2026-07-11-week1-handoff.md`** (blocker, full state,
-council-adjusted next steps, standing preferences). Per-task detail: `.superpowers/sdd/progress.md`.
+**WEEK 1 COMPLETE.** All 9 tasks merged (`main` = `a230052`); issues #1–#7 closed with
+closeout comments. E2E kill criterion met: two live runs through all 5 stages, both
+correctly `escalated/adverse_action`. ~$0.11 of the $20 budget spent.
+**⛔ STOPPED at the Week 2 gate — Cai reviews the checkpoint before any Week 2 work.**
+**→ RESUME HERE: read `docs/sessions/2026-07-12-week1-complete.md`** (council verdict,
+Week 2 mandate, ordered next steps). Per-task detail: `.superpowers/sdd/progress.md`.
 
-- **Merged + closed:** #1 scaffolding+CI, #2 DB+ingest (11,922 tickets live), #3 tracing,
-  #4 schemas+LLM client+precheck/classify, #5 KB (15 docs, embedded)+retrieve. #19 closed.
-  Every closed issue carries a narrative closeout comment (standing preference).
-- **Next:** live-SDK spike (council gate; script ready) → Task 8 act loop (issue #6, mocks
-  from committed fixture) → Task 9 gate/runner/CLI + E2E checkpoint (issue #7) → **STOP for
-  Cai's llm-council checkpoint before anything Week 2**.
+- **Council checkpoint verdict (2026-07-12):** merge approved (done). One real finding:
+  the adverse-action guarantee is enforced by model cooperation, not gate structure —
+  **first commit of Week 2 (before any golden-set/calibration work): gate must require
+  positive `check_entitlement` evidence before a `solve` may auto-resolve** (TDD, $0).
+  Gap is named in PR #27's description. Grooming issue **#28** holds all deferred items.
+- **Week 2 sequencing:** gate fix → judge structured-output live smoke + fixture
+  (SDK-reality rule) → prompt caching → golden set → harness/calibration → judge →
+  kappa → CI eval gate.
 - **Model:** `claude-sonnet-4-6`, effort high; adaptive thinking in act loop only. Judge can
   run temp 0 on the same model.
 - **Infra facts:** branch protection on main (test check + up-to-date required; verify
   `gh pr checks` before merge); `TRIAGEDESK_ENV_FILE` env var required for anything touching
   settings (no hardcoded path anymore); CI runs bare `pytest` (pythonpath fix in pyproject).
-- **Key incident on record:** plan's `structured_call` broken vs real SDK despite green mocked
-  tests → redesigned + SDK-verified → standing SDK-reality rule in plan Global Constraints
-  (new SDK surface = live smoke + committed fixture first).
+- **Key incidents on record:** (1) plan's `structured_call` broken vs real SDK despite green
+  mocked tests → SDK-reality rule in plan Global Constraints; (2) strict structured outputs
+  need `additionalProperties:false` — caught by a $0 live 400, now regression-tested;
+  (3) both live runs' classification margin was negative (−0.008) — nothing auto-resolves
+  until Week 2 calibration sets real thresholds (deliberate; do not hand-tune).
 
 **Spec remains the design record:** `docs/superpowers/specs/2026-07-10-triagedesk-design.md`.
 
