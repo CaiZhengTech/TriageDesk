@@ -2214,6 +2214,11 @@ Run: `pytest tests/unit/test_gate.py -v` — Expected: FAIL (module missing).
 
 `triagedesk/pipeline/gate.py`:
 
+> **SUPERSEDED IN QA (2026-07-12):** gate.decide() now additionally requires
+> `entitlement_checked` (positive check_entitlement evidence) before a `solve` may
+> auto-resolve — escalates `no_entitlement_evidence` otherwise. Council checkpoint
+> mandate; see PR #29 and issue #28.
+
 ```python
 """Multi-signal confidence gate. Signals are EXTERNAL gauges only:
 retrieval similarity + embedding-centroid classification margin. The LLM's
