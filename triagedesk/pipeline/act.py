@@ -81,19 +81,11 @@ def run_act(ticket, classify_result, retrieval, tracer, _client=None) -> ActOutc
                     f"model ended turn ({response.stop_reason}) without submit_resolution"
                 )
 
+            submit = next((b for b in tool_uses if b.name == "submit_resolution"), None)
+            others = [b for b in tool_uses if b.name != "submit_resolution"]
+
             results = []
-            for block in tool_uses:
-                if block.name == "submit_resolution":
-                    resolution = Resolution.model_validate(block.input)
-                    tracer.set_attributes(
-                        span,
-                        **{
-                            "triage.act.resolution_type": resolution.resolution_type,
-                            "triage.act.entitlement_denied": entitlement_denied,
-                        },
-                    )
-                    return ActOutcome(resolution=resolution,
-                                      entitlement_denied=entitlement_denied)
+            for block in others:  # ALWAYS execute non-submit tools first, regardless of order
                 result = _run_tool_twice(block.name, dict(block.input))
                 if block.name == "check_entitlement" and result.get("covered") is False:
                     entitlement_denied = True
@@ -102,6 +94,18 @@ def run_act(ticket, classify_result, retrieval, tracer, _client=None) -> ActOutc
                     "tool_use_id": block.id,
                     "content": str(result),
                 })
+
+            if submit is not None:
+                resolution = Resolution.model_validate(submit.input)
+                tracer.set_attributes(
+                    span,
+                    **{
+                        "triage.act.resolution_type": resolution.resolution_type,
+                        "triage.act.entitlement_denied": entitlement_denied,
+                    },
+                )
+                return ActOutcome(resolution=resolution,
+                                  entitlement_denied=entitlement_denied)
 
             messages = messages + [
                 {"role": "assistant", "content": response.content},

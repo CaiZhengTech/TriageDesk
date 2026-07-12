@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from tests.unit.test_precheck_classify import FakeTracer
+from triagedesk.llm import PIPELINE_MODEL
 from triagedesk.pipeline.act import AgentIncompleteError, ToolFailedError, run_act
 
 TICKET = SimpleNamespace(id=3, subject="Need a dedicated IP",
@@ -73,6 +74,16 @@ def test_happy_path_lookup_then_resolve():
     assert outcome.resolution.resolution_type == "deny"
     assert outcome.entitlement_denied is True  # basic plan, dedicated_ip => covered False
 
+    first_call = client.messages.calls[0]
+    assert first_call["model"] == PIPELINE_MODEL
+    assert first_call["max_tokens"] == 4096
+    assert first_call["thinking"] == {"type": "adaptive"}
+    assert first_call["output_config"] == {"effort": "high"}
+    tools = first_call["tools"]
+    assert len(tools) == 3
+    submit_def = next(t for t in tools if t["name"] == "submit_resolution")
+    assert submit_def["strict"] is True
+
 
 def test_loop_exhaustion_escalates():
     lookup = tool_use_block("lookup_account_status", {"customer_ref": "customer-3"})
@@ -131,6 +142,43 @@ def test_parallel_tool_calls_executed_in_one_turn():
     result_ids = {r["tool_use_id"] for r in tool_result_msg["content"]}
     assert result_ids == {lookup.id, entitlement.id}
     assert len(tool_result_msg["content"]) == 2
+
+
+def test_submit_resolution_with_parallel_entitlement_check(monkeypatch):
+    """Adverse-action hardening: submit_resolution and check_entitlement can arrive
+    in the same response with submit_resolution FIRST in content order. The loop
+    must still execute check_entitlement (never skip it because submit came first)
+    so entitlement_denied is set before the outcome is returned."""
+    from triagedesk.pipeline import act
+
+    calls = {"n": 0}
+
+    def fake_execute_tool(name, tool_input):
+        calls["n"] += 1
+        assert name == "check_entitlement"
+        return {"customer_ref": "customer-3", "feature": "dedicated_ip",
+                "plan": "basic", "covered": False}
+
+    monkeypatch.setattr(act, "execute_tool", fake_execute_tool)
+
+    submit = tool_use_block("submit_resolution", {
+        "resolution_type": "solve",
+        "customer_reply": "Here's how to resolve your VPN issue.",
+        "internal_rationale": "customer-3's VPN issue matches known fix.",
+    }, block_id="toolu_submit")
+    entitlement = tool_use_block(
+        "check_entitlement",
+        {"customer_ref": "customer-3", "feature": "dedicated_ip"},
+        block_id="toolu_entitlement",
+    )
+    turn0 = response([thinking_block(), submit, entitlement])
+    client = make_client([turn0])
+
+    outcome = run_act(TICKET, CLASSIFY, RETRIEVAL, FakeTracer(), _client=client)
+
+    assert outcome.resolution.resolution_type == "solve"
+    assert outcome.entitlement_denied is True
+    assert calls["n"] == 1  # entitlement tool was actually executed
 
 
 def test_max_tokens_truncation_is_incomplete():
