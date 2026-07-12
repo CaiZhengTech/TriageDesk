@@ -11,10 +11,6 @@ import uuid
 from triagedesk.db import SessionLocal
 from triagedesk.models import Run, Span
 
-# Windows consoles default to cp1252, which crashes on characters the model
-# routinely emits (arrows, curly quotes). The trace dump must never crash.
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-
 
 def cmd_run(args) -> None:
     from triagedesk.pipeline.runner import run_ticket
@@ -59,6 +55,10 @@ def _print_trace(session, run: Run) -> None:
 
 
 def main() -> None:
+    # Windows consoles default to cp1252, which crashes on characters the model
+    # routinely emits (arrows, curly quotes). The trace dump must never crash.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(prog="triagedesk")
     sub = parser.add_subparsers(required=True)
     p_run = sub.add_parser("run", help="run the pipeline on a ticket")

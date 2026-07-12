@@ -65,6 +65,7 @@ def test_precheck_injection_flagged():
     )
     assert verdict.safe is False
     assert verdict.category == "injection"
+    assert tracer.spans[0][1].attributes["triage.precheck.reason"] == "prompt override attempt"
 
 
 def test_classify_records_queue():

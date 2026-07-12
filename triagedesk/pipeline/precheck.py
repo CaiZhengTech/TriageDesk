@@ -18,6 +18,7 @@ def run_precheck(ticket, tracer, _call=structured_call) -> PrecheckVerdict:
             **{
                 "triage.precheck.safe": verdict.safe,
                 "triage.precheck.category": verdict.category,
+                "triage.precheck.reason": verdict.reason,
             },
         )
         return verdict

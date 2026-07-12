@@ -6,7 +6,7 @@ standard-priority ticket category.
 
 ## What to flag
 
-- Unrecognized login sessions or devices (Account -> Security -> Active Sessions shows all
+- Unrecognized login sessions or devices (Account → Security → Active Sessions shows all
   current sessions).
 - A password or API key you believe was exposed (e.g., accidentally committed to a public
   repo, phished).
@@ -16,11 +16,11 @@ standard-priority ticket category.
 ## Immediate steps you can take yourself
 
 1. If you still have access: change your password immediately (see "Resetting your password
-   and unlocking your account") and revoke any API keys you don't recognize (Account ->
-   Developer -> API Keys).
-2. End all other active sessions: Account -> Security -> Active Sessions -> End All Other
+   and unlocking your account") and revoke any API keys you don't recognize (Account →
+   Developer → API Keys).
+2. End all other active sessions: Account → Security → Active Sessions → End All Other
    Sessions.
-3. Enable multi-factor authentication if it isn't already on: Account -> Security -> MFA.
+3. Enable multi-factor authentication if it isn't already on: Account → Security → MFA.
 
 ## What happens after you submit this
 

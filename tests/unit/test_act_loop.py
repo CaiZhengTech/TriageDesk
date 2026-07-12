@@ -198,6 +198,22 @@ def test_submit_resolution_with_parallel_entitlement_check(monkeypatch):
     assert calls["n"] == 1  # entitlement tool was actually executed
 
 
+def test_pause_turn_continues_loop_without_tool_use():
+    """Mirrors a pause_turn stop_reason (thinking + text, no tool_use): the loop
+    must append the assistant turn and continue to the next call rather than
+    treating it as an incomplete turn."""
+    paused = response([thinking_block(), text_block()], stop_reason="pause_turn")
+    client = make_client([paused, response([RESOLUTION_CALL])])
+
+    outcome = run_act(TICKET, CLASSIFY, RETRIEVAL, FakeTracer(), _client=client)
+
+    assert outcome.resolution.resolution_type == "deny"
+    assert len(client.messages.calls) == 2
+    second_call_messages = client.messages.calls[1]["messages"]
+    assert len(second_call_messages) == 2
+    assert second_call_messages[-1]["role"] == "assistant"
+
+
 def test_max_tokens_truncation_is_incomplete():
     """Mirrors fixture truncation-probe: stop_reason == 'max_tokens' with only
     thinking/text blocks and no tool_use. Must raise AgentIncompleteError, not

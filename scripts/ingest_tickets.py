@@ -39,7 +39,7 @@ def main() -> None:
 
     session = SessionLocal()
     inserted = 0
-    with open(args.csv, encoding="utf-8") as f:
+    with open(args.csv, encoding="utf-8", newline="") as f:
         for row in csv.DictReader(f):
             ticket = row_to_ticket(row)
             if ticket is None:

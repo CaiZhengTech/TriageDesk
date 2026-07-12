@@ -96,6 +96,14 @@ def test_adverse_action_never_auto_resolves(monkeypatch):
     assert run.escalation_reason == "adverse_action"
 
 
+def test_agent_requested_human_escalates(monkeypatch):
+    patch_happy_stages(monkeypatch, act_outcome=outcome("needs_human"),
+                       top_similarity=0.99, margin=0.9)
+    run = runner.run_ticket(3, FakeSession())
+    assert run.state == "escalated"
+    assert run.escalation_reason == "agent_requested_human"
+
+
 def test_solve_without_entitlement_evidence_escalates(monkeypatch):
     patch_happy_stages(monkeypatch, act_outcome=outcome("solve", checked=False),
                        top_similarity=0.8, margin=0.3)
