@@ -1,0 +1,164 @@
+[
+  {
+    "tag": "turn0",
+    "request_max_tokens": 4096,
+    "response": {
+      "id": "msg_011CcwRQsUwfb8kFM3XxyNj1",
+      "container": null,
+      "content": [
+        {
+          "signature": "Eu8CCosBCA8YAipAdDCL3X6RgA4WtPor7umgH0/uYIn4BlborHm4upSiwCfF3LKLpqfeU82gZqts0motpnqcJYG3+EG+GAlMQmDN1TIRY2xhdWRlLXNvbm5ldC00LTY4AEIIdGhpbmtpbmdaJDU5OThjNzRhLTEzYzYtNDViNi04YWI5LTgyYzMwODYzOTYxOBIMUJ0onJvCqvRZy1KQGgx7PdQPtpz62LjGEgwiMPzUQ6N+myJJs+YMFd5ljdlPlmp9uMOjC9ShPDuuCd6W/35zoOiJKt5BB7sMDKHMcCqQAUk4FUoCzzAAkCx1YpMcMGwWTP+nkTGzUyAPDEHGTnN/JfUQVnj43nPq7Dqj6BJf88vaWH7QWsXWieAwWKZ1QOMG5BhXUqp/Y0dA8ojkzKAvN083jm+VIQ9yIq0cRvcjlBMZ99js9pUpUXupm0KTPiFQkPDA7KNq5IZ7SJifOp3yrk6/sZFpgEkv70FS0SLMThgB",
+          "thinking": "Let me look up the account status and check entitlement for priority VPN support simultaneously since they're independent calls.",
+          "type": "thinking"
+        },
+        {
+          "citations": null,
+          "text": "I'll look up Dana's account and check the priority VPN support entitlement at the same time right away!",
+          "type": "text"
+        },
+        {
+          "id": "toolu_01TQ6iSrDjgjhPGL9bdKdd7E",
+          "caller": {
+            "type": "direct"
+          },
+          "input": {
+            "customer_ref": "customer-3"
+          },
+          "name": "lookup_account_status",
+          "type": "tool_use"
+        },
+        {
+          "id": "toolu_01MWSfmhHKudgpnbzBQFDt98",
+          "caller": {
+            "type": "direct"
+          },
+          "input": {
+            "customer_ref": "customer-3",
+            "feature": "priority_vpn_support"
+          },
+          "name": "check_entitlement",
+          "type": "tool_use"
+        }
+      ],
+      "model": "claude-sonnet-4-6",
+      "role": "assistant",
+      "stop_details": null,
+      "stop_reason": "tool_use",
+      "stop_sequence": null,
+      "type": "message",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 922,
+        "output_tokens": 187,
+        "output_tokens_details": {
+          "thinking_tokens": 36
+        },
+        "server_tool_use": null,
+        "service_tier": "standard"
+      }
+    }
+  },
+  {
+    "tag": "turn1",
+    "request_max_tokens": 4096,
+    "response": {
+      "id": "msg_011CcwRRAWsWWuftYhL47J9Y",
+      "container": null,
+      "content": [
+        {
+          "signature": "EoAFCosBCA8YAipAzwt+XTwmAa2SVpS4APBuDzBRrzqHnbfdRZ0KiRVhloOj1ybr52uu5UK5IhHg757bxbP246hODJo9Y+mRXO0htzIRY2xhdWRlLXNvbm5ldC00LTY4AEIIdGhpbmtpbmdaJDU5OThjNzRhLTEzYzYtNDViNi04YWI5LTgyYzMwODYzOTYxOBIMftpMQjtfoN8JAOBeGgxRTdBImcLgnAO02QEiMH1t+c/x0QPIiZXxqW08IsZ9GFJRlnXU2Y/8FGawCgcUFpnRNclKDGXrn6ip+dfXqyqhA/Nky8SUh8Osb7YJICQN3uyClR0armFThdKE1YA2mb7QjvXIvcfx1I03VWWrZN4ANXxNAdK7ET582KO1udWZoqMe95YpOcOyYAvLeLeCAjSCVJSGQMRoMTgHybZesGbbqk3jbdxW7GPjqxmQbimnaAp2oRjByvxyv8Tr588/tQpAQYxaKr0TH8DObyF7yB1/VELlYRwLx7ua7dSfA5chnBqkZNH5ibVlcZ9SeeDtU7M/lnkMAts7AvA+HwrH5gSTDeq9NSR6UPbWEIHvVdykgntd24fFvTLlv3uFM8+5diOjDXwJcd1Z25vcukKTUk8Y/zA27W7EVFE4F6qA0hzd3QhsFTAJvcjXsG3sBVBe0MeNl4ay8fFgvVtrzHvWWNyQjayYv//W/2fLBzfz1cM1B4QYvM/tdrDsd8MN633JI9ktq+bnwTIu4RrSR8w/BOaiJ9RHWPc6EySYBoMVj4A/cM4taomvMzOUE6eMvIUhCs4KFRgjiWDHKii4aAoHkBYruUzNfCD4Wf+s07086dvhSp32sHwRXMioAjjmbtLrl/aXsxgB",
+          "thinking": "Dana's account is active and on the basic plan. Priority VPN support is not covered by the basic plan. \n\nFor the VPN disconnection issue, I can provide standard troubleshooting advice since the account is active.\n\nFor priority VPN support, this is not covered under the basic plan - they would need to upgrade to a higher tier (pro or enterprise).\n\nLet me submit the resolution addressing both issues.",
+          "type": "thinking"
+        },
+        {
+          "citations": null,
+          "text": "Got all the info I need. Let me submit the resolution now.",
+          "type": "text"
+        },
+        {
+          "id": "toolu_013jXxZfottf5yQf3AXPWK6Q",
+          "caller": {
+            "type": "direct"
+          },
+          "input": {
+            "resolution_type": "solve",
+            "customer_reply": "Hi Dana, thanks for reaching out \u2014 and we completely understand the urgency with your 3pm demo!\n\n**VPN Disconnection Issue:**\nYour account is active, so let's get this sorted quickly. Here are some immediate steps to stabilize your VPN connection:\n1. **Restart your VPN client** and reconnect \u2014 this resolves most sudden drop issues.\n2. **Switch VPN servers** if your client allows it; try a geographically closer server.\n3. **Check your internet connection** \u2014 run a quick speed/stability test (e.g., fast.com) to rule out upstream issues.\n4. **Disable any conflicting software** (firewalls, other VPN clients, or antivirus that may interfere).\n5. **Reinstall/update your VPN client** if the issue persists.\n\nIf the problem continues after these steps, please reply immediately and we'll escalate this for you before your 3pm demo.\n\n**Priority VPN Support Request:**\nUnfortunately, Priority VPN Support is not included in your current **Basic plan**. To unlock this feature, you would need to upgrade to our **Pro or Enterprise plan**. If you're interested in upgrading, please let us know and we can walk you through the options!\n\nWishing you a smooth and successful demo today! \ud83c\udfaf",
+            "internal_rationale": "Account is active on the Basic plan. The VPN disconnection is a legitimate support request \u2014 provided standard troubleshooting steps appropriate for a Basic plan customer. Priority VPN support is not covered under the Basic plan (entitlement check returned covered: false), so the request to enable it was denied with an upgrade path offered. No human escalation needed at this stage, but flagged urgency due to the 3pm demo."
+          },
+          "name": "submit_resolution",
+          "type": "tool_use"
+        }
+      ],
+      "model": "claude-sonnet-4-6",
+      "role": "assistant",
+      "stop_details": null,
+      "stop_reason": "tool_use",
+      "stop_sequence": null,
+      "type": "message",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 1240,
+        "output_tokens": 594,
+        "output_tokens_details": {
+          "thinking_tokens": 100
+        },
+        "server_tool_use": null,
+        "service_tier": "standard"
+      }
+    }
+  },
+  {
+    "tag": "truncation-probe",
+    "request_max_tokens": 64,
+    "response": {
+      "id": "msg_011CcwRS9JigpkrxrVuqcWrF",
+      "container": null,
+      "content": [
+        {
+          "signature": "EtYCCosBCA8YAipANvfH+jz+9icBimQXZppSw2auyX+wxzekksR/N4zufmY0IFm1b5CHaOp3BK+fEkzImT6cRQ/uu/5nL47N6On3pTIRY2xhdWRlLXNvbm5ldC00LTY4AEIIdGhpbmtpbmdaJDU5OThjNzRhLTEzYzYtNDViNi04YWI5LTgyYzMwODYzOTYxOBIMGQGo57WNS0IAjaQtGgwkkITNgDHlytEpb54iMHnBjUZG4XgFy1Wg10LBzSBVuzxXaNMAsRexHGfZqwpvuDWXv1N6dJAgqDH1ahYi5Sp4haWOkQ3Bhh4d6JPxDLZTSJJy4hnS5kBSf4tE/2qZbk53tAWpP7wPugFbnR0oCZbSe9BYMo+JFsQtRSqQz3tM1tNdyQjFubTBvXPoOw6YY/Lljdqfkk4v8t29MB+MVq2oroP436yGYZJgUKJiDTL3rNTCgAJh9ig0GAE=",
+          "thinking": "Let me look up the customer's account status and check their entitlement for VPN support simultaneously.",
+          "type": "thinking"
+        },
+        {
+          "citations": null,
+          "text": "I'll look up the account status and check VPN support entitlement at the same time!",
+          "type": "text"
+        }
+      ],
+      "model": "claude-sonnet-4-6",
+      "role": "assistant",
+      "stop_details": null,
+      "stop_reason": "max_tokens",
+      "stop_sequence": null,
+      "type": "message",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 890,
+        "output_tokens": 64,
+        "output_tokens_details": {
+          "thinking_tokens": 33
+        },
+        "server_tool_use": null,
+        "service_tier": "standard"
+      }
+    }
+  }
+]
