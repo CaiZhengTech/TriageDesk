@@ -68,3 +68,41 @@ class KbDoc(Base):
     content: Mapped[str] = mapped_column(Text)
     embedding: Mapped[list[float]] = mapped_column(Vector(EMBED_DIMS))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class EvalCase(Base):
+    __tablename__ = "eval_cases"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id"))
+    kind: Mapped[str] = mapped_column(String(16))            # representative | adversarial
+    expected_outcome: Mapped[str] = mapped_column(String(16))  # route | escalate
+    expected_queue: Mapped[str | None] = mapped_column(String(64))     # ground-truth category
+    # injection|pii|off_topic|ambiguous|entitlement_denial
+    adversarial_kind: Mapped[str | None] = mapped_column(String(24))
+    expected_escalation_reason: Mapped[str | None] = mapped_column(String(64))
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class EvalResult(Base):
+    __tablename__ = "eval_results"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    eval_run_id: Mapped[uuid.UUID] = mapped_column(Uuid)     # groups one suite execution
+    case_id: Mapped[int] = mapped_column(ForeignKey("eval_cases.id"))
+    run_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("runs.id"))
+    predicted_queue: Mapped[str | None] = mapped_column(String(64))
+    predicted_outcome: Mapped[str] = mapped_column(String(16))   # route | escalate | failed
+    escalation_reason: Mapped[str | None] = mapped_column(String(64))
+    cost_usd: Mapped[float] = mapped_column(default=0.0)
+    latency_ms: Mapped[float] = mapped_column(default=0.0)
+    retrieval_similarity: Mapped[float | None] = mapped_column()
+    classification_margin: Mapped[float | None] = mapped_column()
+    routing_correct: Mapped[bool | None] = mapped_column()
+    outcome_correct: Mapped[bool] = mapped_column(default=False)
+    judge_verdict: Mapped[str | None] = mapped_column(String(16))       # pass|fail|needs_review
+    judge_reason: Mapped[str | None] = mapped_column(Text)
+    judge_rule_triggered: Mapped[str | None] = mapped_column(String(32))
+    human_label: Mapped[str | None] = mapped_column(String(16))  # Task 6: pass|fail|needs_review
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())

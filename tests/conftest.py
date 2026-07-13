@@ -19,7 +19,9 @@ def test_db():
     yield session
     session.rollback()
     # keep the shared test branch clean between tests
-    session.execute(text("TRUNCATE spans, runs, kb_docs, tickets RESTART IDENTITY CASCADE"))
+    session.execute(text(
+        "TRUNCATE eval_results, eval_cases, spans, runs, kb_docs, tickets "
+        "RESTART IDENTITY CASCADE"))
     session.commit()
     session.close()
     engine.dispose()

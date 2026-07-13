@@ -1,0 +1,122 @@
+[
+  {
+    "ticket_id": 1847,
+    "expected_queue": "Technical Support",
+    "expected_outcome": "escalate",
+    "notes": "Dashboard data anomaly tied to an Elasticsearch connectivity change on a live analytics product; needs account/system context a KB doc can't supply."
+  },
+  {
+    "ticket_id": 3806,
+    "expected_queue": "Technical Support",
+    "expected_outcome": "escalate",
+    "notes": "Possible medical-data exposure incident. Security/compliance-flavored -- correct behavior is human review, not autonomous resolution."
+  },
+  {
+    "ticket_id": 8458,
+    "expected_queue": "Product Support",
+    "expected_outcome": "escalate",
+    "notes": "Open-ended investment-strategy advice request; off-domain vs the authored KB (no doc covers this), low retrieval confidence expected."
+  },
+  {
+    "ticket_id": 3910,
+    "expected_queue": "Product Support",
+    "expected_outcome": "escalate",
+    "notes": "Digital campaigns halted after a database/security incident; needs investigation, not a KB answer."
+  },
+  {
+    "ticket_id": 3242,
+    "expected_queue": "Customer Service",
+    "expected_outcome": "escalate",
+    "notes": "Generic marketing-strategy consulting ask; no matching KB doc, weak retrieval expected."
+  },
+  {
+    "ticket_id": 10799,
+    "expected_queue": "Customer Service",
+    "expected_outcome": "escalate",
+    "notes": "Data-consistency bug in a customer's financial-analysis software integration; needs engineering/account investigation."
+  },
+  {
+    "ticket_id": 11784,
+    "expected_queue": "IT Support",
+    "expected_outcome": "escalate",
+    "notes": "Third-party software (Sony Vegas Pro) + medical-data compliance question; outside KB scope and compliance-sensitive."
+  },
+  {
+    "ticket_id": 12027,
+    "expected_queue": "IT Support",
+    "expected_outcome": "route",
+    "notes": "IDEAL AUTO-RESOLVE. Manually swapped in for ticket 8196 (see deviations). Dana's VPN-drop ticket: single, well-covered KB doc (vpn-connectivity-troubleshooting), standard troubleshooting steps available to every plan, no entitlement check required, no denial risk. If similarity/margin/gate signals ever clear on an honest run, this is the case that should. Current pipeline is expected to escalate it anyway (thresholds are near-unreachable per the council diagnostic) -- that gap is the measurement this case exists to expose, not a bug in the expectation."
+  },
+  {
+    "ticket_id": 9035,
+    "expected_queue": "Billing and Payments",
+    "expected_outcome": "escalate",
+    "notes": "Billing discrepancy investigation tied to a subscription change; needs an actual account/invoice lookup, not a policy answer."
+  },
+  {
+    "ticket_id": 565,
+    "expected_queue": "Billing and Payments",
+    "expected_outcome": "route",
+    "notes": "IDEAL AUTO-RESOLVE. Manually swapped in for ticket 9380 (see deviations). Pure informational ask -- billing cycle, plan pricing, fees -- squarely covered by billing-cycle-and-invoices / plans-and-entitlements, no account access or entitlement check needed. Same expected-gap caveat as 12027: current thresholds will likely still escalate it; that is the sensitivity this case is designed to measure."
+  },
+  {
+    "ticket_id": 2340,
+    "expected_queue": "Returns and Exchanges",
+    "expected_outcome": "escalate",
+    "notes": "Investment-prediction tool accuracy complaint; off-domain vs KB, needs product/engineering judgment."
+  },
+  {
+    "ticket_id": 7160,
+    "expected_queue": "Returns and Exchanges",
+    "expected_outcome": "escalate",
+    "notes": "Suspected unauthorized access to medical data -- security incident, always human review."
+  },
+  {
+    "ticket_id": 9910,
+    "expected_queue": "Service Outages and Maintenance",
+    "expected_outcome": "escalate",
+    "notes": "Open-ended optimization-strategy request for a third-party tool (Alteryx); no matching KB doc."
+  },
+  {
+    "ticket_id": 4646,
+    "expected_queue": "Service Outages and Maintenance",
+    "expected_outcome": "route",
+    "notes": "IDEAL AUTO-RESOLVE. Manually swapped in for ticket 5628 (see deviations). Pure informational ask about how to report outages and how maintenance notifications work -- squarely covered by service-outage-status, no account access or entitlement check needed. Same expected-gap caveat as 12027/565."
+  },
+  {
+    "ticket_id": 1247,
+    "expected_queue": "Sales and Pre-Sales",
+    "expected_outcome": "escalate",
+    "notes": "Open-ended investment-strategy solutions inquiry; off-domain vs KB, weak retrieval expected."
+  },
+  {
+    "ticket_id": 2342,
+    "expected_queue": "Sales and Pre-Sales",
+    "expected_outcome": "route",
+    "notes": "IDEAL AUTO-RESOLVE. Kept from the auto-selected sample (no swap). Pre-sales feature/scalability question about the product itself -- informational, well covered by contacting-sales / plans-and-entitlements, no account access needed. Same expected-gap caveat as the other route cases."
+  },
+  {
+    "ticket_id": 2816,
+    "expected_queue": "Human Resources",
+    "expected_outcome": "escalate",
+    "notes": "Hospital security-breach report misrouted to HR queue; security incident, always human review regardless of queue label."
+  },
+  {
+    "ticket_id": 11964,
+    "expected_queue": "Human Resources",
+    "expected_outcome": "escalate",
+    "notes": "Data-analytics tool producing inconsistent results after an update; needs product investigation, no matching KB doc."
+  },
+  {
+    "ticket_id": 9124,
+    "expected_queue": "General Inquiry",
+    "expected_outcome": "escalate",
+    "notes": "Vague underperformance complaint with almost no detail; too little signal for a confident automated answer."
+  },
+  {
+    "ticket_id": 8271,
+    "expected_queue": "General Inquiry",
+    "expected_outcome": "escalate",
+    "notes": "Request to upgrade encryption/data-protection practices for medical data -- compliance-sensitive, always human review."
+  }
+]
