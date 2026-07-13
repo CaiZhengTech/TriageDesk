@@ -1,6 +1,9 @@
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
-from triagedesk.evals.harness import _latency_ms
+import pytest
+
+from triagedesk.evals.harness import SuiteCostExceeded, _latency_ms, _response_cost
 from triagedesk.evals.metrics import (
     CaseResult,
     adversarial_catch_rate,
@@ -98,3 +101,25 @@ def test_latency_ms_both_naive_datetimes():
         finished_at=datetime(2026, 7, 12, 10, 0, 30),  # naive
     )
     assert _latency_ms(run) == 30000.0
+
+
+def test_response_cost_computes_known_model():
+    response = SimpleNamespace(
+        model="claude-sonnet-4-6",
+        usage=SimpleNamespace(input_tokens=1_000_000, output_tokens=0,
+                              cache_creation_input_tokens=0, cache_read_input_tokens=0),
+    )
+    assert _response_cost(response) == 3.00
+
+
+def test_response_cost_fails_closed_on_unknown_model():
+    """Fail-closed cost rule: an uncomputable judge-response cost must NOT be
+    silently counted as $0 (that would under-count the suite's $1 cap) — it
+    must be treated as a cap breach, same as the per-run cost cap in tracing.py."""
+    response = SimpleNamespace(
+        model="some-future-model-not-in-price-table",
+        usage=SimpleNamespace(input_tokens=10, output_tokens=10,
+                              cache_creation_input_tokens=0, cache_read_input_tokens=0),
+    )
+    with pytest.raises(SuiteCostExceeded):
+        _response_cost(response)

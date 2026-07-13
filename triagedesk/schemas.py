@@ -44,3 +44,9 @@ class Resolution(BaseModel):
     resolution_type: Literal["solve", "deny", "needs_human"]
     customer_reply: str
     internal_rationale: str
+
+
+class JudgeVerdict(BaseModel):
+    verdict: Literal["pass", "fail", "needs_review"]
+    reason: str
+    rule_triggered: str | None = None

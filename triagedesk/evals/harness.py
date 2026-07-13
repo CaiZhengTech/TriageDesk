@@ -3,10 +3,9 @@ returns (eval_run_id, summary). LIVE: calls runner.run_ticket per case (and,
 with_judge, the judge per completed reply). Suite-level $1 cap on top of the
 per-run $0.10 cap — fail closed.
 
-NOTE: the judge (triagedesk.evals.judge) is Task 5 and does not exist yet.
-The import is deferred to the point of use (inside the with_judge branch,
-not at module or function top) so `run_suite(..., with_judge=False)` — the
-mode the Week-2 checkpoint run uses — works without it.
+The judge import (triagedesk.evals.judge) is deferred to the point of use
+(inside the with_judge branch, not at module or function top) so
+`run_suite(..., with_judge=False)` never pays for it.
 """
 
 import uuid
@@ -97,8 +96,13 @@ def run_suite(session, *, cost_cap: float = SUITE_COST_CAP_USD, with_judge: bool
 
 
 def _response_cost(response) -> float:
+    """Cost of one raw API response (a judge call). Fail closed, same rule as
+    the per-run cap in tracing.py: an uncomputable cost is a cap breach, not
+    $0 — silently zeroing it would under-count the suite's cost cap."""
     from triagedesk.tracing import CostUnknownError, compute_cost
     try:
         return compute_cost(getattr(response, "model", ""), response.usage)
-    except CostUnknownError:
-        return 0.0
+    except CostUnknownError as exc:
+        raise SuiteCostExceeded(
+            f"judge response cost unknown ({exc}) — failing closed as a cap breach"
+        ) from exc
