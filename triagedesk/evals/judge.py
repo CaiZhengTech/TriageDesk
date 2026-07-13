@@ -46,10 +46,15 @@ def judge_reply(*, ticket_subject, ticket_body, kb_docs, customer_reply,
                  max_tokens=512, temperature=0)
 
 
-def judge_run(session, case, run):
+def judge_run(session, case, run, _call=structured_call):
     """DB adapter for the harness: reconstruct the ticket + retrieved KB for `run`
     and judge its final_reply. Uses the retrieve span's recorded doc slugs so the
     judge sees exactly what the agent saw."""
+    if not run.final_reply:
+        raise ValueError(
+            f"Cannot judge run {run.id}: no customer-facing reply to grade. "
+            "Run must have completed successfully with a customer reply."
+        )
     ticket = run.ticket if getattr(run, "ticket", None) else None
     from triagedesk.models import Ticket
     if ticket is None:
@@ -58,4 +63,4 @@ def judge_run(session, case, run):
     slugs = (retrieve_span.attributes or {}).get("retrieval.doc_slugs", []) if retrieve_span else []
     kb_docs = (session.query(KbDoc).filter(KbDoc.slug.in_(slugs)).all() if slugs else [])
     return judge_reply(ticket_subject=ticket.subject, ticket_body=ticket.body,
-                       kb_docs=kb_docs, customer_reply=run.final_reply)
+                       kb_docs=kb_docs, customer_reply=run.final_reply, _call=_call)
