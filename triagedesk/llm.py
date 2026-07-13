@@ -82,7 +82,8 @@ def structured_call(
         response = c.messages.create(
             model=PIPELINE_MODEL,
             max_tokens=max_tokens,
-            system=system,
+            system=[{"type": "text", "text": system,
+                     "cache_control": {"type": "ephemeral"}}],
             messages=messages,
             output_config={
                 "format": {

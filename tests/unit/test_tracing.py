@@ -31,6 +31,16 @@ def test_compute_cost_sonnet():
     assert compute_cost("claude-sonnet-4-6", usage(1000, 1000)) == pytest.approx(0.018)
 
 
+def test_compute_cost_bills_cache_tokens():
+    cache_usage = SimpleNamespace(
+        input_tokens=0, output_tokens=0,
+        cache_creation_input_tokens=1_000_000,  # 1M -> $3.75 at cache_write price
+        cache_read_input_tokens=1_000_000,      # 1M -> $0.30 at cache_read price
+    )
+    cost = compute_cost("claude-sonnet-4-6", cache_usage)
+    assert round(cost, 2) == 4.05  # 3.75 + 0.30
+
+
 def test_unknown_model_fails_closed():
     with pytest.raises(CostUnknownError):
         compute_cost("mystery-model-9000", usage(10, 10))

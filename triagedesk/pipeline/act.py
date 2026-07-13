@@ -64,7 +64,8 @@ def run_act(ticket, classify_result, retrieval, tracer, _client=None) -> ActOutc
             response = c.messages.create(
                 model=PIPELINE_MODEL,
                 max_tokens=4096,  # headroom: adaptive thinking counts against max_tokens
-                system=ACT_SYSTEM,
+                system=[{"type": "text", "text": ACT_SYSTEM,
+                         "cache_control": {"type": "ephemeral"}}],
                 tools=TOOL_DEFS,
                 messages=messages,
                 thinking={"type": "adaptive"},

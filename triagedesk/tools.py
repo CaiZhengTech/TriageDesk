@@ -68,6 +68,7 @@ TOOL_DEFS = [
         "description": "Submit your final resolution for this ticket. Call exactly once, "
                        "when you have enough information.",
         "strict": True,
+        "cache_control": {"type": "ephemeral"},
         "input_schema": {
             "type": "object",
             "properties": {
