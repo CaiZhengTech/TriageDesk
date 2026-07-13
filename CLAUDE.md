@@ -58,6 +58,13 @@ live-run budget rules, standing preferences, Wk3–4 path). Raw ledger:
   `docs/00-spec/` (`DESIGN-SPEC.md`, `PITCH.md`). **No dates in filenames** — the folder
   says when, the name says what, git holds the history. Keep this convention; do not
   reintroduce dated filenames or a `superpowers/` docs subtree.
+- **One fact, one home (anti-duplication rule):** each kind of content has exactly one
+  place. What to build → `PLAN.md`. What was built + evidence → `reports/`. Plain-language
+  → `STORY.md`. Where we are → `HANDOFF.md`. Narrative per issue → the GitHub closeout
+  comment. Status/budget/incidents → `.superpowers/sdd/progress.md` (the ledger, git-ignored).
+  **Never restate one in another** — link instead. Task briefs are generated fresh at
+  dispatch (`scripts/task-brief`) and never archived: a stored copy goes stale the moment a
+  plan is amended. Review diffs are regenerated on demand, never hoarded.
 - Work order = the number in the issue title. Per issue: branch → TDD → PR referencing
   the issue → disciplined self-review via the PR checklist → merge closes it.
 - Non-code issues (KB doc authoring, the friend favor) get NO branch/PR/TDD ceremony.
