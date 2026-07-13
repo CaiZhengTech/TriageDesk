@@ -64,6 +64,7 @@ def structured_call(
     user: str,
     schema: type[BaseModel],
     max_tokens: int = 1024,
+    temperature: float | None = None,
     _client: Anthropic | None = None,
 ) -> tuple[BaseModel, list]:
     """Call the model expecting `schema`; ONE repair re-prompt on failure.
@@ -72,11 +73,15 @@ def structured_call(
     ourselves with Pydantic, so validation failures are OUR control flow,
     not an exception inside the SDK. Returns (parsed, responses) — responses
     holds every raw API response so the caller can record usage/cost for
-    each attempt, including failed ones.
+    each attempt, including failed ones. `temperature` is passed through to
+    the API only when explicitly set (omitted => API default) so pipeline
+    call sites that never set it stay byte-for-byte unchanged; the judge
+    (Task 5) is the first caller to pin temperature=0.
     """
     c = _client or client
     responses: list = []
     messages: list = [{"role": "user", "content": user}]
+    extra = {} if temperature is None else {"temperature": temperature}
 
     for attempt in range(2):  # initial + exactly one repair
         response = c.messages.create(
@@ -91,6 +96,7 @@ def structured_call(
                     "schema": _strict_schema(schema.model_json_schema()),
                 }
             },
+            **extra,
         )
         responses.append(response)
         if response.stop_reason == "refusal":
