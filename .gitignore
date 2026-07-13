@@ -36,3 +36,6 @@ data/
 # ...except triagedesk/data/ — committed generated code artifacts (e.g. queue_centroids.json)
 !triagedesk/data/
 !triagedesk/data/**
+
+# Task 6: judge-calibration label export -- contains ticket text, never commit
+judge_labels*.csv
