@@ -44,8 +44,9 @@
   {
     "ticket_id": 12027,
     "expected_queue": "IT Support",
-    "expected_outcome": "route",
-    "notes": "IDEAL AUTO-RESOLVE. Manually swapped in for ticket 8196 (see deviations). Dana's VPN-drop ticket: single, well-covered KB doc (vpn-connectivity-troubleshooting), standard troubleshooting steps available to every plan, no entitlement check required, no denial risk. If similarity/margin/gate signals ever clear on an honest run, this is the case that should. Current pipeline is expected to escalate it anyway (thresholds are near-unreachable per the council diagnostic) -- that gap is the measurement this case exists to expose, not a bug in the expectation."
+    "expected_outcome": "escalate",
+    "escalation_reason": "adverse_action",
+    "notes": "Originally mislabeled as ideal=route. First live eval run (eval_run 4738a3fa) exposed the error: Dana Fuentes requests priority VPN support, a feature excluded from her basic plan. This is an entitlement denial. Per the non-negotiable adverse-action rule, denials are never autonomously delivered — must escalate to human review queue. Ideal outcome: escalate/adverse_action. This leaves 3 ideal-route cases (tickets 2342, 4646, 565)."
   },
   {
     "ticket_id": 9035,

@@ -3,11 +3,17 @@
   set TRIAGEDESK_ENV_FILE=...
   python -m scripts.build_golden_set          # selects, then seeds if expectations exist
   python -m scripts.build_golden_set --select-only   # (re)write golden_expectations.json
+  python -m scripts.build_golden_set --reset-history # ALSO deletes eval_results + adversarial
+                                                     # runs/spans (eval history — destructive)
 
 Deterministic: same seed -> same 20 tickets, every run. Idempotent: clears
 eval_cases before seeding, and re-seeds the 5 adversarial tickets at their
 pinned ids (delete-then-reinsert) so repeated runs converge to identical
-state instead of growing new rows each time."""
+state instead of growing new rows each time.
+
+Data-loss guard: eval_results is the project's CI eval history and runs/spans
+are live trace evidence. Without --reset-history, the seeder refuses to run
+(exit 1, DB untouched) if any of that history exists."""
 
 import argparse
 import json
@@ -18,7 +24,7 @@ from sqlalchemy import delete, select
 
 from triagedesk.db import SessionLocal
 from triagedesk.evals.adversarial import ADVERSARIAL
-from triagedesk.models import EvalCase, Ticket
+from triagedesk.models import EvalCase, EvalResult, Run, Span, Ticket
 from triagedesk.schemas import QUEUES
 
 SEED = 20260712
@@ -51,6 +57,16 @@ def cmd_select(session) -> None:
           f"Set each expected_outcome to route|escalate, then run without --select-only.")
 
 
+def eval_history_exists(session) -> bool:
+    """True if eval_results has rows or runs exist for the adversarial ticket ids."""
+    if session.execute(select(EvalResult.id).limit(1)).first() is not None:
+        return True
+    ids = [spec["ticket_id"] for spec in ADVERSARIAL]
+    return session.execute(
+        select(Run.id).where(Run.ticket_id.in_(ids)).limit(1)
+    ).first() is not None
+
+
 def seed_adversarial_tickets(session) -> list[tuple[int, dict]]:
     # Idempotent: delete-then-reinsert at each spec's pinned ticket_id (both the
     # ticket row and any eval_cases row referencing it), so repeated runs
@@ -73,16 +89,34 @@ def seed_adversarial_tickets(session) -> list[tuple[int, dict]]:
     return out
 
 
-def seed(session) -> None:
+def seed(session, reset_history: bool = False) -> None:
     data = json.loads(EXPECTATIONS.read_text())
     assert all(r["expected_outcome"] in ("route", "escalate") for r in data), \
         "annotate every representative expected_outcome as route|escalate first"
+
+    if not reset_history:
+        if eval_history_exists(session):
+            print("eval history exists (eval_results rows and/or runs for adversarial "
+                  "tickets); reseeding would orphan/delete it -- rerun with "
+                  "--reset-history to accept the loss")
+            raise SystemExit(1)
+    else:
+        # DESTRUCTIVE: erases the CI eval history and adversarial trace evidence.
+        ids = [spec["ticket_id"] for spec in ADVERSARIAL]
+        run_ids = session.execute(
+            select(Run.id).where(Run.ticket_id.in_(ids))).scalars().all()
+        if run_ids:
+            session.execute(delete(Span).where(Span.run_id.in_(run_ids)))
+        session.execute(delete(Run).where(Run.ticket_id.in_(ids)))
+        session.execute(delete(EvalResult))
 
     session.execute(delete(EvalCase))
     for r in data:
         session.add(EvalCase(ticket_id=r["ticket_id"], kind="representative",
                              expected_outcome=r["expected_outcome"],
-                             expected_queue=r["expected_queue"], notes=r.get("notes")))
+                             expected_queue=r["expected_queue"],
+                             expected_escalation_reason=r.get("escalation_reason"),
+                             notes=r.get("notes")))
     for tid, spec in seed_adversarial_tickets(session):
         session.add(EvalCase(ticket_id=tid, kind="adversarial",
                              expected_outcome=spec["expected_outcome"],
@@ -97,13 +131,16 @@ def seed(session) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(prog="build_golden_set")
     ap.add_argument("--select-only", action="store_true")
+    ap.add_argument("--reset-history", action="store_true",
+                    help="DESTRUCTIVE: also delete eval_results and the adversarial "
+                         "tickets' runs/spans (the eval history) before reseeding")
     args = ap.parse_args()
     session = SessionLocal()
     try:
         if args.select_only:
             cmd_select(session)
         else:
-            seed(session)
+            seed(session, reset_history=args.reset_history)
     finally:
         session.close()
 

@@ -1,9 +1,12 @@
+import uuid
+
+import pytest
 from sqlalchemy import select
 
-from scripts.build_golden_set import seed_adversarial_tickets
+from scripts.build_golden_set import seed, seed_adversarial_tickets
 from tests.conftest import integration
 from triagedesk.evals.adversarial import ADVERSARIAL
-from triagedesk.models import EvalCase, Ticket
+from triagedesk.models import EvalCase, EvalResult, Run, Ticket
 
 
 @integration
@@ -42,3 +45,44 @@ def test_seed_adversarial_tickets_is_idempotent(test_db):
 
     assert len(tickets) == len(ADVERSARIAL)
     assert len(eval_cases) == len(ADVERSARIAL)
+
+
+@integration
+def test_seed_refuses_when_adversarial_runs_exist(test_db):
+    # A run against an adversarial ticket is live trace evidence; the no-flag
+    # path must exit 1 without touching the DB.
+    seeded = seed_adversarial_tickets(test_db)
+    tid = seeded[0][0]
+    run = Run(ticket_id=tid, state="escalated", prompt_version="1.0",
+              model="claude-sonnet-4-6")
+    test_db.add(run)
+    test_db.commit()
+
+    with pytest.raises(SystemExit) as exc:
+        seed(test_db)
+    assert exc.value.code == 1
+
+    test_db.rollback()
+    assert test_db.execute(
+        select(Run).where(Run.ticket_id == tid)).scalars().all()
+
+
+@integration
+def test_seed_refuses_when_eval_results_exist(test_db):
+    # eval_results is the CI eval history (issue #9); the no-flag path must
+    # exit 1 without deleting it.
+    seeded = seed_adversarial_tickets(test_db)
+    tid = seeded[0][0]
+    case = EvalCase(ticket_id=tid, kind="adversarial", expected_outcome="escalate")
+    test_db.add(case)
+    test_db.flush()
+    test_db.add(EvalResult(eval_run_id=uuid.uuid4(), case_id=case.id,
+                           predicted_outcome="escalate"))
+    test_db.commit()
+
+    with pytest.raises(SystemExit) as exc:
+        seed(test_db)
+    assert exc.value.code == 1
+
+    test_db.rollback()
+    assert test_db.execute(select(EvalResult)).scalars().all()
