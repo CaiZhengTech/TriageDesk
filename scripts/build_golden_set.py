@@ -7,13 +7,20 @@
                                                      # runs/spans (eval history — destructive)
 
 Deterministic: same seed -> same 20 tickets, every run. Idempotent: clears
-eval_cases before seeding, and re-seeds the 5 adversarial tickets at their
-pinned ids (delete-then-reinsert) so repeated runs converge to identical
-state instead of growing new rows each time.
+eval_cases (kind="representative"|"adversarial" only -- see below) before
+seeding, and re-seeds the 5 adversarial tickets at their pinned ids
+(delete-then-reinsert) so repeated runs converge to identical state instead
+of growing new rows each time.
 
 Data-loss guard: eval_results is the project's CI eval history and runs/spans
 are live trace evidence. Without --reset-history, the seeder refuses to run
-(exit 1, DB untouched) if any of that history exists."""
+(exit 1, DB untouched) if any of that history exists.
+
+Shares eval_cases with the Task 6 calibration pool (issue #11,
+scripts/build_calibration_pool.py), whose rows are kind="calibration". The
+clearing step above is scoped to kind IN (representative, adversarial) so a
+golden reseed -- even with --reset-history -- never deletes the pool's rows
+as collateral damage."""
 
 import argparse
 import json
@@ -110,7 +117,13 @@ def seed(session, reset_history: bool = False) -> None:
         session.execute(delete(Run).where(Run.ticket_id.in_(ids)))
         session.execute(delete(EvalResult))
 
-    session.execute(delete(EvalCase))
+    # Scoped to representative|adversarial: kind="calibration" rows belong to
+    # the Task 6 calibration pool (scripts/build_calibration_pool.py), which
+    # shares this table purely to anchor judged replies for kappa -- a golden
+    # reseed (even --reset-history) must never delete them as collateral
+    # damage. See tests/integration/test_build_golden_set.py's audit-finding
+    # test for the reproduction.
+    session.execute(delete(EvalCase).where(EvalCase.kind.in_(("representative", "adversarial"))))
     for r in data:
         session.add(EvalCase(ticket_id=r["ticket_id"], kind="representative",
                              expected_outcome=r["expected_outcome"],

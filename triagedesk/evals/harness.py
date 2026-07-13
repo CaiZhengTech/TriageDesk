@@ -6,6 +6,13 @@ per-run $0.10 cap — fail closed.
 The judge import (triagedesk.evals.judge) is deferred to the point of use
 (inside the with_judge branch, not at module or function top) so
 `run_suite(..., with_judge=False)` never pays for it.
+
+run_suite's EvalCase query excludes kind="calibration" rows -- the Task 6
+calibration pool (issue #11, see scripts/build_calibration_pool.py) shares
+the eval_cases/eval_results tables with the golden set purely so its judged
+replies can be blind-labeled alongside the golden ones for Cohen's kappa,
+but it must never perturb a golden-set metric. run_pool() below is the
+pool's own run-and-judge entry point, deliberately kept separate.
 """
 
 import uuid
@@ -17,6 +24,7 @@ from triagedesk.pipeline.runner import run_ticket
 
 SUITE_COST_CAP_USD = 1.00
 JUDGE_BACKFILL_COST_CAP = 0.50
+POOL_COST_CAP_USD = 1.00  # ~25 pool tickets, same order of magnitude as the golden suite
 
 
 class SuiteCostExceeded(Exception):
@@ -46,7 +54,17 @@ def _latency_ms(run: Run) -> float:
 
 def run_suite(session, *, cost_cap: float = SUITE_COST_CAP_USD, with_judge: bool = True):
     eval_run_id = uuid.uuid4()
-    cases = session.query(EvalCase).order_by(EvalCase.id).all()
+    # kind="calibration" rows are the Task 6 calibration pool (issue #11) --
+    # tickets run and judged purely to anchor extra blind labels for Cohen's
+    # kappa, never graded as part of the golden set. Excluding them here is
+    # what keeps every golden-set metric (routing accuracy, escalation P/R,
+    # adversarial catch rate, the calibration table, the CI gate) identical
+    # to what it was before the pool existed -- see run_pool() below, which
+    # runs pool cases through the same pipeline+judge logic on its own,
+    # separately-tagged eval_run_id.
+    cases = (session.query(EvalCase)
+             .filter(EvalCase.kind != "calibration")
+             .order_by(EvalCase.id).all())
     total_cost = 0.0
     case_results: list[CaseResult] = []
 
@@ -98,6 +116,64 @@ def run_suite(session, *, cost_cap: float = SUITE_COST_CAP_USD, with_judge: bool
         session.commit()
 
     return eval_run_id, summarize(case_results)
+
+
+def run_pool(session, *, cost_cap: float = POOL_COST_CAP_USD) -> dict:
+    """Runs every kind="calibration" eval_case (the Task 6 calibration pool,
+    issue #11 -- see scripts/build_calibration_pool.py) through the live
+    pipeline and judges any drafted reply, writing eval_results tagged to a
+    fresh eval_run_id of their own. Deliberately kept separate from
+    run_suite (which now excludes kind="calibration" cases) rather than
+    folded into it, so a pool run can never contribute to the golden-set
+    summary and run_suite's query never has to reason about pool rows.
+
+    Pool cases carry no expected_outcome grading burden (their
+    expected_outcome is the "unlabeled" sentinel -- see
+    scripts/build_calibration_pool.py's module docstring), so this
+    intentionally does not compute routing_correct/outcome_correct; those
+    columns are left at their schema defaults (NULL / False) rather than
+    being compared against a value that was never a real ground truth."""
+    from triagedesk.evals.judge import judge_run  # local import: same precedent as run_suite
+
+    eval_run_id = uuid.uuid4()
+    cases = (session.query(EvalCase)
+             .filter(EvalCase.kind == "calibration")
+             .order_by(EvalCase.id).all())
+    total_cost = 0.0
+    n_judged = 0
+
+    for case in cases:
+        run = run_ticket(case.ticket_id, session)  # LIVE
+        total_cost += run.total_cost_usd or 0.0
+        if total_cost > cost_cap:
+            raise SuiteCostExceeded(f"pool cost ${total_cost:.4f} exceeds cap ${cost_cap}")
+
+        signals = run.gate_signals or {}
+        result = EvalResult(
+            eval_run_id=eval_run_id, case_id=case.id, run_id=run.id,
+            predicted_queue=_classify_queue(session, run.id),
+            predicted_outcome=_STATE_TO_OUTCOME[run.state],
+            escalation_reason=run.escalation_reason,
+            cost_usd=run.total_cost_usd or 0.0, latency_ms=_latency_ms(run),
+            retrieval_similarity=signals.get("retrieval_similarity"),
+            classification_margin=signals.get("classification_margin"),
+        )
+
+        if run.final_reply:
+            verdict, responses = judge_run(session, case, run)  # LIVE
+            total_cost += sum(_response_cost(r) for r in responses)
+            if total_cost > cost_cap:
+                raise SuiteCostExceeded(f"pool cost ${total_cost:.4f} exceeds cap ${cost_cap}")
+            result.judge_verdict = verdict.verdict
+            result.judge_reason = verdict.reason
+            result.judge_rule_triggered = verdict.rule_triggered
+            n_judged += 1
+
+        session.add(result)
+        session.commit()
+
+    return {"eval_run_id": eval_run_id, "n_run": len(cases), "n_judged": n_judged,
+            "total_cost": total_cost}
 
 
 def judge_backfill(session, eval_run_id, *, cost_cap: float = JUDGE_BACKFILL_COST_CAP) -> dict:

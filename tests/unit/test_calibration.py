@@ -85,8 +85,8 @@ def make_result(id_, case_id=1, run_id=None, judge_verdict="pass", judge_reason=
     )
 
 
-def make_case(case_id=1, ticket_id=101):
-    return SimpleNamespace(id=case_id, ticket_id=ticket_id)
+def make_case(case_id=1, ticket_id=101, kind="representative"):
+    return SimpleNamespace(id=case_id, ticket_id=ticket_id, kind=kind)
 
 
 def make_ticket(ticket_id=101, subject="VPN keeps disconnecting", body="Client demo at 3pm."):
@@ -200,6 +200,34 @@ def test_export_returns_zero_for_no_judged_rows(tmp_path):
         assert list(csv.DictReader(fh)) == []
 
 
+def test_export_includes_calibration_pool_rows_alongside_golden(tmp_path):
+    """The blind export must cover BOTH the golden judged rows AND the
+    calibration-pool judged rows -- kappa needs 40+ independent labeled
+    items, not just the 19 golden-set ones. export_labels selects by
+    judge_verdict IS NOT NULL only, with no filter on the case's kind, so a
+    calibration-kind case's judged result must appear in the export."""
+    run_golden, run_pool = uuid.uuid4(), uuid.uuid4()
+    golden_result = make_result(1, run_id=run_golden, case_id=1)
+    pool_result = make_result(2, run_id=run_pool, case_id=2)
+    session = FakeSession(
+        results=[golden_result, pool_result],
+        cases=[make_case(1, ticket_id=101, kind="representative"),
+               make_case(2, ticket_id=202, kind="calibration")],
+        tickets=[make_ticket(101), make_ticket(202, subject="Billing question")],
+        runs=[make_run(run_golden), make_run(run_pool)],
+        spans=[], kb_docs=[],
+    )
+    out = tmp_path / "labels.csv"
+
+    n = export_labels(session, str(out))
+
+    assert n == 2
+    with open(out, encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    result_ids = {row["result_id"] for row in rows}
+    assert result_ids == {"1", "2"}
+
+
 # ---------------------------------------------------------------- import_labels
 
 def _write_csv(path, rows):
@@ -261,6 +289,69 @@ def test_import_is_idempotent_safe_to_rerun(tmp_path):
 
     assert n1 == n2 == 1
     assert result.human_label == "fail"
+
+
+def test_import_accepts_capitalized_label_from_excel_autocapitalize(tmp_path):
+    """Excel autocapitalizes the first letter of a cell -- "pass" becomes
+    "Pass". Must still import correctly, not abort the whole batch."""
+    result = make_result(1)
+    session = FakeSession(results=[result])
+    path = tmp_path / "labels.csv"
+    _write_csv(path, [[1, "s", "b", "", "", "reply", "Pass"]])
+
+    n = import_labels(session, str(path))
+
+    assert n == 1
+    assert result.human_label == "pass"
+
+
+def test_import_accepts_whitespace_padded_label(tmp_path):
+    result = make_result(1)
+    session = FakeSession(results=[result])
+    path = tmp_path / "labels.csv"
+    _write_csv(path, [[1, "s", "b", "", "", "reply", " needs_review "]])
+
+    n = import_labels(session, str(path))
+
+    assert n == 1
+    assert result.human_label == "needs_review"
+
+
+def test_import_accepts_uppercase_and_whitespace_together(tmp_path):
+    result = make_result(1)
+    session = FakeSession(results=[result])
+    path = tmp_path / "labels.csv"
+    _write_csv(path, [[1, "s", "b", "", "", "reply", " PASS "]])
+
+    n = import_labels(session, str(path))
+
+    assert n == 1
+    assert result.human_label == "pass"
+
+
+def test_import_still_rejects_genuinely_invalid_label(tmp_path):
+    """Normalization must not widen what's accepted -- a real typo still
+    raises loudly instead of silently corrupting the calibration set."""
+    result = make_result(1)
+    session = FakeSession(results=[result])
+    path = tmp_path / "labels.csv"
+    _write_csv(path, [[1, "s", "b", "", "", "reply", "maybe"]])
+
+    with pytest.raises(ValueError):
+        import_labels(session, str(path))
+
+
+def test_import_still_skips_whitespace_only_label(tmp_path):
+    """A cell containing only whitespace still means "not labeled yet"."""
+    result = make_result(1)
+    session = FakeSession(results=[result])
+    path = tmp_path / "labels.csv"
+    _write_csv(path, [[1, "s", "b", "", "", "reply", "   "]])
+
+    n = import_labels(session, str(path))
+
+    assert n == 0
+    assert result.human_label is None
 
 
 # ------------------------------------------------------------ compute_kappa_report

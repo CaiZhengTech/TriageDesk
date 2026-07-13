@@ -58,14 +58,19 @@ def export_labels(session, out_csv: str) -> int:
 
 def import_labels(session, in_csv: str) -> int:
     """Safe to re-run: upserts human_label onto the matching eval_results
-    row by result_id. Blank human_label means "not labeled yet" and is
-    silently skipped (Cai may label only some rows in a pass). Rejects any
-    non-blank label outside {pass, fail, needs_review} -- fail loud on a
-    typo rather than silently corrupt the calibration set."""
+    row by result_id. Blank (or whitespace-only) human_label means "not
+    labeled yet" and is silently skipped (Cai may label only some rows in a
+    pass). The label is stripped and lowercased before validating -- Cai
+    hand-edits this CSV in Excel, which autocapitalizes ("Pass") and can
+    leave stray padding (" pass ") on a cell; normalizing first means one
+    Excel quirk can't abort the import of an entire 40+ row hand-labeled
+    batch. Still rejects any non-blank label outside {pass, fail,
+    needs_review} -- fail loud on a genuine typo rather than silently
+    corrupt the calibration set."""
     n = 0
     with open(in_csv, newline="", encoding="utf-8") as fh:
         for row in csv.DictReader(fh):
-            label = (row.get("human_label") or "").strip()
+            label = (row.get("human_label") or "").strip().lower()
             if not label:
                 continue
             if label not in LABELS:

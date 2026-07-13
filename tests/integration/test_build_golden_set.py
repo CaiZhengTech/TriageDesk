@@ -1,9 +1,10 @@
+import json
 import uuid
 
 import pytest
 from sqlalchemy import select
 
-from scripts.build_golden_set import seed, seed_adversarial_tickets
+from scripts.build_golden_set import EXPECTATIONS, seed, seed_adversarial_tickets
 from tests.conftest import integration
 from triagedesk.evals.adversarial import ADVERSARIAL
 from triagedesk.models import EvalCase, EvalResult, Run, Ticket
@@ -86,3 +87,39 @@ def test_seed_refuses_when_eval_results_exist(test_db):
 
     test_db.rollback()
     assert test_db.execute(select(EvalResult)).scalars().all()
+
+
+@integration
+def test_reset_history_reseed_never_deletes_calibration_pool_cases(test_db):
+    """The calibration pool (issue #11, kind='calibration', see
+    scripts/build_calibration_pool.py) shares the eval_cases table with the
+    golden set. --reset-history is documented as deleting eval_results plus
+    the adversarial tickets' runs/spans -- it must not ALSO sweep up the
+    pool's eval_cases rows as undocumented collateral damage. Audit finding
+    from Task 6: the reseed's `delete(EvalCase)` was unscoped.
+
+    seed()'s success path needs every golden_expectations.json ticket_id to
+    already exist as a real Ticket row (the FK the real dataset normally
+    satisfies) -- this test seeds minimal stand-in Ticket rows for each one
+    so the reseed can run to completion inside the isolated test branch."""
+    expectations = json.loads(EXPECTATIONS.read_text())
+    for r in expectations:
+        test_db.add(Ticket(id=r["ticket_id"], subject="s", body="b",
+                            queue=r["expected_queue"], language="en", source="kaggle"))
+
+    pool_ticket = Ticket(subject="s", body="b", queue="Billing and Payments",
+                          language="en", source="kaggle")
+    test_db.add(pool_ticket)
+    test_db.flush()
+    pool_case = EvalCase(ticket_id=pool_ticket.id, kind="calibration",
+                          expected_outcome="unlabeled")
+    test_db.add(pool_case)
+    test_db.commit()
+
+    seed(test_db, reset_history=True)
+
+    surviving = test_db.execute(
+        select(EvalCase).where(EvalCase.ticket_id == pool_ticket.id)
+    ).scalar_one_or_none()
+    assert surviving is not None
+    assert surviving.kind == "calibration"
