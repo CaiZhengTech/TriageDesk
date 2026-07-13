@@ -124,8 +124,8 @@ rate — the headline number.)*
 
 ## Deep-dive companions (for interview prep, not for recruiters)
 
-- [The Week 1 story, issue by issue](2026-07-12-week1-story-explained.md) — analogies
+- [The Week 1 story, issue by issue](STORY.md) — analogies
   + Dana's journey through every stage
-- [The QA hardening explainer](2026-07-12-week1-qa-explained.md) — the
+- [The QA hardening explainer](QA-HARDENING.md) — the
   "show your receipt" fix in full
-- Design record: `docs/superpowers/specs/2026-07-10-triagedesk-design.md`
+- Design record: `docs/00-spec/DESIGN-SPEC.md`

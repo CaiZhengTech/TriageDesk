@@ -18,7 +18,7 @@ accounts often can't access Anthropic Bedrock models; migration friction > $ sav
 
 ## Where things stand
 
-Executing `docs/superpowers/plans/2026-07-10-week1-pipeline-skeleton.md` via
+Executing `docs/week-1-pipeline/PLAN.md` via
 superpowers:subagent-driven-development (implementer subagent → reviewer subagent → fix
 loops → controller merges, checks-gated). **7 of 9 tasks complete. Issues #1–#5 closed,
 each with a narrative closeout comment.**

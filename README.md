@@ -3,9 +3,14 @@
 AI support-ticket triage agent with a glass-box ops console: every run is traced,
 evaluated, cost-capped, and — where stakes require it — routed to a human review queue.
 
-**Read this first:** the design record lives in
-[`docs/superpowers/specs/2026-07-10-triagedesk-design.md`](docs/superpowers/specs/2026-07-10-triagedesk-design.md).
-Issues #1–#18 are the build sequence; plan docs in `docs/superpowers/plans/` are canonical
+**📖 Start with the [documentation map](docs/README.md)** — it says where everything is.
+
+Quick links: [design record](docs/00-spec/DESIGN-SPEC.md) ·
+[the pitch](docs/00-spec/PITCH.md) ·
+[what Week 1 built, in plain language](docs/week-1-pipeline/STORY.md) ·
+[what Week 2 built](docs/week-2-evals/STORY.md)
+
+Issues #1–#18 are the build sequence; plan docs in `docs/week-N-*/PLAN.md` are canonical
 for implementation detail.
 
 ## Architecture

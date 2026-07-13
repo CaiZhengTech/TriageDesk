@@ -5,31 +5,34 @@ Northeast US (NYC/Boston) new-grad SWE roles, fall 2026 cycle. The differentiato
 agent — it's the eval/observability/trust discipline around it (market research: eval design
 is the #1 hiring signal; plain RAG demos are a yellow flag).
 
-## Status (updated 2026-07-12, evening)
+## Status (updated 2026-07-13)
 
-**WEEK 2 IN EXECUTION.** Week 1 fully merged + QA'd (issues #1–#7 closed). Week 2 plan
-(`docs/superpowers/plans/2026-07-12-week2-evals.md`) council-reviewed with BINDING
-amendments; Tasks 1–2 of 7 merged (SDK fixture PR #30, prompt caching PR #31);
-Task 3 (golden set, #8) in flight on `feat/08-golden-set`. Budget ~$0.13 of $20.
-Key diagnostic finding on record: margin formula correct, 0.02 threshold structurally
-near-unreachable (2/20 ground-truth tickets) — re-derive from held-out data ONLY.
-**→ RESUME HERE: read `docs/sessions/2026-07-12-week2-execution-handoff.md`** — the
-controller operating manual (per-task choreography, live-run budget rules, standing
-preferences, Wk3–4 path). Per-task detail: `.superpowers/sdd/progress.md`.
+**WEEK 2 — 6 of 7 tasks done; BLOCKED on Cai's labeling checkpoint (issue #11).**
+41 blind rows await his labels in `judge_labels.csv` (see `results/LABELING-INSTRUCTIONS.md`);
+then kappa + disagreement report, then Task 7 (CI eval gate, issue #12 = the Wk2
+kill-criterion checkpoint). Issues #8, #9, #10 closed. Budget ~$3.05 of $20.
+**→ RESUME HERE: read `docs/README.md`** (the documentation map), then
+`docs/week-2-evals/HANDOFF.md` — the controller operating manual (per-task choreography,
+live-run budget rules, standing preferences, Wk3–4 path). Raw ledger:
+`.superpowers/sdd/progress.md` (git-ignored, local).
 
-- **QA hardening DONE (PR #29 → `627f778`):** the council-mandated gate fix landed —
-  gate now structurally requires `check_entitlement` execution evidence before any
-  `solve` auto-resolves (escalates `no_entitlement_evidence` otherwise; TDD'd). Plus:
-  CostUnknownError fail-closed typing, cost boundary tests, runner/act test gaps,
-  gitleaks in CI (inside the `test` job) + concurrency-cancel, filler tickets cleaned.
-  Issue **#28** tracks the two genuinely-Week-2 leftovers (judge live smoke; soft-denial
-  golden case). Recruiter-friendly write-up: `docs/superpowers/explainers/`.
-- **Week 2 sequencing:** judge structured-output live smoke + fixture (SDK-reality
-  rule, FIRST) → prompt caching → golden set (incl. soft-denial adversarial case) →
-  harness/calibration → judge → kappa → CI eval gate.
-- **Standing explanation rule (Cai, 2026-07-12):** every completed task gets (1) a plain
-  chat explanation, (2) an analogy-driven issue comment for non-technical readers,
-  (3) an explainer md in `docs/superpowers/explainers/` with interview one-liners.
+- **Live numbers on record:** adversarial catch rate **5/5 (100%)**, escalation recall
+  **1.0**, precision 0.88, ~**2.9¢/run** (prompt caching on), p50 31–34s. Routing accuracy
+  29% vs *noisy dataset labels* (queue taxonomy overlaps in embedding space — a finding,
+  not a defect). 41 judged replies (19 golden + 22 calibration-pool).
+- **Gate diagnostics (do not hand-tune):** margin formula hand-verified CORRECT; the 0.02
+  margin threshold is structurally near-unreachable (only 2/20 ground-truth-labeled tickets
+  clear it). Of the ideal-auto-resolve cases, ZERO were blocked by thresholds — the binding
+  gates are the entitlement-receipt rule and model conservatism (`agent_requested_human`
+  = 14/25). Threshold re-derivation happens from HELD-OUT data + the calibration table,
+  never from the golden 25 (council hold-out rule).
+- **Week 2 remaining:** Cai labels → `label-import` + `calibrate` (kappa + disagreement
+  appendix) → Task 7 CI eval gate (trigger = `workflow_dispatch` + eval-paths filter, NOT
+  every merge — council amendment; $1 cap stays).
+- **Standing explanation rule (Cai):** every completed task gets (1) a plain chat
+  explanation, (2) a short analogy-driven comment on the GitHub issue, (3) a chapter in
+  that week's `STORY.md`, written so a non-technical recruiter could follow it, with
+  interview one-liners rolled up into `docs/00-spec/PITCH.md`.
 - **Model:** `claude-sonnet-4-6`, effort high; adaptive thinking in act loop only. Judge can
   run temp 0 on the same model.
 - **Infra facts:** branch protection on main (test check + up-to-date required; verify
@@ -41,13 +44,20 @@ preferences, Wk3–4 path). Per-task detail: `.superpowers/sdd/progress.md`.
   (3) both live runs' classification margin was negative (−0.008) — nothing auto-resolves
   until Week 2 calibration sets real thresholds (deliberate; do not hand-tune).
 
-**Spec remains the design record:** `docs/superpowers/specs/2026-07-10-triagedesk-design.md`.
+**Spec remains the design record:** `docs/00-spec/DESIGN-SPEC.md`.
 
 ## Development process (issue-driven — follow this)
 
 - **Issues = tracking layer** (lean: goal, acceptance criteria, deps). **Plan docs =
-  canonical layer** (code-level detail, `docs/superpowers/plans/`, one per week).
+  canonical layer** (code-level detail, `docs/week-N-<topic>/PLAN.md`, one per week).
   If they ever conflict, update the issue to match the plan.
+- **Docs layout (see `docs/README.md` — the map):** `docs/` is grouped BY WEEK.
+  Each week folder holds the same four names: `PLAN.md` (what gets built), `STORY.md`
+  (the plain-language explainer), `HANDOFF.md` (state + how to resume), and `reports/`
+  (per-task engineering evidence: `task-N-<topic>.md`). Cross-week records live in
+  `docs/00-spec/` (`DESIGN-SPEC.md`, `PITCH.md`). **No dates in filenames** — the folder
+  says when, the name says what, git holds the history. Keep this convention; do not
+  reintroduce dated filenames or a `superpowers/` docs subtree.
 - Work order = the number in the issue title. Per issue: branch → TDD → PR referencing
   the issue → disciplined self-review via the PR checklist → merge closes it.
 - Non-code issues (KB doc authoring, the friend favor) get NO branch/PR/TDD ceremony.

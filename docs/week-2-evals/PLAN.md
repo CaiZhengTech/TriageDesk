@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-Every task implicitly includes these. Quoted rules are copied verbatim from the Week-1 plan's Global Constraints (`docs/superpowers/plans/2026-07-10-week1-pipeline-skeleton.md`) and the project design rules.
+Every task implicitly includes these. Quoted rules are copied verbatim from the Week-1 plan's Global Constraints (`docs/week-1-pipeline/PLAN.md`) and the project design rules.
 
 - **Pinned LLM:** `claude-sonnet-4-6` everywhere. **Judge: same model, `temperature=0`.** `claude-sonnet-4-6` accepts `temperature`, so the judge pins the same model at `temperature=0` as the spec asks — no workaround needed.
 - **Budget discipline (hard $20 total, ~$0.11 already spent):** Week-2 envelope ~$10–12. **All unit tests use fakes/fixtures — $0.** Live eval-suite runs are deliberate, counted events: **budget ≤ 4 full live suite runs during Week-2 development (~$6)** plus the CI gate runs. **Prompt caching (Task 2) MUST land before the first full live suite run.** Every step that hits the real API is marked `⚠️ LIVE ($~cost)` with its call budget; never run a live step in a loop.

@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-Copied from the spec (`docs/superpowers/specs/2026-07-10-triagedesk-design.md`) — every task implicitly includes these:
+Copied from the spec (`docs/00-spec/DESIGN-SPEC.md`) — every task implicitly includes these:
 
 - **Pinned LLM:** `claude-sonnet-4-6` (user decision 2026-07-10, revised same day from Opus 4.8; alias is Anthropic's pinned form — no date-suffixed ID). Recorded on every run row. **Effort:** Sonnet 4.6 defaults to `high` (the user's chosen level); the act loop sets `output_config={"effort": "high"}` explicitly, structured calls rely on the default. **Thinking:** adaptive thinking (`thinking={"type": "adaptive"}`) is enabled in the act loop only — the agentic part; pre-check/classify are cheap structured calls and stay non-thinking. Sonnet 4.6 accepts `temperature` (at most one of `temperature`/`top_p`), but the pipeline doesn't use it.
 - **Embeddings:** Voyage AI `voyage-3.5-lite`, `output_dimension=1024`, `input_type="document"` for KB docs / `"query"` for tickets. `EMBED_DIMS = 1024` must match the pgvector column.
@@ -294,8 +294,8 @@ AI support-ticket triage agent with a glass-box ops console: every run is traced
 evaluated, cost-capped, and — where stakes require it — routed to a human review queue.
 
 **Read this first:** the design record lives in
-[`docs/superpowers/specs/2026-07-10-triagedesk-design.md`](docs/superpowers/specs/2026-07-10-triagedesk-design.md).
-Issues #1–#18 are the build sequence; plan docs in `docs/superpowers/plans/` are canonical
+[`docs/00-spec/DESIGN-SPEC.md`](docs/00-spec/DESIGN-SPEC.md).
+Issues #1–#18 are the build sequence; plan docs in `docs/week-N-*/PLAN.md` are canonical
 for implementation detail.
 
 ## Architecture

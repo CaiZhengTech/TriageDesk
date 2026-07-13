@@ -1,7 +1,7 @@
 # The Week 2 Story, Explained (evals — issues #8–#12)
 
 *Rolling doc — a chapter is added as each Week 2 task lands. Same three layers as the
-[Week 1 story](2026-07-12-week1-story-explained.md): **analogy** → **Dana's journey**
+[Week 1 story](STORY.md): **analogy** → **Dana's journey**
 → **Under the hood**. Interview one-liners live in [PITCH.md](PITCH.md).*
 
 **Week 2's mission in one sentence:** turn "the agent seems fine" into *measured*

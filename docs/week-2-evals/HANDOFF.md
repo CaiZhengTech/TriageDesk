@@ -7,7 +7,7 @@ the Week 2 plan are sufficient to finish this project beginning-to-end.** Supers
 ## Orientation — read in this order
 1. Project `CLAUDE.md` (auto-loads) — locked stack, non-negotiable rules, status.
 2. THIS doc — the execution choreography and current frontier.
-3. `docs/superpowers/plans/2026-07-12-week2-evals.md` — canonical Week 2 tasks
+3. `docs/week-2-evals/PLAN.md` — canonical Week 2 tasks
    (**read the COUNCIL AMENDMENTS section before Tasks 3–7 work — it is binding**).
 4. `.superpowers/sdd/progress.md` — the ledger: every task's commits, findings, budget.
 5. `git log --oneline -5` + `gh pr list` + `gh issue list` — trust these over memory.
@@ -28,7 +28,7 @@ the Week 2 plan are sufficient to finish this project beginning-to-end.** Supers
 ## The per-task choreography (repeat for Tasks 4, 5, 6, 7)
 1. `git checkout main && git pull`; record BASE = `git rev-parse --short HEAD`.
 2. Extract the brief:
-   `"/c/Users/Wonton Soup/.claude/plugins/cache/claude-plugins-official/superpowers/6.1.1/skills/subagent-driven-development/scripts/task-brief" docs/superpowers/plans/2026-07-12-week2-evals.md N`
+   `"/c/Users/Wonton Soup/.claude/plugins/cache/claude-plugins-official/superpowers/6.1.1/skills/subagent-driven-development/scripts/task-brief" docs/week-2-evals/PLAN.md N`
 3. Dispatch ONE implementer subagent (model: sonnet; NEVER two implementers in
    parallel). The dispatch contains: one line of where the task fits; the brief path
    ("read this first — your complete requirements"); the binding council amendments
@@ -112,10 +112,10 @@ the Week 2 plan are sufficient to finish this project beginning-to-end.** Supers
 1. **Three deliverables after EVERY completed task:** (a) plain-language explanation
    in chat; (b) analogy-driven comment on the GitHub issue (SHORT — ~1 min read —
    why it matters, builds-on-previous, link to explainer); (c) explainer md in
-   `docs/superpowers/explainers/` with THREE layers: analogy → Dana's-journey
+   that week's `STORY.md` with THREE layers: analogy → Dana's-journey
    walkthrough → "Under the hood" (semi-technical, real component names, no code).
    Include ready-made interview one-liners. (Memory: explanation-format-preference.)
-2. **PITCH.md** (`docs/superpowers/explainers/PITCH.md`) updated at every milestone —
+2. **PITCH.md** (`docs/00-spec/PITCH.md`) updated at every milestone —
    30-second story, per-feature one-liners, numbers table.
 3. **Closeout comment on every issue at close** (built / how-it-went / decisions /
    next). All of #1–#7 have them; keep the streak.

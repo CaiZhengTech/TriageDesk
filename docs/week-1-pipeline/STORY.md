@@ -7,7 +7,7 @@ a ticket saying "My VPN keeps disconnecting — client demo at 3pm. Can you also
 priority VPN support on my account?" Her plan doesn't include that feature, so the right
 answer contains a denial — which triggers this project's most important safety rule.*
 
-*Companion docs: [QA hardening explainer](2026-07-12-week1-qa-explained.md) ·
+*Companion docs: [QA hardening explainer](QA-HARDENING.md) ·
 [PITCH.md](PITCH.md) (interview one-liners, one file).*
 
 *Each chapter has three layers: **the analogy** (10-second grasp), **Dana's journey**
@@ -253,7 +253,7 @@ After Week 1 merged, we ran an adversarial review against our own finished work.
 found that the bouncer's #1 rule was *obeyed but not enforced* — the AI could have
 slipped bad news past it by mislabeling. We closed that structurally (the "show your
 receipt" rule) and hardened a dozen smaller things. Full story:
-[2026-07-12-week1-qa-explained.md](2026-07-12-week1-qa-explained.md).
+[QA-HARDENING.md](QA-HARDENING.md).
 
 **The meta-lesson of Week 1** (the thread recruiters should hear): three separate
 times, something that looked correct under simulated tests was wrong against reality.
