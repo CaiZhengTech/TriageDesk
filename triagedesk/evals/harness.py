@@ -16,6 +16,7 @@ from triagedesk.models import EvalCase, EvalResult, Run, Span
 from triagedesk.pipeline.runner import run_ticket
 
 SUITE_COST_CAP_USD = 1.00
+JUDGE_BACKFILL_COST_CAP = 0.50
 
 
 class SuiteCostExceeded(Exception):
@@ -78,7 +79,11 @@ def run_suite(session, *, cost_cap: float = SUITE_COST_CAP_USD, with_judge: bool
             outcome_correct=(predicted_outcome == case.expected_outcome),
         )
 
-        if with_judge and run.state == "completed" and run.final_reply:
+        # Judge grades reply quality/grounding, which is orthogonal to the
+        # gate's auto-send decision -- an escalated run's drafted reply is
+        # exactly what a human reviewer reads, so it must be judged too.
+        # judge_run's own ValueError guard is the backstop for empty replies.
+        if with_judge and run.final_reply:
             from triagedesk.evals.judge import judge_run  # local import: judge is Task 5
 
             verdict, responses = judge_run(session, case, run)  # LIVE
@@ -93,6 +98,50 @@ def run_suite(session, *, cost_cap: float = SUITE_COST_CAP_USD, with_judge: bool
         session.commit()
 
     return eval_run_id, summarize(case_results)
+
+
+def judge_backfill(session, eval_run_id, *, cost_cap: float = JUDGE_BACKFILL_COST_CAP) -> dict:
+    """Backfills judge verdicts for an EXISTING eval_run so a pipeline suite
+    is never re-run just to feed the judge. Judges eval_results rows whose
+    judge_verdict IS NULL and whose run has a non-empty final_reply, writing
+    judge_verdict/judge_reason/judge_rule_triggered back to those rows.
+    Idempotent (already-judged rows are excluded by the query). Makes NO
+    pipeline calls -- judge calls only. Reuses judge_run (Task 5) rather than
+    duplicating its logic."""
+    from triagedesk.evals.judge import judge_run  # local import: judge is Task 5
+
+    results = (
+        session.query(EvalResult)
+        .filter(EvalResult.eval_run_id == eval_run_id, EvalResult.judge_verdict.is_(None))
+        .all()
+    )
+    total_cost = 0.0
+    verdict_counts: dict[str, int] = {}
+    n_judged = 0
+
+    for result in results:
+        run = session.get(Run, result.run_id) if result.run_id else None
+        if run is None or not run.final_reply:
+            continue
+        case = session.get(EvalCase, result.case_id)
+
+        verdict, responses = judge_run(session, case, run)  # LIVE (judge only)
+        total_cost += sum(_response_cost(r) for r in responses)
+        if total_cost > cost_cap:
+            raise SuiteCostExceeded(
+                f"judge backfill cost ${total_cost:.4f} exceeds cap ${cost_cap}"
+            )
+
+        result.judge_verdict = verdict.verdict
+        result.judge_reason = verdict.reason
+        result.judge_rule_triggered = verdict.rule_triggered
+        session.add(result)
+        session.commit()
+
+        n_judged += 1
+        verdict_counts[verdict.verdict] = verdict_counts.get(verdict.verdict, 0) + 1
+
+    return {"n_judged": n_judged, "verdict_counts": verdict_counts, "total_cost": total_cost}
 
 
 def _response_cost(response) -> float:
