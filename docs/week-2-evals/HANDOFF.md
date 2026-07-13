@@ -9,8 +9,19 @@ the Week 2 plan are sufficient to finish this project beginning-to-end.** Supers
 2. THIS doc — the execution choreography and current frontier.
 3. `docs/week-2-evals/PLAN.md` — canonical Week 2 tasks
    (**read the COUNCIL AMENDMENTS section before Tasks 3–7 work — it is binding**).
-4. `.superpowers/sdd/progress.md` — the ledger: every task's commits, findings, budget.
+4. `.superpowers/sdd/progress.md` — the ledger: every task's commits, findings, budget
+   (git-ignored local scratch; see `.superpowers/sdd/README.md`).
 5. `git log --oneline -5` + `gh pr list` + `gh issue list` — trust these over memory.
+
+## Docs conventions (do not drift from these)
+- `docs/` is grouped BY WEEK. Every week folder has the same four names: `PLAN.md`,
+  `STORY.md` (plain-language explainer), `HANDOFF.md`, `reports/`. Cross-week records
+  live in `docs/00-spec/` (`DESIGN-SPEC.md`, `PITCH.md`). The map is `docs/README.md`.
+- **No dates in filenames** — the folder says when, the name says what, git holds history.
+- **Task reports are committed** to `docs/week-N-<topic>/reports/task-N-<topic>.md`.
+  Dispatch every implementer with that path as its report contract.
+- `.superpowers/sdd/` is git-ignored scratch: the ledger (`progress.md`) plus per-week
+  briefs. Review diffs are regenerable — don't hoard them.
 
 ## Current frontier (as of this doc's commit)
 - **Week 2, Tasks 1–2 of 7 DONE and merged** (SDK spike fixture PR #30; prompt
@@ -27,13 +38,16 @@ the Week 2 plan are sufficient to finish this project beginning-to-end.** Supers
 
 ## The per-task choreography (repeat for Tasks 4, 5, 6, 7)
 1. `git checkout main && git pull`; record BASE = `git rev-parse --short HEAD`.
-2. Extract the brief:
+2. Extract the brief (write it to `.superpowers/sdd/week-N/briefs/task-N-<topic>.md` —
+   NEVER a bare `task-N-*.md` at the scratch root: Week 2's generic names once overwrote
+   Week 1's and destroyed five reports):
    `"/c/Users/Wonton Soup/.claude/plugins/cache/claude-plugins-official/superpowers/6.1.1/skills/subagent-driven-development/scripts/task-brief" docs/week-2-evals/PLAN.md N`
 3. Dispatch ONE implementer subagent (model: sonnet; NEVER two implementers in
    parallel). The dispatch contains: one line of where the task fits; the brief path
    ("read this first — your complete requirements"); the binding council amendments
    that touch the task; env facts (below); report contract
-   (`.superpowers/sdd/task-N-report.md`; final message = status/commits/tests/PR only);
+   (`docs/week-N-<topic>/reports/task-N-<topic>.md` — reports are COMMITTED to the repo,
+   not scratch; final message = status/commits/tests/PR only);
    branch name `feat/NN-slug` off BASE; "push + open PR, do NOT merge".
 4. On DONE: `scripts/review-package BASE HEAD` (same scripts dir) → dispatch ONE
    reviewer subagent (sonnet) with brief path, report path, diff path, and the
