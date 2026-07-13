@@ -5,7 +5,9 @@
   python -m scripts.build_golden_set --select-only   # (re)write golden_expectations.json
 
 Deterministic: same seed -> same 20 tickets, every run. Idempotent: clears
-eval_cases before seeding."""
+eval_cases before seeding, and re-seeds the 5 adversarial tickets at their
+pinned ids (delete-then-reinsert) so repeated runs converge to identical
+state instead of growing new rows each time."""
 
 import argparse
 import json
@@ -50,14 +52,24 @@ def cmd_select(session) -> None:
 
 
 def seed_adversarial_tickets(session) -> list[tuple[int, dict]]:
+    # Idempotent: delete-then-reinsert at each spec's pinned ticket_id (both the
+    # ticket row and any eval_cases row referencing it), so repeated runs
+    # converge to identical rows instead of minting new ids each time.
+    ids = [spec["ticket_id"] for spec in ADVERSARIAL]
+    session.execute(delete(EvalCase).where(EvalCase.ticket_id.in_(ids)))
+    session.execute(delete(Ticket).where(Ticket.id.in_(ids)))
+    session.flush()
     out = []
     for spec in ADVERSARIAL:
-        t = Ticket(subject=spec["subject"], body=spec["body"],
+        t = Ticket(id=spec["ticket_id"], subject=spec["subject"], body=spec["body"],
+                   # queue defaults to General Inquiry for the 4 injection/pii/off_topic/
+                   # ambiguous cases (expected_queue=None) — not a graded signal for those
+                   # in the Task 4 harness, only the fixed id/account mapping matters here.
                    queue=spec["expected_queue"] or "General Inquiry",
                    language="en", source="adversarial")
         session.add(t)
-        session.flush()  # assign t.id
         out.append((t.id, spec))
+    session.flush()
     return out
 
 
