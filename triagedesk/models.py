@@ -1,3 +1,10 @@
+"""SQLAlchemy models — the source of truth for the database schema.
+
+Human-readable reference (tables, enum vocabularies, gotchas, example queries):
+docs/00-spec/DATA-SCHEMA.md. Keep it in sync when this file changes; schema changes
+go through an Alembic migration.
+"""
+
 import uuid
 from datetime import datetime
 

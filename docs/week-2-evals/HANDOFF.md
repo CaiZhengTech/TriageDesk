@@ -37,7 +37,7 @@ finish this project end-to-end without guessing. Last updated: 2026-07-13.
 | **Repo** | `C:\Users\Wonton Soup\Downloads\Tech Projects\Agentic_Project` (Windows) |
 | **Python** | 3.13 in `.venv` — always `.venv/Scripts/python -m pytest -q` and `-m ruff check .` |
 | **Secrets** | `export TRIAGEDESK_ENV_FILE="C:\Users\Wonton Soup\.secrets\credentials.env"` in EVERY shell touching settings/DB/API. **Never print secret values.** |
-| **DB** | Neon Postgres + pgvector (dev branch + a test branch for integration tests). |
+| **DB** | Neon Postgres + pgvector (dev branch + a test branch for integration tests). **Never guess table/column names — read [`docs/00-spec/DATA-SCHEMA.md`](../00-spec/DATA-SCHEMA.md) first.** It exists because guessed column names crashed two queries in one session. |
 | **Embeddings** | Voyage `voyage-3.5-lite`, 1024-dim. **Free tier: 3 req/min, 10K tokens/min** — always BATCH into one `embed([list])` call. Voyage is NOT the Anthropic budget. |
 | **Model** | `claude-sonnet-4-6` everywhere. Judge = same model at `temperature=0`. |
 | **CI** | GitHub Actions, one job named `test` (pytest + ruff + gitleaks). Branch protection needs it green + branch up to date. **Always `gh pr checks N --watch` before merging.** |

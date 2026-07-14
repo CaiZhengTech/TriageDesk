@@ -45,6 +45,11 @@ live-run budget rules, standing preferences, Wk3–4 path). Raw ledger:
   until Week 2 calibration sets real thresholds (deliberate; do not hand-tune).
 
 **Spec remains the design record:** `docs/00-spec/DESIGN-SPEC.md`.
+**Data schema (READ BEFORE ANY DB QUERY):** `docs/00-spec/DATA-SCHEMA.md` — every table and
+column, the enum vocabularies, the gotchas (`case_id` not `eval_case_id`; the predicted queue
+lives on the classify *span*, not on `runs`; `created_at` is naive while `finished_at` is
+aware; always filter `eval_cases.kind` out of golden metrics). Guessing schema is the database
+version of the SDK-reality rule — look it up.
 
 ## Development process (issue-driven — follow this)
 

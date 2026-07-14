@@ -11,6 +11,7 @@ the week that produced it. This page tells you where to look for what.
 |---|---|
 | **The interview pitch** (one-liners, the 30-second story, the numbers) | [`00-spec/PITCH.md`](00-spec/PITCH.md) |
 | **The design record** — what this system is and why, the non-negotiable rules | [`00-spec/DESIGN-SPEC.md`](00-spec/DESIGN-SPEC.md) |
+| **The database schema** — table/column names, gotchas, useful queries | [`00-spec/DATA-SCHEMA.md`](00-spec/DATA-SCHEMA.md) ⭐ *read before writing any query* |
 | **To understand what was built, in plain language** (analogies, no jargon) | Any week's `STORY.md` |
 | **To resume work / hand off to a new session** | The current week's `HANDOFF.md` |
 | **The task-by-task plan being executed** | The current week's `PLAN.md` |
@@ -22,8 +23,9 @@ the week that produced it. This page tells you where to look for what.
 ```
 docs/
   README.md              ← you are here
-  00-spec/               cross-week: the design record + the pitch
+  00-spec/               cross-week: the design record, the schema, the pitch
     DESIGN-SPEC.md         what TriageDesk is, the locked stack, the rules
+    DATA-SCHEMA.md         ★ every table + column, the gotchas, example queries
     PITCH.md               ★ read before any interview — one-liners + numbers
   week-1-pipeline/       the agent itself (issues #1–#7, #28)
     PLAN.md                the 9-task plan that was executed
