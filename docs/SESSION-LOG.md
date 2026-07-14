@@ -9,6 +9,38 @@ read the current week's `HANDOFF.md`. For "what did task N build", read that wee
 
 ---
 
+## Session — 2026-07-14 · Judge calibration lands: kappa 0.279 and the tool-blind judge (issue #11 closed)
+
+**Where it started:** blocked on Cai's blind labeling pass (41 rows).
+**Where it ended:** labels imported, calibration computed and analyzed, #11 closed.
+Week 2 = **6.99 of 7** — only Task 7 (CI eval gate, the kill criterion) remains, then STOP
+for Cai's end-of-week llm-council checkpoint. **No Week 3 work before that checkpoint.**
+
+### What happened
+1. Cai labeled all 41 blind rows (26 pass / 13 fail / 2 needs_review) → `label-import` +
+   `calibrate` ($0 — pure DB + math). Artifact: `results/judge-calibration.md`.
+2. **Kappa 0.279, raw agreement 0.512.** Low — and then root-caused rather than shrugged at.
+3. **The finding of the week: the judge is tool-blind.** Its context is ticket + KB + reply;
+   the agent also grounds facts in `lookup_account_status`/`check_entitlement`. Every
+   plan/status claim the judge called "invented" was replayed against the simulated CRM:
+   **7/7 were true tool-derived facts.** Evidence table in
+   `week-2-evals/reports/task-6-calibration-kappa.md`.
+4. Direction of error is safe: judge stricter than human in 18/20 disagreements (fails
+   closed). The 2 lenient misses (results 34, 70) are recorded as the real risk.
+5. **Deliberately NOT fixed mid-week** — showing the judge tool outputs would invalidate the
+   calibration just paid for. Goes to the council checkpoint as top agenda item. Consequence
+   for Task 7 (already in the plan): judge metrics get a tolerance band; deterministic
+   metrics carry the gate.
+
+### Spend
+$0 this session. Total still **~$3.05 of $20**.
+
+### Open
+- Task 7 — CI eval gate (issue #12), the Week-2 kill criterion.
+- Then STOP → hand Cai the state summary for the llm-council checkpoint.
+
+---
+
 ## Session — 2026-07-12 → 07-14 · Week 2 evals (Tasks 1–6) + a full docs overhaul
 
 **Where it started:** Week 1 was merged and QA'd; Week 2 (the evaluation layer — the

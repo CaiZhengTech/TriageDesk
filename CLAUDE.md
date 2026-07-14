@@ -5,12 +5,12 @@ Northeast US (NYC/Boston) new-grad SWE roles, fall 2026 cycle. The differentiato
 agent — it's the eval/observability/trust discipline around it (market research: eval design
 is the #1 hiring signal; plain RAG demos are a yellow flag).
 
-## Status (updated 2026-07-13)
+## Status (updated 2026-07-14)
 
-**WEEK 2 — 6 of 7 tasks done; BLOCKED on Cai's labeling checkpoint (issue #11).**
-41 blind rows await his labels in `judge_labels.csv` (see `results/LABELING-INSTRUCTIONS.md`);
-then kappa + disagreement report, then Task 7 (CI eval gate, issue #12 = the Wk2
-kill-criterion checkpoint). Issues #8, #9, #10 closed. Budget ~$3.05 of $20.
+**WEEK 2 — 6 of 7 tasks done; #11 CLOSED (calibration landed); Task 7 (CI eval gate,
+issue #12 = the Wk2 kill criterion) is the only remaining task. Then STOP for Cai's
+end-of-week llm-council checkpoint — no Week 3 work before it.**
+Issues #8, #9, #10, #11 closed. Budget ~$3.05 of $20.
 **→ RESUME HERE:** `docs/week-2-evals/HANDOFF.md` — the controller operating manual
 (blocker first, environment + tooling, per-task choreography, budget rules, binding
 decisions). For what happened last session: `docs/SESSION-LOG.md`. The map: `docs/README.md`.
@@ -19,16 +19,22 @@ Raw ledger: `.superpowers/sdd/progress.md` (git-ignored, local).
 - **Live numbers on record:** adversarial catch rate **5/5 (100%)**, escalation recall
   **1.0**, precision 0.88, ~**2.9¢/run** (prompt caching on), p50 31–34s. Routing accuracy
   29% vs *noisy dataset labels* (queue taxonomy overlaps in embedding space — a finding,
-  not a defect). 41 judged replies (19 golden + 22 calibration-pool).
+  not a defect). **Judge calibration (41 blind labels): kappa 0.279, raw agreement 0.512
+  — root-caused: the judge is TOOL-BLIND** (grades vs KB-only context; 7/7 flagged
+  "hallucinations" were true CRM/tool-derived facts; judge stricter than human in 18/20
+  disagreements = fails in the safe direction). Fix deferred to the council checkpoint —
+  do NOT change the judge's context mid-week. Consequence for Task 7: judge metrics get a
+  tolerance band, deterministic metrics carry the gate.
 - **Gate diagnostics (do not hand-tune):** margin formula hand-verified CORRECT; the 0.02
   margin threshold is structurally near-unreachable (only 2/20 ground-truth-labeled tickets
   clear it). Of the ideal-auto-resolve cases, ZERO were blocked by thresholds — the binding
   gates are the entitlement-receipt rule and model conservatism (`agent_requested_human`
   = 14/25). Threshold re-derivation happens from HELD-OUT data + the calibration table,
   never from the golden 25 (council hold-out rule).
-- **Week 2 remaining:** Cai labels → `label-import` + `calibrate` (kappa + disagreement
-  appendix) → Task 7 CI eval gate (trigger = `workflow_dispatch` + eval-paths filter, NOT
-  every merge — council amendment; $1 cap stays).
+- **Week 2 remaining:** Task 7 CI eval gate only (trigger = `workflow_dispatch` +
+  eval-paths filter, NOT every merge — council amendment; $1 cap stays). Then the
+  end-of-week council checkpoint (top agenda item: give the judge tool-call evidence +
+  recalibrate, vs. ship the honest 0.279).
 - **Standing explanation rule (Cai):** every completed task gets (1) a plain chat
   explanation, (2) a short analogy-driven comment on the GitHub issue, (3) a chapter in
   that week's `STORY.md`, written so a non-technical recruiter could follow it, with

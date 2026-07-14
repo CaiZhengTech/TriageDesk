@@ -173,7 +173,7 @@ fail-closed violation the moment the judge went live), and `judge_run` would hav
 literal string "None" into its prompt if handed a run with no reply. Both fixed, both tested.
 A **backfill command** means re-judging costs 15¢ instead of re-running the pipeline for $0.75.
 
-## Task 6 — Calibration: *does a human actually agree with the judge?* (tooling merged, PRs #38/#39 — ⏸ awaiting human labels)
+## Task 6 — Calibration: *does a human actually agree with the judge?* (✅ closed — PRs #38/#39 + calibration run, issue #11)
 
 **Analogy:** we now have an AI grading the agent's work. But **who grades the grader?** Before
 CI is ever allowed to trust this judge, it has to prove it agrees with a human. So: Cai labels
@@ -199,6 +199,39 @@ number honest. And the implementer **overrode the plan's own formula**: the plan
 that's mathematically **0/0, undefined**, and reporting 1.0 would have shipped a false claim of
 perfect calibration. It now returns "undefined" with a reason. *The eval layer caught an error
 in its own specification.*
+
+**The verdict (labels landed 2026-07-14):** Cai blind-labeled all 41 rows. Agreement:
+**kappa 0.279** — the human and the judge agree only "fairly," well below what you'd need to
+let the judge grade unsupervised. A weaker project would bury that number. Here it's the
+week's best finding, because the disagreement report explains it.
+
+**The analogy:** imagine grading an open-book exam — but you were only handed the *textbook*,
+while the student also got to interview the customer's account manager. Every fact the student
+learned from that interview looks made-up to you. That's exactly what happened: the judge
+grades replies against the KB articles only, but the agent also has **tools** — it can look up
+a customer's real plan and account status in the (simulated) CRM. So when the agent wrote
+"your account is currently suspended," the judge ruled it a hallucination. We checked the CRM:
+**that customer's account really is suspended.** Seven out of seven "invented" facts the judge
+flagged were true, tool-derived facts. The agent was right; the grader lacked the evidence.
+
+**Dana's journey:** when Dana asks for a dedicated IP and the agent replies "your Pro plan
+doesn't include that," the judge — seeing only the VPN troubleshooting articles — would cry
+"where did 'Pro plan' come from?!" It came from `check_entitlement`, the same tool-call receipt
+the confidence gate already demands. The grader just was never shown the receipt.
+
+**Why this is good news, carefully stated:** 18 of the 20 disagreements are the judge being
+*stricter* than the human — the safe direction (a paranoid grader fails closed). Only 2 rows
+went the other way. And the fix is mechanical — show the judge the tool outputs — but it's
+deliberately *not* rushed in mid-week, because changing the grader invalidates the calibration
+you just paid a human afternoon for. Instead the number feeds Task 7's design directly: **a
+kappa-0.279 judge advises, it does not veto.** The CI gate leans on deterministic metrics
+(adversarial catch, escalation recall); judge metrics get a tolerance band.
+
+**Under the hood (results):** raw agreement 0.512; confusion matrix and all 20 disagreement
+rows with the judge's verbatim reasoning live in `results/judge-calibration.md`. Root-cause
+verification: for every disagreement where the judge cited a plan/status claim, the claim was
+replayed against the simulated CRM (`lookup_account_status`) and matched — full table in the
+task-6 report.
 
 ---
 

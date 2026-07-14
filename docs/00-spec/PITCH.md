@@ -4,7 +4,7 @@
 milestone. Everything here is true and defensible — every claim traces to a commit,
 a test, or a logged run.*
 
-**Last updated:** 2026-07-13 (Week 2: evals — 6 of 7 tasks done)
+**Last updated:** 2026-07-14 (Week 2: evals — judge calibration done, CI gate remaining)
 
 ---
 
@@ -72,6 +72,20 @@ a test, or a logged run.*
 > classification margin, and Week 2 calibrates the thresholds against human labels
 > instead of me guessing them."
 
+**On judge calibration (the tool-blind judge — the flagship honest-number story):**
+> "I calibrated my LLM judge against 41 of my own blind labels and got a kappa of
+> 0.28 — a number most people would hide. But the disagreement report explained it:
+> the judge was flagging 'you're on the Pro plan' as hallucination, and when I
+> replayed those claims against the simulated CRM, seven out of seven were true —
+> facts the agent got from its tools, which the judge was never shown. The grader
+> wasn't wrong, it was under-informed. That finding changed my CI design: a
+> kappa-0.28 judge advises, it doesn't veto."
+
+**On why a low kappa was still safe to ship:**
+> "Eighteen of the twenty disagreements were the judge being stricter than me —
+> for a triage gate that's the failure direction you want. The two lenient misses
+> are the real risk, and they're why deterministic metrics carry my CI gate."
+
 **On process (CI/branch protection):**
 > "CI gates every merge: tests, linting, and gitleaks secret-scanning. I learned the
 > hard way after CI was silently red for two days — now GitHub physically refuses
@@ -113,7 +127,8 @@ budget. Each cut is a talking point, not a gap:
 | **Escalation recall** | **1.0** — nothing needing a human slipped through (precision 0.88) |
 | Real tickets in the database | 11,922 (public Kaggle dataset, English) |
 | Golden evaluation set | 25 cases (20 stratified real + 5 authored adversarial) |
-| Judged replies awaiting human calibration | 41 (19 golden + 22 held-out pool) |
+| Judge calibration | 41 blind human labels · raw agreement 0.512 · **Cohen's kappa 0.279** (judge stricter than human in 18/20 disagreements — fails in the safe direction) |
+| Judge "hallucination" flags replayed against the CRM | 7/7 were TRUE tool-derived facts — the judge is tool-blind (see disagreement report) |
 | Knowledge-base articles authored + embedded | 15 |
 | Pipeline stages, all live-verified end-to-end | 5 |
 | Cost per full pipeline run | **~2.9¢** with prompt caching (hard-capped at 10¢) |
@@ -121,8 +136,7 @@ budget. Each cut is a talking point, not a gap:
 | Test suite | 140+ tests + lint + secret-scan, gating every merge |
 | **Total API spend, entire project to date** | **~$3.05** against a hard $20 budget |
 
-*(Still to land: judge-vs-human Cohen's kappa + the disagreement analysis, and the CI eval
-gate — the Week-2 kill criterion.)*
+*(Still to land: the CI eval gate — the Week-2 kill criterion.)*
 
 ---
 

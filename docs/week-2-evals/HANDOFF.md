@@ -1,32 +1,29 @@
 # RESUME HERE — Controller Operating Manual
 
 **Any new session starts with this file.** Written so a fresh controller (any model) can
-finish this project end-to-end without guessing. Last updated: 2026-07-13.
+finish this project end-to-end without guessing. Last updated: 2026-07-14.
 
 ---
 
-## ⏸ THE CURRENT BLOCKER (resolve first)
+## ▶️ CURRENT FRONT ITEM — Task 7, then STOP
 
-**Week 2 is 6 of 7 tasks done, waiting on ONE human action: Cai must label
-`judge_labels.csv`.**
+**The labeling blocker is CLEARED (2026-07-14).** Cai labeled all 41 rows; `label-import` +
+`calibrate` ran; issue #11 is closed. Results: **kappa 0.279**, raw agreement 0.512, and the
+root cause — **the judge is tool-blind** (it grades against KB-only context, so true
+tool-derived facts like "you're on the Pro plan" look like hallucinations; 7/7 replayed
+against the simulated CRM were correct). Artifact: `results/judge-calibration.md`; analysis:
+`reports/task-6-calibration-kappa.md`.
 
-- The file is in the repo root: **41 blind rows** (ticket, the KB articles the agent saw, the
-  agent's drafted reply, an empty `human_label` column). The judge's verdicts are deliberately
-  **withheld** — blindness is what makes the calibration honest.
-- Cai reads `results/LABELING-INSTRUCTIONS.md`, fills each row with `pass` / `fail` /
-  `needs_review` (blank = skip), saves as CSV.
-- **When he says he's done, run:**
-  ```bash
-  export TRIAGEDESK_ENV_FILE="C:\Users\Wonton Soup\.secrets\credentials.env"
-  .venv/Scripts/python -m triagedesk.evals.cli label-import judge_labels.csv
-  .venv/Scripts/python -m triagedesk.evals.cli calibrate
-  ```
-  That writes `results/judge-calibration.md`: Cohen's kappa, raw agreement, the confusion
-  matrix, and **the disagreement rows** — the week's highest-value artifact ("where my LLM
-  judge diverged from human judgment, and why").
-- Then: closeout comment on issue **#11**, a STORY chapter, and Task 7.
-
-**Task 7 does NOT depend on the labels** — it can be built while Cai labels.
+**What remains in Week 2:**
+1. **Task 7 — CI eval gate (issue #12), the kill criterion.** Dispatch per the choreography
+   below. Design consequence of the calibration result (already consistent with the plan):
+   **judge metrics get a tolerance band; deterministic metrics carry the gate.** A kappa-0.279
+   judge advises, it does not veto.
+2. **Then STOP.** Cai runs his end-of-Week-2 llm-council checkpoint — hand him a state
+   summary. **No Week 3 work before that checkpoint** (Cai re-confirmed this 2026-07-14).
+   Top agenda item for the council: whether to add tool-call evidence to the judge's context
+   (mechanical fix, ~15¢ re-judge via backfill + a second human labeling pass) or ship the
+   honest 0.279 with the analysis.
 
 ---
 
@@ -144,11 +141,14 @@ worked example** everywhere. Continuity is the point.
 | 3 Golden set (25 cases) | #8 | ✅ closed, PR #32 |
 | 4 Eval harness + calibration table | #9 | ✅ closed, PR #33 (+#34, #35) |
 | 5 LLM judge | #10 | ✅ closed, PR #36 (+#37) |
-| 6 Kappa tooling + calibration pool | #11 | ⏸ **awaiting Cai's labels** — PRs #38/#39 |
+| 6 Kappa tooling + calibration pool | #11 | ✅ closed — PRs #38/#39 + calibration run (kappa 0.279) |
 | 7 CI eval gate — **KILL CRITERION** | #12 | ⬜ not started |
 
 **Live numbers:** adversarial catch **5/5 (100%)** · escalation recall **1.0** · precision 0.88
 · ~**2.9¢/run** · p50 31–34s. Judge on the golden 19: 9 pass / 5 fail / 5 needs_review.
+**Judge calibration (41 blind labels):** raw agreement 0.512 · **kappa 0.279** · judge stricter
+in 18/20 disagreements · 7/7 flagged "hallucinations" were true tool-derived facts (the judge
+is tool-blind — see `reports/task-6-calibration-kappa.md`).
 
 **Gate diagnostic (important):** the margin formula is hand-verified correct, but the 0.02
 threshold is structurally near-unreachable (only 2/20 ground-truth tickets clear it). **Zero**
@@ -165,11 +165,9 @@ re-derive from held-out data + the calibration table.
    against a committed baseline; judge metrics with a tolerance band. **The baseline is
    committed only AFTER threshold re-derivation** — the first run's numbers are diagnostic, not
    a target (baseline-from-first-green-run is circular reasoning).
-2. **When Cai's labels land** → `label-import` + `calibrate` → kappa + disagreement appendix →
-   closeout #11.
-3. **KILL CRITERION (end of Week 2):** if the eval gate is not green, the Week-3 console is cut
+2. **KILL CRITERION (end of Week 2):** if the eval gate is not green, the Week-3 console is cut
    to a single read-only page and the hours go to pipeline + evals. Not negotiable mid-project.
-4. **STOP.** Hand Cai a state summary for his end-of-Week-2 checkpoint (he runs llm-council).
+3. **STOP.** Hand Cai a state summary for his end-of-Week-2 checkpoint (he runs llm-council).
    No Week 3 work before that.
 
 ## 🔭 Weeks 3–4 (so the whole path is visible)
