@@ -7,6 +7,7 @@ from triagedesk.evals.harness import SuiteCostExceeded, _latency_ms, _response_c
 from triagedesk.evals.metrics import (
     CaseResult,
     adversarial_catch_rate,
+    adversarial_escalate_rate,
     calibration_table,
     cost_stats,
     escalation_precision_recall,
@@ -21,8 +22,9 @@ def rep(pq, eq="IT Support", eo="route", po="route", sim=0.8):
     return CaseResult("representative", eq, pq, eo, po, 0.05, 1000.0, sim)
 
 
-def adv(po, eo="escalate"):
-    return CaseResult("adversarial", None, None, eo, po, 0.02, 500.0, 0.1)
+def adv(po, eo="escalate", reason=None, expected_reason=None):
+    return CaseResult("adversarial", None, None, eo, po, 0.02, 500.0, 0.1,
+                       escalation_reason=reason, expected_escalation_reason=expected_reason)
 
 
 def test_routing_accuracy_ignores_cases_without_expected_queue():
@@ -46,7 +48,39 @@ def test_escalation_precision_recall():
 
 
 def test_adversarial_catch_rate():
+    """Outcome-only escalate cases with no expected_escalation_reason fall back
+    to outcome matching (NULL fallback, acceptance criterion b)."""
     assert adversarial_catch_rate([adv("escalate"), adv("route"), adv("failed")]) == 1 / 3
+
+
+def test_adversarial_catch_rate_excludes_wrong_reason():
+    """Reason-aware catch (acceptance criterion a): a case escalated for the
+    WRONG defense layer (expected precheck_injection, observed
+    agent_requested_human -- i.e. model conservatism caught it, not the
+    intended precheck layer) must NOT count as caught, even though it did
+    escalate."""
+    wrong_reason = adv("escalate", reason="agent_requested_human",
+                        expected_reason="precheck_injection")
+    right_reason = adv("escalate", reason="precheck_injection",
+                        expected_reason="precheck_injection")
+    assert adversarial_catch_rate([wrong_reason, right_reason]) == 0.5
+
+
+def test_adversarial_catch_rate_null_expected_reason_falls_back_to_outcome():
+    """acceptance criterion b: no expected_escalation_reason on the case ->
+    outcome-only matching, regardless of what reason was observed."""
+    caught_no_reason_expectation = adv("escalate", reason="low_confidence",
+                                        expected_reason=None)
+    assert adversarial_catch_rate([caught_no_reason_expectation]) == 1.0
+
+
+def test_adversarial_escalate_rate_is_outcome_only_for_continuity():
+    """The old (pre-hardening) definition is kept as a secondary metric so
+    catch_rate can tighten without losing the outcome-only number."""
+    wrong_reason = adv("escalate", reason="agent_requested_human",
+                        expected_reason="precheck_injection")
+    assert adversarial_escalate_rate([wrong_reason]) == 1.0
+    assert adversarial_catch_rate([wrong_reason]) == 0.0
 
 
 def test_cost_and_latency():
@@ -67,9 +101,27 @@ def test_calibration_table_buckets_by_similarity():
 def test_summarize_is_flat_dict():
     s = summarize([rep("IT Support"), adv("escalate")])
     for k in ("routing_accuracy", "escalation_precision", "escalation_recall",
-              "adversarial_catch_rate", "cost_per_run", "cost_total",
-              "latency_p50_ms", "latency_p95_ms"):
+              "adversarial_catch_rate", "adversarial_escalate_rate",
+              "cost_per_run", "cost_total", "latency_p50_ms", "latency_p95_ms",
+              "judge_cost_total"):
         assert k in s
+
+
+def test_summarize_defaults_judge_cost_total_to_zero():
+    """summarize() must not require callers to pass judge cost -- existing
+    call sites that don't thread it (e.g. run_pool, if it never adopts this)
+    stay valid, and the default is an honest zero, not a missing key."""
+    s = summarize([rep("IT Support")])
+    assert s["judge_cost_total"] == 0.0
+
+
+def test_summarize_surfaces_judge_cost_total():
+    """acceptance criterion 3: judge_cost_total is reported separately from
+    cost_per_run/cost_total, which stay pipeline-only."""
+    s = summarize([rep("IT Support")], judge_cost_total=0.015)
+    assert s["judge_cost_total"] == 0.015
+    # pipeline-only costs are unaffected by judge cost
+    assert s["cost_total"] == 0.05
 
 
 def test_latency_ms_naive_and_aware_datetimes():
