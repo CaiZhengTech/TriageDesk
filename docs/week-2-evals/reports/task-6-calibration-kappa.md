@@ -6,6 +6,11 @@ simulated, and no kappa number was computed or reported. The controller runs
 the live export → hands the CSV to Cai for a blind labeling pass → re-runs
 import + calibrate.
 
+> **Results landed 2026-07-14** — see [Calibration results](#calibration-results-2026-07-14)
+> at the end of this file. Headline: **kappa 0.279**, and the disagreement analysis found the
+> cause: **the judge cannot see tool outputs**, so it flags true, CRM-derived facts as
+> hallucinations.
+
 ## Branch / commit
 
 - Branch: `feat/11-kappa` (off `01ae5a9`, current `main` at task start)
@@ -269,3 +274,79 @@ from an earlier task-numbering scheme (pre-check/classify work, now
 merged as issue #4) — that directory is entirely gitignored
 (`.superpowers/sdd/.gitignore` = `*`), so it was overwritten with this
 task's report rather than appended to.
+
+---
+
+## Calibration results (2026-07-14)
+
+Cai completed the blind labeling pass on all **41 rows** (his distribution: 26 pass /
+13 fail / 2 needs_review). `label-import` + `calibrate` ran clean; the artifact is
+[`results/judge-calibration.md`](../../../results/judge-calibration.md) (kappa, full
+confusion matrix, all 20 disagreement rows with the judge's reasoning).
+
+**Headline numbers:** raw agreement **0.512**, **Cohen's kappa 0.279** ("fair"
+agreement — well short of the ~0.6+ you'd want before trusting the judge unsupervised).
+The number is honest, blind, and low — and the disagreement analysis explains *why*,
+which is worth more than a flattering number.
+
+### The asymmetry
+
+Of the 20 disagreements, **18 are the judge being stricter than the human** (human
+`pass` → judge `fail`/`needs_review`, or human `needs_review` → judge `fail`); only 2
+run the other way (results 34 and 70, judge `pass` where the human said `fail`/
+`needs_review`). For a CI gate this is the *safe* direction of error — the judge
+fails closed — but it wrecks agreement.
+
+### Root cause, verified: the judge is tool-blind
+
+The judge's context (`judge.py::judge_reply`) is **ticket + retrieved KB articles +
+drafted reply — no tool outputs**. But the agent's act loop grounds account facts in
+`lookup_account_status` / `check_entitlement` against the simulated CRM. So when a
+reply says "you're on the Pro plan" or "your account is currently suspended," the
+judge sees an unverifiable claim and rules it invented.
+
+Spot-check against the simulated CRM (`tickets.id % 12` → account), for every
+disagreement row where the judge's reason cited a plan/status claim:
+
+| result | judge's complaint | CRM truth for that ticket's account | claim correct? |
+|---|---|---|---|
+| 27 | "suspended state … fabricated" | customer-2: pro, **suspended** | ✓ |
+| 41 | "'currently suspended' … invented detail" | customer-2: pro, **suspended** | ✓ |
+| 43 | "Pro plan … invented information" | customer-0: **pro**, active | ✓ |
+| 44 | "Enterprise plan … not grounded" | customer-4: **enterprise**, active | ✓ |
+| 55 | "Basic plan … invented account detail" | customer-7: **basic**, active | ✓ |
+| 63 | "'suspended' … grounding violation" | customer-2: pro, **suspended** | ✓ |
+| 71 | "Enterprise plan … ungrounded" | customer-4: **enterprise**, active | ✓ |
+
+**7 of 7 flagged "hallucinations" are true, tool-derived facts.** The agent was right;
+the grader lacked the evidence to know it.
+
+### The second disagreement bucket (genuinely debatable)
+
+Several judge complaints target *process phrasing* — "escalating to a senior technical
+specialist," "our Product Support team will contact you" (results 29, 36, 45, 59, 61,
+62). These come from neither the KB nor the tools. The human read them as routine
+support-desk language; the judge read them as ungrounded promises. This is a rubric
+ambiguity, not an information gap — worth one clarifying line in the judge rubric if
+it's ever revised.
+
+### The two lenient misses (the ones to actually worry about)
+
+- **Result 34** (human `fail`, judge `pass`): the human caught a problem in a
+  billing reply the judge graded as fully grounded.
+- **Result 70** (human `needs_review`, judge `pass`).
+
+Two lenient misses in 41 is a small but real false-negative rate for the direction
+that matters in CI.
+
+### Implications (decision deferred to the end-of-week checkpoint)
+
+The obvious fix is mechanical: include the act span's tool evidence in the judge's
+context, then re-judge (~15¢ via the backfill command) and re-label for a new kappa.
+That is **deliberately not done now** — it would change the judge mid-week, invalidate
+this calibration, and cost a second human labeling pass. Ships as-is per the
+acceptance criteria (kappa computed and reported; no minimum was set). The tool-blind
+finding goes to Cai's end-of-Week-2 checkpoint as the top agenda item, alongside
+Task 7's design consequence: **judge metrics in the CI gate get a tolerance band, not
+a hard threshold — a kappa-0.279 judge advises, it does not veto.** Deterministic
+metrics (adversarial catch, escalation recall) carry the gate.
