@@ -9,12 +9,12 @@ read the current week's `HANDOFF.md`. For "what did task N build", read that wee
 
 ---
 
-## Session — 2026-07-14 · Judge calibration lands: kappa 0.279 and the tool-blind judge (issue #11 closed)
+## Session — 2026-07-14 · Calibration lands (kappa 0.279, the tool-blind judge) + the CI eval gate goes GREEN — WEEK 2 COMPLETE
 
 **Where it started:** blocked on Cai's blind labeling pass (41 rows).
-**Where it ended:** labels imported, calibration computed and analyzed, #11 closed.
-Week 2 = **6.99 of 7** — only Task 7 (CI eval gate, the kill criterion) remains, then STOP
-for Cai's end-of-week llm-council checkpoint. **No Week 3 work before that checkpoint.**
+**Where it ended:** #11 AND #12 closed. **Week 2 complete; the kill criterion is MET**
+(eval gate green on `main`, first live run, $0.72). STOPPED for Cai's end-of-week
+llm-council checkpoint — agenda in `week-2-evals/HANDOFF.md`. **No Week 3 work before it.**
 
 ### What happened
 1. Cai labeled all 41 blind rows (26 pass / 13 fail / 2 needs_review) → `label-import` +
@@ -32,12 +32,24 @@ for Cai's end-of-week llm-council checkpoint. **No Week 3 work before that check
    for Task 7 (already in the plan): judge metrics get a tolerance band; deterministic
    metrics carry the gate.
 
+6. **Task 7 shipped via the full SDD choreography** (implementer → reviewer → haiku fixer →
+   re-review APPROVE → merge, PR #42): `.github/workflows/eval.yml` with the council-amended
+   trigger (`workflow_dispatch` + eval-relevant paths only — NOT every merge),
+   `results/eval-baseline.json` derived from recorded numbers and labeled a *regression
+   floor, not a quality target*, `tolerance: {}` for the judge (kappa 0.279 ⇒ advises, never
+   vetoes). Reviewer caught a real hole pre-merge: `alembic/**` missing from the paths
+   filter — a schema migration could have dodged the gate. Fixed (+ `requirements.txt`).
+7. **The live gate run went GREEN** (run 29359540499, $0.72 under the $1 cap): catch 1.00,
+   recall 1.00, precision 0.88, 2.9¢/run. Secrets `EVAL_DATABASE_URL`/`ANTHROPIC_API_KEY`/
+   `VOYAGE_API_KEY` set from credentials.env. Deviations recorded in the ledger + HANDOFF:
+   eval DB = dev branch (no Neon API key for a dedicated branch); tightened-baseline live
+   failure proof replaced by the unit-layer breach tests (~$1 saved).
+
 ### Spend
-$0 this session. Total still **~$3.05 of $20**.
+**$0.72 this session** (the counted CI gate run). Total **~$3.77 of $20**.
 
 ### Open
-- Task 7 — CI eval gate (issue #12), the Week-2 kill criterion.
-- Then STOP → hand Cai the state summary for the llm-council checkpoint.
+- Cai's llm-council checkpoint (agenda in `week-2-evals/HANDOFF.md`) — then Week 3.
 
 ---
 

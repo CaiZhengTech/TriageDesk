@@ -235,5 +235,43 @@ task-6 report.
 
 ---
 
-*Next: Task 7 — the CI eval gate (issue #12), the Week 2 kill criterion: regressions can't
-reach `main`.*
+## Task 7 — The CI eval gate: *regressions can't sneak in anymore* (✅ closed — PR #42, issue #12, KILL CRITERION MET)
+
+**Analogy:** every building has a fire alarm, but a fire alarm you never test is just a
+decoration. This task wired the whole evaluation layer — golden set, metrics, cost caps —
+into a **tripwire that re-runs automatically**: whenever code that could change the agent's
+behavior is pushed to `main`, GitHub re-runs all 25 golden cases and compares the numbers
+against a committed baseline. If any number regresses, the push goes red. The quality bar is
+no longer a document — it's a machine that says no.
+
+**Dana's journey:** suppose a future change subtly breaks the entitlement check, and Dana's
+dedicated-IP denial would now slip out automatically instead of routing to a human. Before
+this task, we'd find out when a real Dana complained. Now: the push re-runs the golden set,
+the soft-denial trap catches it, `adversarial_catch_rate` drops below 1.00, and the merge
+goes red before Dana ever sees a reply.
+
+**The two design decisions that made it affordable and honest:**
+1. **It doesn't run on every merge.** Each gate run costs real money (~$0.72). A council
+   amendment scoped the trigger to *eval-relevant files only* (agent code, KB, migrations,
+   dependencies, the baseline itself) plus a manual button — so Week 3's console and docs
+   work won't burn a dollar per merge.
+2. **The judge advises, it does not veto.** Fresh from Task 6: a kappa-0.279 judge has no
+   business failing anyone's build. The gate is carried entirely by deterministic metrics
+   (adversarial catch, escalation recall, cost caps); the baseline explicitly labels itself
+   a *regression floor on current observed behavior, not a quality target*, to be re-derived
+   after the threshold work the council will schedule.
+
+**The proof:** one deliberate, counted live run (**$0.72, under the $1 in-workflow cap**)
+went green on `main`: adversarial catch 1.00, escalation recall 1.00, precision 0.88,
+2.9¢/run. The reviewer also caught a real hole before merge — schema migrations
+(`alembic/**`) weren't in the trigger's path filter, meaning a database change could have
+dodged the gate entirely. Fixed pre-merge. The "does it actually fail on a breach?" path is
+pinned by unit tests that prove the gate exits non-zero on any floor, ceiling, or band
+violation.
+
+**Week 2 is complete.** The kill criterion — *eval gate green by end of Week 2, or the
+Week-3 console gets cut* — is **met**, with the gate green on the first live run.
+
+---
+
+*Next: Cai's end-of-Week-2 checkpoint (llm-council), then Week 3 — the glass-box console.*

@@ -5,25 +5,32 @@ finish this project end-to-end without guessing. Last updated: 2026-07-14.
 
 ---
 
-## ▶️ CURRENT FRONT ITEM — Task 7, then STOP
+## ⏸ WEEK 2 IS COMPLETE — STOPPED for Cai's llm-council checkpoint
 
-**The labeling blocker is CLEARED (2026-07-14).** Cai labeled all 41 rows; `label-import` +
-`calibrate` ran; issue #11 is closed. Results: **kappa 0.279**, raw agreement 0.512, and the
-root cause — **the judge is tool-blind** (it grades against KB-only context, so true
-tool-derived facts like "you're on the Pro plan" look like hallucinations; 7/7 replayed
-against the simulated CRM were correct). Artifact: `results/judge-calibration.md`; analysis:
-`reports/task-6-calibration-kappa.md`.
+**All 7 tasks done (2026-07-14). The kill criterion is MET: the CI eval gate is GREEN on
+`main`** (workflow run 29359540499, $0.72 under the $1 cap — adversarial catch 1.00,
+escalation recall 1.00, precision 0.88, 2.9¢/run, all within `results/eval-baseline.json`).
+Issues #8–#12 all closed. Spend ≈ **$3.77 of $20**.
 
-**What remains in Week 2:**
-1. **Task 7 — CI eval gate (issue #12), the kill criterion.** Dispatch per the choreography
-   below. Design consequence of the calibration result (already consistent with the plan):
-   **judge metrics get a tolerance band; deterministic metrics carry the gate.** A kappa-0.279
-   judge advises, it does not veto.
-2. **Then STOP.** Cai runs his end-of-Week-2 llm-council checkpoint — hand him a state
-   summary. **No Week 3 work before that checkpoint** (Cai re-confirmed this 2026-07-14).
-   Top agenda item for the council: whether to add tool-call evidence to the judge's context
-   (mechanical fix, ~15¢ re-judge via backfill + a second human labeling pass) or ship the
-   honest 0.279 with the analysis.
+**Do NOT start Week 3.** Cai runs his end-of-Week-2 llm-council checkpoint first (he
+re-confirmed this 2026-07-14). The council agenda, assembled from this week's findings:
+
+1. **The tool-blind judge (top item).** Kappa 0.279; 7/7 flagged "hallucinations" were true
+   tool-derived facts (`reports/task-6-calibration-kappa.md`). Decide: add the act span's
+   tool evidence to the judge context + re-judge (~15¢ backfill) + second labeling pass for
+   a new kappa — or ship the honest 0.279 with the analysis as the case-study story.
+2. **Gate-threshold re-derivation** from held-out data + the calibration table (the 0.02
+   margin threshold is structurally near-unreachable; zero ideal-route cases were
+   threshold-blocked). After re-derivation, re-derive `results/eval-baseline.json` too — it
+   is currently a regression floor on observed behavior, explicitly not a quality target.
+3. **Dedicated Neon eval branch.** `EVAL_DATABASE_URL` currently points at the DEV branch
+   (no Neon API key available to create a branch; dev is where all suite history lives).
+   Cheap fix: create the branch in the Neon dashboard, update the repo secret.
+4. **Tightened-baseline live failure proof was skipped** (~$1 saved): the exit-non-zero
+   breach path is unit-tested (`tests/unit/test_eval_cli.py`); GitHub fails a job on
+   non-zero exit by contract. Council can demand the live proof if it disagrees.
+5. **Week 3 scope confirmation** (console run list/detail → review queue → deploy → demo
+   protection, with the descope ladder).
 
 ---
 
@@ -142,7 +149,7 @@ worked example** everywhere. Continuity is the point.
 | 4 Eval harness + calibration table | #9 | ✅ closed, PR #33 (+#34, #35) |
 | 5 LLM judge | #10 | ✅ closed, PR #36 (+#37) |
 | 6 Kappa tooling + calibration pool | #11 | ✅ closed — PRs #38/#39 + calibration run (kappa 0.279) |
-| 7 CI eval gate — **KILL CRITERION** | #12 | ⬜ not started |
+| 7 CI eval gate — **KILL CRITERION** | #12 | ✅ closed — PR #42, gate GREEN on main ($0.72) |
 
 **Live numbers:** adversarial catch **5/5 (100%)** · escalation recall **1.0** · precision 0.88
 · ~**2.9¢/run** · p50 31–34s. Judge on the golden 19: 9 pass / 5 fail / 5 needs_review.
@@ -160,15 +167,11 @@ re-derive from held-out data + the calibration table.
 
 ## ➡️ Next steps, in order
 
-1. **Task 7 — CI eval gate (issue #12).** Brief: `task-brief docs/week-2-evals/PLAN.md 7`.
-   Trigger = `workflow_dispatch` + eval-paths filter. Deterministic metrics gated exactly
-   against a committed baseline; judge metrics with a tolerance band. **The baseline is
-   committed only AFTER threshold re-derivation** — the first run's numbers are diagnostic, not
-   a target (baseline-from-first-green-run is circular reasoning).
-2. **KILL CRITERION (end of Week 2):** if the eval gate is not green, the Week-3 console is cut
-   to a single read-only page and the hours go to pipeline + evals. Not negotiable mid-project.
-3. **STOP.** Hand Cai a state summary for his end-of-Week-2 checkpoint (he runs llm-council).
-   No Week 3 work before that.
+1. **Cai's llm-council checkpoint** (agenda at the top of this file). Nothing proceeds
+   without it.
+2. **Council decisions get executed** (judge context fix or not; threshold re-derivation
+   plan; Neon eval branch; baseline re-derivation).
+3. **Week 3 begins** per the plan below — only after 1 and 2.
 
 ## 🔭 Weeks 3–4 (so the whole path is visible)
 
