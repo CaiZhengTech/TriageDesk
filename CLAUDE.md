@@ -5,12 +5,12 @@ Northeast US (NYC/Boston) new-grad SWE roles, fall 2026 cycle. The differentiato
 agent — it's the eval/observability/trust discipline around it (market research: eval design
 is the #1 hiring signal; plain RAG demos are a yellow flag).
 
-## Status (updated 2026-07-14)
+## Status (updated 2026-07-14, end of day)
 
-**WEEK 2 — 6 of 7 tasks done; #11 CLOSED (calibration landed); Task 7 (CI eval gate,
-issue #12 = the Wk2 kill criterion) is the only remaining task. Then STOP for Cai's
-end-of-week llm-council checkpoint — no Week 3 work before it.**
-Issues #8, #9, #10, #11 closed. Budget ~$3.05 of $20.
+**WEEK 2 COMPLETE — all 7 tasks done, issues #8–#12 closed. KILL CRITERION MET: the CI
+eval gate is GREEN on `main`** (PR #42, live run $0.72 under the $1 cap). **STOPPED for
+Cai's end-of-Week-2 llm-council checkpoint — the agenda is in
+`docs/week-2-evals/HANDOFF.md`. No Week 3 work before it.** Budget ~$3.77 of $20.
 **→ RESUME HERE:** `docs/week-2-evals/HANDOFF.md` — the controller operating manual
 (blocker first, environment + tooling, per-task choreography, budget rules, binding
 decisions). For what happened last session: `docs/SESSION-LOG.md`. The map: `docs/README.md`.
@@ -31,10 +31,11 @@ Raw ledger: `.superpowers/sdd/progress.md` (git-ignored, local).
   gates are the entitlement-receipt rule and model conservatism (`agent_requested_human`
   = 14/25). Threshold re-derivation happens from HELD-OUT data + the calibration table,
   never from the golden 25 (council hold-out rule).
-- **Week 2 remaining:** Task 7 CI eval gate only (trigger = `workflow_dispatch` +
-  eval-paths filter, NOT every merge — council amendment; $1 cap stays). Then the
-  end-of-week council checkpoint (top agenda item: give the judge tool-call evidence +
-  recalibrate, vs. ship the honest 0.279).
+- **Week 2 remaining:** NOTHING — done. The CI eval gate runs on `workflow_dispatch` +
+  eval-relevant paths only (council amendment; $1 in-workflow cap). Baseline
+  `results/eval-baseline.json` = regression floor on observed behavior, re-derived after
+  threshold re-derivation. Judge gates nothing (`tolerance: {}`). Eval DB secret currently
+  points at the DEV Neon branch (dedicated eval branch = council agenda item).
 - **Standing explanation rule (Cai):** every completed task gets (1) a plain chat
   explanation, (2) a short analogy-driven comment on the GitHub issue, (3) a chapter in
   that week's `STORY.md`, written so a non-technical recruiter could follow it, with

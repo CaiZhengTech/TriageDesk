@@ -4,7 +4,7 @@
 milestone. Everything here is true and defensible — every claim traces to a commit,
 a test, or a logged run.*
 
-**Last updated:** 2026-07-14 (Week 2: evals — judge calibration done, CI gate remaining)
+**Last updated:** 2026-07-14 (**Week 2 COMPLETE** — CI eval gate green on main, kill criterion met)
 
 ---
 
@@ -91,6 +91,14 @@ a test, or a logged run.*
 > hard way after CI was silently red for two days — now GitHub physically refuses
 > merges without green checks."
 
+**On the CI eval gate (the Week-2 finale):**
+> "My golden set re-runs automatically in CI whenever behavior-relevant code changes —
+> agent code, knowledge base, schema migrations, dependencies — under a $1 hard cap
+> that fails the job if exceeded. Deterministic metrics gate exactly; my LLM judge
+> only advises, because I measured its agreement with me first and a kappa-0.28 judge
+> hasn't earned a veto. And the trigger is path-filtered, because at a dollar per run,
+> an every-merge trigger would have eaten my entire remaining budget."
+
 **On honest limitations (say this proactively — it builds trust):**
 > "Right now nothing auto-resolves — both live runs' classification margins were below
 > my placeholder threshold. That's deliberate: the thresholds are placeholders, and
@@ -133,10 +141,11 @@ budget. Each cut is a talking point, not a gap:
 | Pipeline stages, all live-verified end-to-end | 5 |
 | Cost per full pipeline run | **~2.9¢** with prompt caching (hard-capped at 10¢) |
 | Latency | p50 31s · p95 41s |
-| Test suite | 140+ tests + lint + secret-scan, gating every merge |
-| **Total API spend, entire project to date** | **~$3.05** against a hard $20 budget |
+| CI eval gate | **GREEN on main, first live run** — 25 golden cases re-run on behavior-relevant pushes, $1 cap, $0.72 actual |
+| Test suite | 145+ tests + lint + secret-scan, gating every merge |
+| **Total API spend, entire project to date** | **~$3.77** against a hard $20 budget |
 
-*(Still to land: the CI eval gate — the Week-2 kill criterion.)*
+*(Week 2 complete — every planned eval-layer artifact landed. Next: the Week-3 console.)*
 
 ---
 
