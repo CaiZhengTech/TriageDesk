@@ -1,0 +1,32 @@
+name: eval-gate
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - "triagedesk/**"
+      - "kb/**"
+      - "results/eval-baseline.json"
+      - ".github/workflows/eval.yml"
+concurrency:
+  group: eval-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    env:
+      TRIAGEDESK_ENV_FILE: ""   # CI uses real env vars, not the local secrets file
+      DATABASE_URL: ${{ secrets.EVAL_DATABASE_URL }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Migrate eval DB
+        run: alembic upgrade head
+      - name: Run eval gate ($1 cap, exact deterministic + judge tolerance)
+        run: python -m triagedesk.evals.cli run --ci --cost-cap 1.0

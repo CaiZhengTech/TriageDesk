@@ -1,0 +1,14 @@
+{
+  "_note": "Regression floor on CURRENTLY OBSERVED behavior, not a quality target. Derived from the recorded live-run summary (docs/week-2-evals/reports/task-4-eval-harness.md, .superpowers/sdd/progress.md 'Live numbers on record'), not invented, and not re-derived from the golden 25 (council hold-out rule). routing_accuracy=6/21=0.286 is a documented dataset-noise finding (queue taxonomy overlaps in embedding space), not a quality target -- its floor is set low on purpose so the gate does not fail on known noise. escalation_recall and adversarial_catch_rate stay exact at 1.00: any drop there is a real regression. tolerance is empty because summarize() does not currently expose a judge-based metric (kappa 0.279 means the judge advises, never vetoes -- see issue #11); the mechanism is tested (tests/unit/test_eval_cli.py) so a future judge_pass_rate can be added without new gate code. This baseline gets re-derived after gate-threshold re-derivation (post-Week-2 council checkpoint).",
+  "min": {
+    "routing_accuracy": 0.20,
+    "escalation_recall": 1.00,
+    "escalation_precision": 0.80,
+    "adversarial_catch_rate": 1.00
+  },
+  "max": {
+    "cost_per_run": 0.08,
+    "cost_max_run": 0.10
+  },
+  "tolerance": {}
+}
