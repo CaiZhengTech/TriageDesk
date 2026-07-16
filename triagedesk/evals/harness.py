@@ -18,6 +18,7 @@ pool's own run-and-judge entry point, deliberately kept separate.
 import uuid
 from datetime import UTC
 
+from triagedesk.config import settings
 from triagedesk.evals.metrics import CaseResult, summarize
 from triagedesk.models import EvalCase, EvalResult, Run, Span
 from triagedesk.pipeline.runner import run_ticket
@@ -25,6 +26,13 @@ from triagedesk.pipeline.runner import run_ticket
 SUITE_COST_CAP_USD = 1.00
 JUDGE_BACKFILL_COST_CAP = 0.50
 POOL_COST_CAP_USD = 1.00  # ~25 pool tickets, same order of magnitude as the golden suite
+
+# Mirrors the per-run cap in triagedesk/config.py (settings.cost_cap_usd) --
+# single source of truth for "how much could the next dispatch possibly cost."
+# Used by run_suite's cost-cap PRE-check (Hardening Task 1, issue #45): the
+# cap is a ceiling, not a tripwire -- refuse to dispatch a case if doing so
+# COULD exceed the cap, rather than only noticing after the money is spent.
+PER_RUN_CAP = settings.cost_cap_usd
 
 
 class SuiteCostExceeded(Exception):
@@ -66,9 +74,22 @@ def run_suite(session, *, cost_cap: float = SUITE_COST_CAP_USD, with_judge: bool
              .filter(EvalCase.kind != "calibration")
              .order_by(EvalCase.id).all())
     total_cost = 0.0
+    judge_cost_total = 0.0
     case_results: list[CaseResult] = []
 
     for case in cases:
+        # PRE-check (Hardening Task 1, issue #45): the cap is a ceiling, not a
+        # tripwire -- refuse to dispatch this case if doing so COULD exceed
+        # the cap, using PER_RUN_CAP as the worst-case cost of one more run.
+        # The post-hoc checks below stay as a backstop for costs that
+        # couldn't have been predicted in advance (e.g. judge cost, which
+        # varies with reply length).
+        if total_cost + PER_RUN_CAP > cost_cap:
+            raise SuiteCostExceeded(
+                f"suite cost ${total_cost:.4f} + per-run cap ${PER_RUN_CAP} "
+                f"would exceed cap ${cost_cap} -- refusing to dispatch case {case.id}"
+            )
+
         run = run_ticket(case.ticket_id, session)  # LIVE
         total_cost += run.total_cost_usd or 0.0
         if total_cost > cost_cap:
@@ -83,6 +104,8 @@ def run_suite(session, *, cost_cap: float = SUITE_COST_CAP_USD, with_judge: bool
             predicted_outcome=predicted_outcome, cost_usd=run.total_cost_usd or 0.0,
             latency_ms=_latency_ms(run),
             retrieval_similarity=signals.get("retrieval_similarity"),
+            escalation_reason=run.escalation_reason,
+            expected_escalation_reason=case.expected_escalation_reason,
         )
         case_results.append(cr)
 
@@ -105,7 +128,9 @@ def run_suite(session, *, cost_cap: float = SUITE_COST_CAP_USD, with_judge: bool
             from triagedesk.evals.judge import judge_run  # local import: judge is Task 5
 
             verdict, responses = judge_run(session, case, run)  # LIVE
-            total_cost += sum(_response_cost(r) for r in responses)
+            call_cost = sum(_response_cost(r) for r in responses)
+            total_cost += call_cost
+            judge_cost_total += call_cost
             if total_cost > cost_cap:
                 raise SuiteCostExceeded(f"suite cost ${total_cost:.4f} exceeds cap ${cost_cap}")
             result.judge_verdict = verdict.verdict
@@ -115,7 +140,7 @@ def run_suite(session, *, cost_cap: float = SUITE_COST_CAP_USD, with_judge: bool
         session.add(result)
         session.commit()
 
-    return eval_run_id, summarize(case_results)
+    return eval_run_id, summarize(case_results, judge_cost_total=judge_cost_total)
 
 
 def run_pool(session, *, cost_cap: float = POOL_COST_CAP_USD) -> dict:

@@ -61,18 +61,20 @@ class FakeSession:
         pass
 
 
-def make_case(case_id, ticket_id, kind="representative"):
+def make_case(case_id, ticket_id, kind="representative", expected_escalation_reason=None):
     return SimpleNamespace(
         id=case_id, ticket_id=ticket_id, kind=kind,
         expected_outcome="escalate", expected_queue="IT Support",
+        expected_escalation_reason=expected_escalation_reason,
     )
 
 
-def make_run(state, final_reply):
+def make_run(state, final_reply, total_cost_usd=0.01, escalation_reason=None):
     return SimpleNamespace(
-        id=uuid.uuid4(), state=state, total_cost_usd=0.01,
+        id=uuid.uuid4(), state=state, total_cost_usd=total_cost_usd,
         gate_signals={"retrieval_similarity": 0.4}, final_reply=final_reply,
-        escalation_reason="low_confidence" if state == "escalated" else None,
+        escalation_reason=(escalation_reason
+                            or ("low_confidence" if state == "escalated" else None)),
         created_at=datetime(2026, 1, 1, tzinfo=UTC),
         finished_at=datetime(2026, 1, 1, 0, 0, 1, tzinfo=UTC),
     )
@@ -202,6 +204,82 @@ def test_run_pool_skips_judging_when_no_final_reply(monkeypatch):
     assert summary["n_judged"] == 0
     result = session.added[0]
     assert result.judge_verdict is None
+
+
+# --------------------------------------------------------- metric integrity (issue #45)
+# Hardening Task 1: reason-aware adversarial catch, cost-cap pre-check, judge
+# cost clarity. See docs/week-2-evals/HARDENING-PLAN.md Task 1.
+
+def test_run_suite_carries_escalation_reason_into_summary(monkeypatch):
+    """An adversarial case escalated for the WRONG reason (expected
+    precheck_injection, observed agent_requested_human -- model conservatism
+    caught it, not the intended precheck layer) must not count toward the
+    reason-aware adversarial_catch_rate, even though it did escalate."""
+    case = make_case(1, 101, kind="adversarial",
+                      expected_escalation_reason="precheck_injection")
+    run = make_run("escalated", "I can't help with that, escalating to a human.",
+                    escalation_reason="agent_requested_human")
+    session = FakeSession([case])
+    monkeypatch.setattr("triagedesk.evals.harness.run_ticket", lambda tid, s: run)
+
+    _, summary = run_suite(session, with_judge=False)
+
+    assert summary["adversarial_catch_rate"] == 0.0
+    assert summary["adversarial_escalate_rate"] == 1.0
+
+
+def test_run_suite_cap_precheck_stops_before_dispatching_breaching_case(monkeypatch):
+    """acceptance criterion 2: the cap is a ceiling, not a tripwire. 3 cases,
+    each costing exactly PER_RUN_CAP; cost_cap is set so case 3 would breach
+    it if dispatched -- the pre-check must raise BEFORE run_ticket is called
+    for case 3, not after (the existing post-hoc check stays as a backstop
+    for costs that aren't known in advance)."""
+    from triagedesk.evals.harness import PER_RUN_CAP, SuiteCostExceeded
+
+    cases = [make_case(i, 100 + i) for i in (1, 2, 3)]
+    session = FakeSession(cases)
+    dispatched = []
+
+    def fake_run_ticket(ticket_id, s):
+        dispatched.append(ticket_id)
+        return make_run("completed", None, total_cost_usd=PER_RUN_CAP)
+
+    monkeypatch.setattr("triagedesk.evals.harness.run_ticket", fake_run_ticket)
+
+    # After 2 cases: total_cost == 2 * PER_RUN_CAP. Before case 3:
+    # total_cost + PER_RUN_CAP == 3 * PER_RUN_CAP, which must exceed cap.
+    cap = 2 * PER_RUN_CAP + (PER_RUN_CAP / 2)
+
+    with pytest.raises(SuiteCostExceeded):
+        run_suite(session, cost_cap=cap, with_judge=False)
+
+    assert dispatched == [101, 102]  # case 3's ticket_id (103) never dispatched
+
+
+def test_run_suite_surfaces_judge_cost_total_in_summary(monkeypatch):
+    """acceptance criterion 3: judge call cost (currently only accumulated
+    into the cap-check variable) must surface in the summary, separate from
+    pipeline-only cost_per_run/cost_total."""
+    case = make_case(1, 101)
+    run = make_run("completed", "Refund issued.", total_cost_usd=0.01)
+    session = FakeSession([case])
+    monkeypatch.setattr("triagedesk.evals.harness.run_ticket", lambda tid, s: run)
+
+    judge_response = SimpleNamespace(
+        model="claude-sonnet-4-6",
+        usage=SimpleNamespace(input_tokens=1000, output_tokens=100,
+                              cache_creation_input_tokens=0, cache_read_input_tokens=0),
+    )
+    monkeypatch.setattr(
+        "triagedesk.evals.judge.judge_run",
+        lambda s, c, r: (fake_judge_verdict(), [judge_response]),
+    )
+
+    _, summary = run_suite(session, with_judge=True)
+
+    expected_judge_cost = 1000 * 3.00 / 1_000_000 + 100 * 15.00 / 1_000_000
+    assert summary["judge_cost_total"] == pytest.approx(expected_judge_cost)
+    assert summary["cost_total"] == pytest.approx(0.01)  # pipeline-only, unaffected
 
 
 def test_run_pool_respects_cost_cap(monkeypatch):
