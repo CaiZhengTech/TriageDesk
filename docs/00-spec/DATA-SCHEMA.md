@@ -141,6 +141,21 @@ screen), `low_confidence` (gate thresholds), `budget_breach`, `validation_failed
 | `judge_rule_triggered` | str(32), nullable | `grounding` \| `helpfulness` \| `tone` |
 | `human_label` | str(16), nullable | Cai's blind label — the other half of Cohen's kappa |
 
+## `eval_results_golden` — the ONLY sanctioned read path for golden metrics
+
+A Postgres **view** (Alembic revision `b2a3edf4a55a`, Hardening Task 2, issue #45) —
+`eval_results` JOIN `eval_cases` filtered to `kind <> 'calibration'`, so it exposes only the
+golden set (representative + adversarial). Columns: every `eval_results` column above, plus
+`eval_cases.kind`, `eval_cases.expected_outcome`, `eval_cases.adversarial_kind`.
+
+Built for **Week 3's console** (and any other non-Python consumer) to read golden-set metrics
+without re-deriving the `kind <> 'calibration'` filter itself — every golden metric query
+elsewhere in this codebase (`run_suite`, `compute_kappa_report` via its `eval_run_id` scoping,
+the useful-queries block below) already applies that filter by hand; this view is the one
+place a raw SQL client can get it for free. **Do not query `eval_results`/`eval_cases`
+directly from a new non-Python consumer** — use this view so the calibration-pool exclusion
+can never be forgotten. Read-only: nothing writes through it.
+
 ---
 
 ## Gotchas that have actually bitten (read before querying)
