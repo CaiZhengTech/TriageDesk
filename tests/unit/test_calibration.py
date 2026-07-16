@@ -77,10 +77,16 @@ class FakeSession:
         self.committed += 1
 
 
-def make_result(id_, case_id=1, run_id=None, judge_verdict="pass", judge_reason="grounded",
-                human_label=None):
+def make_result(id_, case_id=None, run_id=None, eval_run_id=None, judge_verdict="pass",
+                judge_reason="grounded", human_label=None):
+    # case_id defaults to id_ (was a shared `1`) -- once compute_kappa_report/
+    # export_labels scope to the LATEST judged row per case_id (Hardening
+    # Task 2), rows sharing a case_id are no longer independent test rows by
+    # accident. Tests that want to exercise same-case-id scoping pass
+    # case_id explicitly.
     return SimpleNamespace(
-        id=id_, case_id=case_id, run_id=run_id or uuid.uuid4(),
+        id=id_, case_id=case_id if case_id is not None else id_,
+        run_id=run_id or uuid.uuid4(), eval_run_id=eval_run_id or uuid.uuid4(),
         judge_verdict=judge_verdict, judge_reason=judge_reason, human_label=human_label,
     )
 
@@ -228,6 +234,116 @@ def test_export_includes_calibration_pool_rows_alongside_golden(tmp_path):
     assert result_ids == {"1", "2"}
 
 
+# ------------------------------------------------------- eval_run_id scoping
+
+def test_export_uses_only_latest_row_per_case_when_ci_reran_the_suite(tmp_path):
+    """CI can retrigger run_suite, creating a SECOND eval_results row for a
+    case_id that was already judged by an earlier run -- these two rows are
+    NOT independent items (same ticket, judged twice), so unscoped export
+    would let both leak into the blind-labeling CSV and, downstream, into
+    kappa's sample. Default scoping (no eval_run_id passed) keeps only the
+    highest-id (most recent) row per case_id."""
+    run_old, run_new = uuid.uuid4(), uuid.uuid4()
+    old_result = make_result(1, case_id=1, eval_run_id=run_old, judge_verdict="pass")
+    new_result = make_result(2, case_id=1, eval_run_id=run_new, judge_verdict="fail")
+    session = FakeSession(
+        results=[old_result, new_result], cases=[make_case(1)],
+        tickets=[make_ticket(101)],
+        runs=[make_run(old_result.run_id), make_run(new_result.run_id)],
+        spans=[], kb_docs=[],
+    )
+    out = tmp_path / "labels.csv"
+
+    n = export_labels(session, str(out))
+
+    assert n == 1
+    with open(out, encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    assert rows[0]["result_id"] == "2"  # the newer row, not the reran duplicate
+
+
+def test_export_scopes_to_an_explicit_eval_run_id(tmp_path):
+    run_a, run_b = uuid.uuid4(), uuid.uuid4()
+    result_a = make_result(1, case_id=1, eval_run_id=run_a, judge_verdict="pass")
+    result_b = make_result(2, case_id=1, eval_run_id=run_b, judge_verdict="fail")
+    session = FakeSession(
+        results=[result_a, result_b], cases=[make_case(1)],
+        tickets=[make_ticket(101)],
+        runs=[make_run(result_a.run_id), make_run(result_b.run_id)],
+        spans=[], kb_docs=[],
+    )
+    out = tmp_path / "labels.csv"
+
+    n = export_labels(session, str(out), eval_run_id=run_a)
+
+    assert n == 1
+    with open(out, encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    assert rows[0]["result_id"] == "1"
+
+
+def test_report_uses_only_latest_row_per_case_when_ci_reran_the_suite():
+    old_result = make_result(1, case_id=1, judge_verdict="pass", human_label="pass")
+    new_result = make_result(2, case_id=1, judge_verdict="fail", human_label="pass")
+    session = FakeSession(results=[old_result, new_result])
+
+    report = compute_kappa_report(session)
+
+    assert report["n"] == 1
+    assert len(report["disagreements"]) == 1
+    assert report["disagreements"][0]["result_id"] == 2  # only the latest row counted
+
+
+def test_report_scopes_to_an_explicit_eval_run_id():
+    run_a, run_b = uuid.uuid4(), uuid.uuid4()
+    result_a = make_result(1, case_id=1, eval_run_id=run_a,
+                          judge_verdict="pass", human_label="pass")
+    result_b = make_result(2, case_id=1, eval_run_id=run_b,
+                          judge_verdict="fail", human_label="pass")
+    session = FakeSession(results=[result_a, result_b])
+
+    report = compute_kappa_report(session, eval_run_id=run_a)
+
+    assert report["n"] == 1
+    assert report["disagreements"] == []  # result_a's judge/human labels agree
+
+
+# ------------------------------------------------- exclude already-labeled rows
+
+def test_export_excludes_already_labeled_rows_by_default(tmp_path):
+    already_labeled = make_result(1, case_id=1, judge_verdict="pass", human_label="pass")
+    unlabeled = make_result(2, case_id=2, judge_verdict="fail", human_label=None)
+    session = FakeSession(
+        results=[already_labeled, unlabeled],
+        cases=[make_case(1, ticket_id=101), make_case(2, ticket_id=202)],
+        tickets=[make_ticket(101), make_ticket(202)],
+        runs=[make_run(already_labeled.run_id), make_run(unlabeled.run_id)],
+        spans=[], kb_docs=[],
+    )
+    out = tmp_path / "labels.csv"
+
+    n = export_labels(session, str(out))
+
+    assert n == 1
+    with open(out, encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    assert rows[0]["result_id"] == "2"
+
+
+def test_export_includes_labeled_rows_when_include_labeled_passed(tmp_path):
+    already_labeled = make_result(1, case_id=1, judge_verdict="pass", human_label="pass")
+    session = FakeSession(
+        results=[already_labeled], cases=[make_case(1, ticket_id=101)],
+        tickets=[make_ticket(101)], runs=[make_run(already_labeled.run_id)],
+        spans=[], kb_docs=[],
+    )
+    out = tmp_path / "labels.csv"
+
+    n = export_labels(session, str(out), include_labeled=True)
+
+    assert n == 1
+
+
 # ---------------------------------------------------------------- import_labels
 
 def _write_csv(path, rows):
@@ -341,6 +457,35 @@ def test_import_still_rejects_genuinely_invalid_label(tmp_path):
         import_labels(session, str(path))
 
 
+def test_import_rejects_result_from_a_different_eval_run(tmp_path):
+    """label-import validation (criterion 1): if a CSV row's result_id
+    belongs to a different suite execution than the one being imported
+    against, reject it loudly rather than silently mislabeling a
+    superseded/unrelated row."""
+    run_a, run_b = uuid.uuid4(), uuid.uuid4()
+    result = make_result(1, eval_run_id=run_b)
+    session = FakeSession(results=[result])
+    path = tmp_path / "labels.csv"
+    _write_csv(path, [[1, "s", "b", "", "", "reply", "pass"]])
+
+    with pytest.raises(ValueError):
+        import_labels(session, str(path), eval_run_id=run_a)
+    assert result.human_label is None  # rejected row must not be written
+
+
+def test_import_accepts_result_matching_the_given_eval_run(tmp_path):
+    run_a = uuid.uuid4()
+    result = make_result(1, eval_run_id=run_a)
+    session = FakeSession(results=[result])
+    path = tmp_path / "labels.csv"
+    _write_csv(path, [[1, "s", "b", "", "", "reply", "pass"]])
+
+    n = import_labels(session, str(path), eval_run_id=run_a)
+
+    assert n == 1
+    assert result.human_label == "pass"
+
+
 def test_import_still_skips_whitespace_only_label(tmp_path):
     """A cell containing only whitespace still means "not labeled yet"."""
     result = make_result(1)
@@ -436,3 +581,35 @@ def test_report_handles_no_variation_degenerate_sample_without_crashing():
     assert report["kappa_undefined_reason"] is not None
     assert report["raw_agreement"] == 1.0
     assert report["disagreements"] == []
+    # degenerate: weighted kappa and its CI are undefined for the same reason
+    assert report["kappa_weighted"] is None
+    assert report["kappa_ci"] is None
+
+
+# ------------------------------------------------ weighted kappa + CI in the report
+
+def test_report_includes_weighted_kappa_and_ci_when_defined():
+    results = [
+        make_result(1, judge_verdict="pass", human_label="pass"),
+        make_result(2, judge_verdict="fail", human_label="fail"),
+        make_result(3, judge_verdict="pass", human_label="fail"),
+        make_result(4, judge_verdict="needs_review", human_label="needs_review"),
+    ]
+    session = FakeSession(results=results)
+
+    report = compute_kappa_report(session)
+
+    assert report["kappa"] is not None
+    assert report["kappa_weighted"] is not None
+    assert -1.0 <= report["kappa_weighted"] <= 1.0
+    lo, hi = report["kappa_ci"]
+    assert lo <= report["kappa"] <= hi
+
+
+def test_report_weighted_kappa_and_ci_are_none_when_no_labeled_pairs():
+    session = FakeSession(results=[])
+
+    report = compute_kappa_report(session)
+
+    assert report["kappa_weighted"] is None
+    assert report["kappa_ci"] is None

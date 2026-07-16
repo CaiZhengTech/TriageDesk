@@ -1,8 +1,9 @@
 """  python -m triagedesk.evals.cli run [--no-judge] [--cost-cap 1.0] [--ci]
   python -m triagedesk.evals.cli judge --eval-run <uuid> [--cost-cap 0.50]
-  python -m triagedesk.evals.cli label-export [--out judge_labels.csv]
-  python -m triagedesk.evals.cli label-import <csv>
-  python -m triagedesk.evals.cli calibrate
+  python -m triagedesk.evals.cli label-export [--out judge_labels.csv] \\
+      [--eval-run <uuid>] [--include-labeled]
+  python -m triagedesk.evals.cli label-import <csv> [--eval-run <uuid>]
+  python -m triagedesk.evals.cli calibrate [--eval-run <uuid>]
 
 Runs the golden set live, prints the summary, persists eval_results. --ci
 loads results/eval-baseline.json and exits non-zero on any breach (Task 7).
@@ -11,7 +12,14 @@ calls only -- no re-running the pipeline). `label-export`/`label-import`/
 `calibrate` are the Task 6 judge-calibration flow: export a blind CSV (no
 judge_verdict) for a human to label, import the human_label column back,
 then compute Cohen's kappa between human_label and judge_verdict -- no
-live calls in any of the three."""
+live calls in any of the three.
+
+Hardening Task 2 (issue #45): all three accept an optional --eval-run to
+scope to one suite execution; without it, they default to the latest judged
+row per case_id, so a CI rerun can't duplicate rows in the export or mix
+non-independent repeats into kappa. label-export also gains
+--include-labeled to re-include rows that already carry a human_label
+(excluded by default)."""
 
 import argparse
 import json
@@ -84,11 +92,23 @@ def cmd_judge(args) -> None:
         session.close()
 
 
-def _render_calibration_md(rep: dict) -> str:
+def _render_calibration_md(rep: dict, judge_prompt_version: str) -> str:
     kappa_line = (
         f"- **Cohen's kappa: {rep['kappa']:.3f}**\n"
         if rep["kappa"] is not None
         else f"- **Cohen's kappa: undefined** -- {rep['kappa_undefined_reason']}\n"
+    )
+    weighted_line = (
+        f"- **Weighted kappa (linear, ordinal fail<needs_review<pass): "
+        f"{rep['kappa_weighted']:.3f}**\n"
+        if rep["kappa_weighted"] is not None
+        else "- Weighted kappa: undefined (see Cohen's kappa above)\n"
+    )
+    ci_line = (
+        f"- 95% bootstrap CI: [{rep['kappa_ci'][0]:.3f}, {rep['kappa_ci'][1]:.3f}] "
+        "(n_boot=2000, seed=0)\n"
+        if rep["kappa_ci"] is not None
+        else "- 95% bootstrap CI: n/a\n"
     )
     raw_line = (
         f"- Raw agreement: **{rep['raw_agreement']:.3f}**\n"
@@ -109,9 +129,13 @@ def _render_calibration_md(rep: dict) -> str:
         disagree_rows = "| - | - | - | (none) |"
     return (
         "# Judge calibration\n\n"
+        f"- Judge prompt version: **{judge_prompt_version}** (bumped whenever the judge's\n"
+        "  grading context changes -- pre/post-fix kappas are never conflated)\n"
         f"- Labels compared (solo): **{rep['n']}**\n"
         f"{raw_line}"
-        f"{kappa_line}\n"
+        f"{kappa_line}"
+        f"{weighted_line}"
+        f"{ci_line}\n"
         "Blind solo labeling; friend labels (chore #19) merged if they arrive.\n"
         "Judge = claude-sonnet-4-6 @ temperature 0. Verdicts are debugging aids,\n"
         "never ground truth.\n\n"
@@ -132,7 +156,9 @@ def cmd_label_export(args) -> None:
     from triagedesk.evals.calibration import export_labels
     session = SessionLocal()
     try:
-        n = export_labels(session, args.out)
+        eval_run_id = uuid.UUID(args.eval_run) if args.eval_run else None
+        n = export_labels(session, args.out, eval_run_id=eval_run_id,
+                          include_labeled=args.include_labeled)
         print(f"exported {n} rows -> {args.out} (label human_label as pass|fail|needs_review)")
     finally:
         session.close()
@@ -142,20 +168,24 @@ def cmd_label_import(args) -> None:
     from triagedesk.evals.calibration import import_labels
     session = SessionLocal()
     try:
-        print(f"imported {import_labels(session, args.csv)} human labels")
+        eval_run_id = uuid.UUID(args.eval_run) if args.eval_run else None
+        n = import_labels(session, args.csv, eval_run_id=eval_run_id)
+        print(f"imported {n} human labels")
     finally:
         session.close()
 
 
 def cmd_calibrate(args) -> None:
     from triagedesk.evals.calibration import compute_kappa_report
+    from triagedesk.evals.judge import JUDGE_PROMPT_VERSION
     session = SessionLocal()
     try:
-        rep = compute_kappa_report(session)
+        eval_run_id = uuid.UUID(args.eval_run) if args.eval_run else None
+        rep = compute_kappa_report(session, eval_run_id=eval_run_id)
         print(json.dumps(rep, indent=2))
         Path("results").mkdir(exist_ok=True)
         Path("results/judge-calibration.md").write_text(
-            _render_calibration_md(rep), encoding="utf-8")
+            _render_calibration_md(rep, JUDGE_PROMPT_VERSION), encoding="utf-8")
         print("wrote results/judge-calibration.md")
     finally:
         session.close()
@@ -178,13 +208,17 @@ def main() -> None:
 
     pe = sub.add_parser("label-export")
     pe.add_argument("--out", default="judge_labels.csv")
+    pe.add_argument("--eval-run", default=None)
+    pe.add_argument("--include-labeled", action="store_true")
     pe.set_defaults(func=cmd_label_export)
 
     pi = sub.add_parser("label-import")
     pi.add_argument("csv")
+    pi.add_argument("--eval-run", default=None)
     pi.set_defaults(func=cmd_label_import)
 
     pc = sub.add_parser("calibrate")
+    pc.add_argument("--eval-run", default=None)
     pc.set_defaults(func=cmd_calibrate)
 
     args = ap.parse_args()
