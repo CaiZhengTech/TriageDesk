@@ -70,6 +70,8 @@ def run_act(ticket, classify_result, retrieval, tracer, _client=None) -> ActOutc
                 messages=messages,
                 thinking={"type": "adaptive"},
                 output_config={"effort": "high"},
+                # deliberately unpinned: adaptive thinking is the intended
+                # source of variation here (unlike precheck/classify, temp=0)
             )
             tracer.record_llm_usage(span, response)
             tracer.set_attributes(span, **{"triage.act.iterations": iteration + 1})

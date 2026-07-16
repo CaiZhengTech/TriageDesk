@@ -10,6 +10,7 @@ def run_precheck(ticket, tracer, _call=structured_call) -> PrecheckVerdict:
             user=ticket_block(ticket),
             schema=PrecheckVerdict,
             max_tokens=256,
+            temperature=0,  # deterministic safety classification (Hardening Task 2)
         )
         for r in responses:
             tracer.record_llm_usage(span, r)

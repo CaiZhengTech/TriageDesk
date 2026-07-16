@@ -79,6 +79,10 @@ def test_happy_path_lookup_then_resolve():
     assert first_call["max_tokens"] == 4096
     assert first_call["thinking"] == {"type": "adaptive"}
     assert first_call["output_config"] == {"effort": "high"}
+    # Unlike precheck/classify (Hardening Task 2, pinned temperature=0), the
+    # act loop deliberately does NOT pin temperature -- adaptive thinking is
+    # the intended source of variation here.
+    assert "temperature" not in first_call
     tools = first_call["tools"]
     assert len(tools) == 3
     submit_def = next(t for t in tools if t["name"] == "submit_resolution")

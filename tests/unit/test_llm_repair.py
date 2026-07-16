@@ -53,7 +53,12 @@ def test_first_try_success():
 
     kwargs = client.messages.calls[0]
     assert kwargs["output_config"]["format"]["type"] == "json_schema"
-    assert "temperature" not in kwargs
+    # temperature is omitted here because this test's own call doesn't pass
+    # one -- structured_call's pass-through contract is exercised directly by
+    # test_schema_objects_forbid_additional_properties's siblings below and by
+    # the pinned-temperature tests in test_precheck_classify.py/test_judge.py.
+    # Whether "no temperature" is the RIGHT choice for a given caller is an
+    # act-loop concern (Hardening Task 2) -- see test_act_loop.py.
     assert "thinking" not in kwargs
     assert "effort" not in kwargs
 

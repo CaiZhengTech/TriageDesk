@@ -46,6 +46,14 @@ def fake_call_returning(parsed):
     return _call
 
 
+def fake_call_capturing_kwargs(parsed, calls):
+    def _call(**kwargs):
+        calls.append(kwargs)
+        return parsed, [SimpleNamespace(model="claude-sonnet-4-6", usage=None)]
+
+    return _call
+
+
 def test_precheck_safe_ticket():
     tracer = FakeTracer()
     verdict = run_precheck(TICKET, tracer, _call=fake_call_returning(PrecheckVerdict(safe=True)))
@@ -93,3 +101,30 @@ def test_classify_records_usage_for_every_response():
     assert result.queue == "IT Support"
     assert result.category == "vpn"
     assert len(tracer.usage_calls) == 2
+
+
+# ------------------------------------------ pinned temperature (Hardening Task 2)
+# precheck/classify are deterministic classification calls -- pinned to
+# temperature=0 so eval-gate floors aren't measuring sampling noise. (The act
+# loop deliberately does NOT pin temperature -- see its one-line comment;
+# adaptive thinking is the intended source of variation there.)
+
+def test_precheck_pins_temperature_zero():
+    tracer = FakeTracer()
+    calls = []
+    run_precheck(
+        TICKET, tracer,
+        _call=fake_call_capturing_kwargs(PrecheckVerdict(safe=True), calls),
+    )
+    assert calls[0]["temperature"] == 0
+
+
+def test_classify_pins_temperature_zero():
+    tracer = FakeTracer()
+    calls = []
+    run_classify(
+        TICKET, tracer,
+        _call=fake_call_capturing_kwargs(
+            ClassifyResult(queue="IT Support", category="vpn"), calls),
+    )
+    assert calls[0]["temperature"] == 0
