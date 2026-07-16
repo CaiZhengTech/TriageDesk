@@ -62,6 +62,100 @@ def test_judge_can_abstain():
     assert verdict.rule_triggered == "grounding"
 
 
+# --------------------------------------------- tool-evidence (Hardening Task 2)
+
+def test_judge_reply_prompt_includes_account_facts_block_when_context_given():
+    """The tool-blindness fix: 7/7 Week-2 calibration "hallucinations" the
+    judge flagged were true CRM/tool-derived facts, because the judge only
+    ever saw the KB. account_context, when given, must be rendered as a
+    clearly-delimited <account_facts> block."""
+    payload = JudgeVerdict(verdict="pass", reason="grounded in account facts",
+                           rule_triggered=None).model_dump_json()
+    client = make_client(fake_response(payload))
+    from triagedesk.llm import structured_call
+    verdict, _ = judge_reply(
+        ticket_subject="s", ticket_body="b", kb_docs=[], customer_reply="hi",
+        account_context="Customer customer-3: status=active, plan=basic.",
+        _call=lambda **kw: structured_call(_client=client, **kw))
+    prompt = client.messages.calls[0]["messages"][0]["content"]
+    assert "<account_facts>" in prompt
+    assert "</account_facts>" in prompt
+    assert "customer-3" in prompt
+    assert verdict.verdict == "pass"
+
+
+def test_judge_reply_prompt_omits_account_facts_block_when_none():
+    """account_context defaults to None -- e.g. an unresolvable customer_ref
+    -- and must not leave a stray/empty <account_facts> block in the prompt."""
+    payload = JudgeVerdict(verdict="pass", reason="ok", rule_triggered=None).model_dump_json()
+    client = make_client(fake_response(payload))
+    from triagedesk.llm import structured_call
+    judge_reply(
+        ticket_subject="s", ticket_body="b", kb_docs=[], customer_reply="hi",
+        _call=lambda **kw: structured_call(_client=client, **kw))
+    prompt = client.messages.calls[0]["messages"][0]["content"]
+    assert "<account_facts>" not in prompt
+
+
+def test_judge_run_builds_account_facts_deterministically_from_the_simulated_crm():
+    """judge_run must reconstruct EXACTLY what the agent's own tools saw:
+    customer_ref_for(ticket) -> lookup_account_status(ref) + plan
+    entitlements from PLAN_ENTITLEMENTS. ticket.id=3 -> customer-3 Dana
+    Fuentes, active, basic plan (triagedesk/seed_accounts.json +
+    triagedesk/tools.py::PLAN_ENTITLEMENTS) -- the project's canonical
+    "Dana's VPN ticket" example."""
+    ticket = SimpleNamespace(id=3, subject="VPN keeps disconnecting",
+                             body="Client demo at 3pm.")
+    session = FakeSession(ticket=ticket, spans=[], kb_docs=[])
+    case = SimpleNamespace(ticket_id=3)
+    run = SimpleNamespace(id="run-uuid-dana",
+                          final_reply="Please restart your VPN client.", ticket=ticket)
+    payload = JudgeVerdict(verdict="pass", reason="grounded in account facts",
+                           rule_triggered=None).model_dump_json()
+    client = make_client(fake_response(payload))
+    from triagedesk.llm import structured_call
+
+    def call(**kw):
+        return structured_call(_client=client, **kw)
+
+    verdict, _ = judge_run(session, case, run, _call=call)
+    prompt = client.messages.calls[0]["messages"][0]["content"]
+    assert "<account_facts>" in prompt
+    assert "customer-3" in prompt
+    assert "active" in prompt
+    assert "basic" in prompt
+    assert "standard_support" in prompt  # basic-plan entitlement, from PLAN_ENTITLEMENTS
+    assert verdict.verdict == "pass"
+
+
+def test_judge_run_omits_account_facts_when_ticket_has_no_id():
+    """Existing judge_run fixtures build tickets without an `id` (only
+    subject/body) -- customer_ref_for(ticket) would raise AttributeError.
+    Must degrade to no account context, not crash the judge call."""
+    ticket = SimpleNamespace(subject="VPN issue", body="my vpn drops")
+    session = FakeSession(ticket=ticket, spans=[], kb_docs=[])
+    case = SimpleNamespace(ticket_id=1)
+    run = SimpleNamespace(id="run-uuid", final_reply="Please restart your VPN client.",
+                          ticket=ticket)
+    payload = JudgeVerdict(verdict="pass", reason="ok", rule_triggered=None).model_dump_json()
+    client = make_client(fake_response(payload))
+    from triagedesk.llm import structured_call
+
+    def call(**kw):
+        return structured_call(_client=client, **kw)
+
+    judge_run(session, case, run, _call=call)
+    prompt = client.messages.calls[0]["messages"][0]["content"]
+    assert "<account_facts>" not in prompt
+
+
+def test_judge_prompt_version_is_bumped_for_the_tool_evidence_fix():
+    """Task 2 resolution: bumping this constant is how pre/post-fix kappas
+    are kept from being conflated in the calibration report header."""
+    from triagedesk.evals.judge import JUDGE_PROMPT_VERSION
+    assert JUDGE_PROMPT_VERSION == "2"
+
+
 # judge_run tests
 
 class FakeQueryFilter:
