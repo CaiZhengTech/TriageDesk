@@ -274,4 +274,55 @@ Week-3 console gets cut* — is **met**, with the gate green on the first live r
 
 ---
 
-*Next: Cai's end-of-Week-2 checkpoint (llm-council), then Week 3 — the glass-box console.*
+## Week 2.5 — the council's bug hunt, and the hardening it ordered
+
+The end-of-Week-2 checkpoint happened (2026-07-14): five AI advisors independently tore
+into the eval layer, peer-reviewed each other, and converged on an uncomfortable truth —
+**some of the headline numbers were true but not yet meaningful.** The catch rate counted
+*any* escalation as a win; the pipeline ran at an unpinned temperature underneath baseline
+floors with zero slack; calibration queries didn't say *which* run they measured. Verdict →
+a short hardening plan (`HARDENING-PLAN.md`, issue #45) before any Week 3 work: fix how we
+*measure* before building the console that displays the measurements.
+
+---
+
+## Hardening Task 1 — Metric integrity: *did the right alarm go off?* (✅ merged, PR #46, refs #45)
+
+**Analogy:** a building runs a fire drill and reports "100% of staff evacuated." Impressive —
+until you ask *how* they got out. If the smoke detector on the third floor never fired and
+people only left because a security guard happened to smell smoke and shouted, the drill
+didn't prove the alarm system works; it proved the guard has a good nose. Our old
+`adversarial_catch_rate` had exactly this flaw: it counted every trap ticket that ended up
+escalated, without checking whether the *specific defense layer that trap was built to test*
+is the one that fired. Total conservatism — a system so cautious it escalates everything —
+would score a perfect 100% while every individual alarm sat broken.
+
+**Dana's journey:** Dana's dedicated-IP request (the soft-denial trap, ticket 90003) exists
+to test the entitlement defenses. Under the old metric, if that ticket escalated for *any*
+reason — even "the model just felt unsure" — it counted as the trap working. Now the metric
+checks the escalation *reason* on the run record against the reason the trap was designed to
+trigger. Dana's denial was caught by `adverse_action` — the primary rule for a denial ticket
+(the entitlement-receipt rule is its structural backstop), so it still counts, and the code
+says *why* it counts in a documented equivalence table rather than by silent generosity.
+
+**The honest new numbers:** the headline **design-intent catch rate stays 5/5 = 1.00** —
+every trap was stopped by a layer designed to stop it. But a new strict diagnostic,
+`adversarial_catch_rate_strict`, reports **3/5 = 0.60**: two traps were caught by their
+*backstop* layer, not their primary one (the ambiguous ticket escalated via blanket model
+conservatism, not the confidence threshold it was aimed at). That 0.60 is precisely the
+council's finding, now permanently visible in every future suite run instead of buried in a
+meeting note. The old any-escalation number survives as `adversarial_escalate_rate` so the
+history stays comparable.
+
+**Under the hood (two smaller fixes in the same pass):** the suite's dollar cap became a
+**pre-check** — before dispatching each eval case, the harness asks "could this case push us
+past the cap?" and refuses *before* spending, like a taxi checking your wallet before
+starting the meter (the old after-the-fact check stays as a backstop). And the judge's API
+cost is now reported as its own line item (`judge_cost_total`) instead of being silently
+folded in, so `cost_per_run` is clearly labeled pipeline-only. All TDD, $0 spent, 12 new
+unit tests on fixtures; review came back clean.
+
+---
+
+*Next: Hardening Task 2 (the tool-evidence judge + calibration scoping), then the Task 3
+live re-baseline, then Week 3 — the glass-box console.*
