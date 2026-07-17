@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { listRuns } from "@/lib/api";
 import RunRow from "./RunRow";
 
@@ -11,6 +12,9 @@ export default async function RunListPage() {
   return (
     <main style={{ padding: "2rem", maxWidth: 1100, margin: "0 auto" }}>
       <h1>Runs</h1>
+      <p>
+        <Link href="/review">Review queue &rarr;</Link>
+      </p>
       <p style={{ color: "var(--muted)" }}>
         Showing {runs.length} of {total} runs, newest first. Failed and
         escalated runs are highlighted below but never hidden.

@@ -65,3 +65,68 @@ export async function getRun(runId: string): Promise<RunDetail | null> {
   }
   return res.json();
 }
+
+export interface ReviewQueueItem extends RunSummary {
+  internal_rationale: string | null;
+  final_reply: string | null;
+}
+
+export interface ReviewQueue {
+  items: ReviewQueueItem[];
+  total: number;
+}
+
+export async function listReviewQueue(): Promise<ReviewQueue> {
+  const res = await fetch(`${API_BASE_URL}/api/review-queue`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`GET /api/review-queue failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * Result of a review submission, one variant per status this task's UI must
+ * distinguish (Task 3's documented contract: 201/401/503/409/404/422). 404
+ * and 422 collapse into "error" — they aren't reachable from a queue-derived
+ * run id / a UI-constrained decision value, so no dedicated message is
+ * required for them.
+ */
+export type ReviewResult =
+  | { status: "ok"; id: number }
+  | { status: "invalid_token" }
+  | { status: "not_configured" }
+  | { status: "already_reviewed" }
+  | { status: "error"; httpStatus: number };
+
+export async function postReview(
+  runId: string,
+  decision: "approve" | "reject",
+  note: string,
+  token: string
+): Promise<ReviewResult> {
+  const res = await fetch(`${API_BASE_URL}/api/review/${runId}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Admin-Token": token,
+    },
+    body: JSON.stringify({ decision, note }),
+  });
+
+  if (res.status === 201) {
+    const body = await res.json();
+    return { status: "ok", id: body.id };
+  }
+  if (res.status === 401) {
+    return { status: "invalid_token" };
+  }
+  if (res.status === 503) {
+    return { status: "not_configured" };
+  }
+  if (res.status === 409) {
+    return { status: "already_reviewed" };
+  }
+  return { status: "error", httpStatus: res.status };
+}
