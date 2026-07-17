@@ -7,16 +7,16 @@ is the #1 hiring signal; plain RAG demos are a yellow flag).
 
 ## Status (updated 2026-07-17)
 
-**WEEK 3 IN PROGRESS (2026-07-17 evening): #13 + #14 CLOSED — the console is
-feature-complete** (run list · run detail · review queue; PRs #50/#51/#52/#53). **Next
-action: Task 5 (deploy-prep code — CORS + JSON logs, #15), BATCHED with Task 7 (demo
-protection, #16)** so their `triagedesk/**` merges share ONE ~$0.90 eval-gate run; then
-Task 6 (live deploy Railway+Neon+Vercel — needs Cai's accounts), per
-`docs/week-3-console/PLAN.md` (its gate-cost rule + descope ladder are binding). Task 5
-also unblocks the console's cross-origin POST (a known, deferred CORS gap from Task 4).
-Budget ~$8.6 of $20 (⚠️ eval-path merges auto-trigger the ~$0.90 gate — batch them,
-cancel superseded queued runs; `console/**`/docs/tests don't trigger). Gate run
-29555275667 verified green, $0.887 recorded.
+**WEEK 3 (2026-07-17 night): ALL CODE DONE — #13/#14/#16 CLOSED** (console: run list ·
+run detail · review queue · demo page; API: runs read, review-queue write, CORS, JSON
+logs, demo guards — PRs #50–#55, every review clean after in-PR fixes). The Task 5+7
+wave's ONE billed gate run (29621157110) verified **GREEN, $0.911** — batching worked.
+**The ONLY remaining Week-3 work is Task 6: the live deploy (Railway + Neon + Vercel +
+smoke, closes #15) — a JOINT session needing Cai's accounts.** The full checklist (exact
+env vars, `--proxy-headers` gotcha, prod demo-pool seeding, the 3¢ smoke run) is at the
+top of `docs/week-3-console/HANDOFF.md`. Budget ~$9.5 of $20 (⚠️ eval-path merges
+auto-trigger the ~$0.90 gate — batch them, cancel superseded queued runs;
+`console/**`/docs/tests don't trigger).
 Week 2.5 record (quote kappas carefully): judge v2 improved invariantly (0.279→0.418 r1,
 0.038→0.133 r2) but Cai's self-agreement is kappa 0.212 — single-rater labels are the
 bottleneck; official v2 kappa 0.133 is noise-capped; next step = second rater (#19).

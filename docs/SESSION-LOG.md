@@ -9,6 +9,55 @@ read the current week's `HANDOFF.md`. For "what did task N build", read that wee
 
 ---
 
+## Session — 2026-07-17 (night) · Wk3 Tasks 5 + 7 — deploy-prep + demo protection; #16 CLOSED; all Week-3 CODE done
+
+**Where it started:** continue past Task 4 (#14 closed earlier today) into Tasks 5–7.
+**Where it ended:** **all Week-3 code is merged and gate-verified.** Only Task 6 remains —
+the live deploy, a JOINT session needing Cai's Railway/Vercel accounts. Resume:
+`week-3-console/HANDOFF.md` (the full deploy checklist is at the top).
+
+### What happened
+1. **Task 5 — deploy-prep** (PR #54, `d1275f7`): fail-closed CORS (empty origins ⇒ no
+   middleware at all, never a wildcard; only the methods/headers the console uses) + a
+   stdlib JSON log formatter behind `LOG_JSON`. Review APPROVE with 1 Important — the CORS
+   tests preflighted a GET, not the browser-real `POST /api/review/{id}` with
+   `X-Admin-Token` — fixed in-PR (haiku fixer), re-review APPROVE with the reviewer
+   empirically proving both regression directions. Its auto-triggered gate run was
+   **cancelled as superseded** (~$0, batching rule).
+2. **CI raced itself once:** PR #54's first CI run failed on a duplicate-key error in an
+   integration test — root-caused to a reviewer subagent running the suite locally while
+   CI's integration tests were mid-flight on the SAME shared Neon test branch (teardown-only
+   cleanup + pinned-ID inserts don't advance the sequence). Re-run green. New ledger rule:
+   never run local integration tests while a CI run is in_progress.
+3. **Task 7 — demo protection** (PR #55, `f37ceec`): `demo.py` (pool query, injectable-clock
+   rate limiter, tz-explicit UTC daily-cap pre-check), the 404→429→402→202 guard chain with
+   "before spending" semantics unit-tested (run_ticket asserted NOT called on every blocked
+   branch), the demo console page with the exact council-mandated pause banner, and
+   `scripts/smoke.py` for Task 6. Review APPROVE with 2 Importants sharing one root cause —
+   **a check-then-act race on the daily cap** (N concurrent requests could all pass the
+   pre-check before any committed a cost) — fixed in-PR with a serialized-dispatch lock
+   (demo concurrency = 1, a feature at $1/day). The re-reviewer independently reproduced
+   the race: without the lock [202,202] 5/5 runs; with it [202,402] 5/5. **#16 CLOSED.**
+4. **The wave's ONE billed gate run went GREEN** (29621157110, **$0.911**): Tasks 5+7's
+   `triagedesk/**` changes moved no guarded numbers. Batching worked as designed — two
+   API-path merges, one bill.
+5. **Interruption handled:** the Task-7 re-reviewer died mid-verification (session limit);
+   state was verified (tree clean, branch intact) and the same agent resumed from its
+   transcript rather than re-dispatched — no duplicated work.
+6. Per-task deliverables posted immediately both times (#15 comment, #16 closeout comment +
+   close, two STORY chapters, ledger rows + minors).
+
+### Spend
+**$0.911 this session** (the one wave gate run). Total ≈ **$9.5 of $20**.
+
+### Open
+- **Task 6 — the live deploy** (Railway + Neon + Vercel + smoke): checklist with exact
+  env-vars and the `--proxy-headers` gotcha at the top of `week-3-console/HANDOFF.md`.
+  Needs Cai. Closes #15 and Week 3.
+- Standing: seed prod demo pool at deploy; dedicated Neon eval branch; second rater (#19).
+
+---
+
 ## Session — 2026-07-17 (evening) · Wk3 Task 4 — the review-queue PAGE; #14 CLOSED; PITCH restructured for interviews
 
 **Where it started:** resume at Wk3 Task 4 (the review-queue page); Cai flagged an upcoming
