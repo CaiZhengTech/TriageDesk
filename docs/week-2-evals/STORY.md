@@ -324,5 +324,49 @@ unit tests on fixtures; review came back clean.
 
 ---
 
-*Next: Hardening Task 2 (the tool-evidence judge + calibration scoping), then the Task 3
-live re-baseline, then Week 3 — the glass-box console.*
+## Hardening Task 2 — The judge gets the receipts (✅ merged, PR #47, refs #45)
+
+**Analogy:** imagine grading a student's essay while only being allowed to see the textbook.
+The student is *also* allowed to call the registrar's office — and when they correctly write
+"this student's meal plan doesn't include weekend dinners," you, never shown the registrar's
+records, mark it "fabricated." Week 2's calibration proved our AI judge was doing exactly
+this: it graded replies against KB articles only, while the agent legitimately grounded
+facts in its CRM tools. Every one of the 7 "hallucinations" it flagged was a true,
+tool-verified fact. That single blind spot was most of why judge-vs-human agreement (kappa)
+was only 0.279.
+
+**Dana's journey:** the agent tells Dana, "your Basic plan doesn't include dedicated IPs."
+The old judge, seeing only VPN troubleshooting articles, cried *"where did 'Basic plan' come
+from?!"* It came from `check_entitlement` — the same tool receipt the confidence gate
+already demands. Now the judge is handed a `<account_facts>` block — the exact facts the
+agent's tools returned, reproduced deterministically from the simulated CRM — and its rubric
+says a reply may be grounded in the KB **or** the verified account facts. The grader finally
+sees the receipts.
+
+**Four more measurement fixes rode along:**
+- **Grade only the latest exam.** Calibration exports and kappa now scope to one suite run
+  (the latest judged row per case), so CI reruns can't duplicate rows or sneak correlated
+  repeats into the agreement math — and a row a human already labeled is never blanked and
+  re-issued.
+- **Partial credit and error bars.** Weighted kappa (pass-vs-needs_review is a near-miss;
+  pass-vs-fail is a head-on collision — they now cost differently) plus a bootstrap 95%
+  confidence interval, hand-rolled and deterministic, alongside the plain kappa.
+- **Pin the oven temperature.** `precheck` and `classify` now run at temperature 0 — a
+  regression gate comparing numbers against floors shouldn't have sampling randomness
+  jiggling the measurements underneath it. (The act loop deliberately stays adaptive.)
+- **A serving window for Week 3.** A database view, `eval_results_golden`, is now the one
+  sanctioned way for the upcoming console to read golden metrics — so the console can never
+  accidentally mix calibration rows into headline numbers (a mistake our own queries nearly
+  made twice).
+
+**Under the hood:** the fixed judge is a new version (`JUDGE_PROMPT_VERSION = 2`), stamped
+on every calibration report header — the kappa measured against judge-v1 and the kappa we're
+about to measure against judge-v2 are different experiments and can never be conflated. All
+TDD (7 red→green steps), 187 tests, $0 Anthropic spend; the Alembic migration round-trip
+even ran live against the Neon test branch. Review clean on the first pass.
+
+---
+
+*Next: Hardening Task 3 — re-derive the gate thresholds from held-out data, re-judge
+everything with the receipts-aware judge (~15¢), one live re-baselining run, then Cai's
+fresh blind labels → the new kappa. Then Week 3 — the glass-box console.*
