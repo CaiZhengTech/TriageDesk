@@ -71,6 +71,10 @@ tr.row-escalated {
   background: var(--escalated-bg);
 }
 
+.review-card {
+  border: 1px solid var(--border);
+}
+
 tr.row-failed {
   background: var(--failed-bg);
 }

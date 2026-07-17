@@ -65,7 +65,7 @@ export default function ReviewItem({
 
   return (
     <section
-      className="row-escalated"
+      className="review-card"
       style={{ padding: "1rem", marginBottom: "1rem", borderRadius: 4 }}
     >
       <h3 style={{ marginTop: 0 }}>
