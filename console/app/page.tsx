@@ -14,6 +14,8 @@ export default async function RunListPage() {
       <h1>Runs</h1>
       <p>
         <Link href="/review">Review queue &rarr;</Link>
+        {" · "}
+        <Link href="/demo">Try the demo &rarr;</Link>
       </p>
       <p style={{ color: "var(--muted)" }}>
         Showing {runs.length} of {total} runs, newest first. Failed and

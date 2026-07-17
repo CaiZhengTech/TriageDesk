@@ -130,3 +130,60 @@ export async function postReview(
   }
   return { status: "error", httpStatus: res.status };
 }
+
+/**
+ * The demo pool (Task 7, issue #16): seeded `source='demo'` tickets only —
+ * no free text anywhere in the demo flow.
+ */
+export interface DemoPoolTicket {
+  id: number;
+  subject: string;
+}
+
+export interface DemoPool {
+  tickets: DemoPoolTicket[];
+}
+
+export async function listDemoPool(): Promise<DemoPool> {
+  const res = await fetch(`${API_BASE_URL}/api/demo/pool`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`GET /api/demo/pool failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * Result of a demo-run submission, one variant per branch the API's "before
+ * spending" guards can return (404/429/402/202 — see triagedesk/demo.py).
+ */
+export type DemoRunResult =
+  | { status: "ok"; runId: string }
+  | { status: "not_in_pool" }
+  | { status: "rate_limited" }
+  | { status: "budget_reached" }
+  | { status: "error"; httpStatus: number };
+
+export async function runDemo(ticketId: number): Promise<DemoRunResult> {
+  const res = await fetch(`${API_BASE_URL}/api/demo/run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ticket_id: ticketId }),
+  });
+
+  if (res.status === 202) {
+    const body = await res.json();
+    return { status: "ok", runId: body.run_id };
+  }
+  if (res.status === 404) {
+    return { status: "not_in_pool" };
+  }
+  if (res.status === 429) {
+    return { status: "rate_limited" };
+  }
+  if (res.status === 402) {
+    return { status: "budget_reached" };
+  }
+  return { status: "error", httpStatus: res.status };
+}

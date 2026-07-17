@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     admin_token: str = ""
     cors_origins: str = ""
     log_json: bool = False
+    demo_daily_cap_usd: float = 1.00
+    demo_rate_limit_per_hour: int = 5
 
 
 settings = Settings()
