@@ -67,5 +67,30 @@ until a completed run exists to click.
 
 ---
 
-*Next: the review queue (Tasks 3–4) — the doctor's desk every escalation has been
-promised since Week 1. Then (next session): deploy + demo protection.*
+## Task 3 — The doctor's inbox exists now (✅ merged, PR #52, refs #14)
+
+**Analogy:** for two weeks the triage nurse (the pipeline) has been stamping charts
+"needs a doctor" — the adverse-action rule, the confidence gate, the model's own
+caution all end in that stamp. But a stamp is meaningless if there's no doctor's inbox.
+This task built the inbox: a `review_decisions` table (the doctor's signature line — one
+verdict per case, enforced by the database itself) and two API endpoints — one that
+lists every escalated run still awaiting a human, oldest first, and one that records
+approve/reject with a note.
+
+**Dana's journey:** her dedicated-IP denial has been sitting in `state='escalated'`
+since Week 1. It now appears in `GET /api/review-queue` with the draft reply and the
+agent's reasoning attached — and when a human posts their verdict, the queue drops it
+and the decision is permanent (a second verdict on the same run gets a polite 409
+"already reviewed", backed by a database uniqueness constraint, not an if-statement).
+
+**Under the hood (the lock on the door):** the write endpoint requires an operator
+token — and it **fails closed**: if the server has no token configured, the endpoint
+returns "service unavailable" rather than treating empty-as-open. That ordering (503
+before the token is even compared) is the same fail-closed philosophy as the cost caps,
+applied to auth. TDD throughout (five red→green steps), the migration round-trip proven
+against the real test database, review clean on the first pass.
+
+---
+
+*Next: Task 4 — the queue page itself, so the inbox has a screen. Then (next session):
+deploy + demo protection.*
