@@ -92,6 +92,16 @@ class EvalCase(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
 
+class ReviewDecision(Base):
+    __tablename__ = "review_decisions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("runs.id"), unique=True)
+    decision: Mapped[str] = mapped_column(String(8))  # approve | reject
+    note: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
 class EvalResult(Base):
     __tablename__ = "eval_results"
 

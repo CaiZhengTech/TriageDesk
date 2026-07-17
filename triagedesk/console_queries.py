@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from triagedesk.models import Run, Span, Ticket
+from triagedesk.models import ReviewDecision, Run, Span, Ticket
 
 
 def _to_naive_utc(dt: datetime) -> datetime:
@@ -62,6 +62,28 @@ def list_runs(db: Session, limit: int = 50, offset: int = 0) -> dict:
         "runs": [_run_summary(run, subject) for run, subject in rows],
         "total": total,
     }
+
+
+def list_review_queue(db: Session) -> dict:
+    """Escalated runs with no review decision yet, oldest first (the human inbox).
+
+    No filter on `escalation_reason` — adverse-action escalations appear like any
+    other escalated run (the adverse-action rule requires it, it does not exempt it).
+    """
+    decided_run_ids = select(ReviewDecision.run_id)
+    rows = db.execute(
+        select(Run, Ticket.subject)
+        .join(Ticket, Run.ticket_id == Ticket.id)
+        .where(Run.state == "escalated", Run.id.not_in(decided_run_ids))
+        .order_by(Run.created_at.asc())
+    ).all()
+    items = []
+    for run, subject in rows:
+        item = _run_summary(run, subject)
+        item["internal_rationale"] = run.internal_rationale
+        item["final_reply"] = run.final_reply
+        items.append(item)
+    return {"items": items, "total": len(items)}
 
 
 def _span_summary(span: Span) -> dict:

@@ -14,9 +14,10 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from triagedesk.app import app
+from triagedesk.config import settings
 from triagedesk.console_queries import _duration_ms
 from triagedesk.db import get_db
-from triagedesk.models import Run, Span, Ticket
+from triagedesk.models import ReviewDecision, Run, Span, Ticket
 
 
 @pytest.fixture()
@@ -49,6 +50,12 @@ def db_session():
                 id INTEGER PRIMARY KEY,
                 run_id CHAR(32), name VARCHAR(32), status VARCHAR(16),
                 started_at TIMESTAMP, ended_at TIMESTAMP, attributes JSON, cost_usd FLOAT
+            )
+        """))
+        conn.execute(text("""
+            CREATE TABLE review_decisions (
+                id INTEGER PRIMARY KEY,
+                run_id CHAR(32) UNIQUE, decision VARCHAR(8), note TEXT, created_at TIMESTAMP
             )
         """))
     Session = sessionmaker(bind=engine)
@@ -93,6 +100,13 @@ def _make_run(db_session, ticket_id, **overrides):
     db_session.add(run)
     db_session.commit()
     return run
+
+
+def _make_review_decision(db_session, run_id, decision="approve", note="looks fine"):
+    rd = ReviewDecision(run_id=run_id, decision=decision, note=note)
+    db_session.add(rd)
+    db_session.commit()
+    return rd
 
 
 # (a) list returns newest-first with computed latency_ms and a failed run present with its reason
@@ -204,3 +218,115 @@ def test_list_runs_pagination_total_independent_of_limit(db_session, client):
     body = resp.json()
     assert len(body["runs"]) == 1
     assert body["total"] == 3
+
+
+# (a) queue lists escalated-undecided only, oldest first — decided runs and
+# non-escalated runs are excluded; an adverse-action escalation appears like any other
+def test_review_queue_lists_escalated_undecided_oldest_first(db_session, client):
+    _make_ticket(db_session)
+    older_escalated = _make_run(
+        db_session, ticket_id=1,
+        state="escalated", escalation_reason="agent_requested_human",
+        created_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+    newer_escalated = _make_run(
+        db_session, ticket_id=1,
+        state="escalated", escalation_reason="adverse_action",
+        created_at=datetime(2026, 1, 1, 13, 0, 0),
+    )
+    decided_escalated = _make_run(
+        db_session, ticket_id=1,
+        state="escalated", escalation_reason="no_entitlement_evidence",
+        created_at=datetime(2026, 1, 1, 11, 0, 0),
+    )
+    _make_review_decision(db_session, decided_escalated.id)
+    _make_run(
+        db_session, ticket_id=1, state="completed",
+        created_at=datetime(2026, 1, 1, 14, 0, 0),
+    )
+
+    resp = client.get("/api/review-queue")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [i["id"] for i in body["items"]] == [
+        str(older_escalated.id), str(newer_escalated.id),
+    ]
+    assert body["total"] == 2
+    adverse = next(i for i in body["items"] if i["id"] == str(newer_escalated.id))
+    assert adverse["escalation_reason"] == "adverse_action"
+
+
+# (b) POST persists a decision; a second POST for the same run → 409
+def test_post_review_persists_then_409_on_second_decision(db_session, client, monkeypatch):
+    monkeypatch.setattr(settings, "admin_token", "test-token")
+    _make_ticket(db_session)
+    run = _make_run(db_session, ticket_id=1, state="escalated")
+
+    resp = client.post(
+        f"/api/review/{run.id}",
+        json={"decision": "approve", "note": "looks fine"},
+        headers={"X-Admin-Token": "test-token"},
+    )
+    assert resp.status_code == 201
+    assert "id" in resp.json()
+
+    resp2 = client.post(
+        f"/api/review/{run.id}",
+        json={"decision": "reject", "note": "actually no"},
+        headers={"X-Admin-Token": "test-token"},
+    )
+    assert resp2.status_code == 409
+
+
+def test_post_review_404_on_unknown_run(client, monkeypatch):
+    monkeypatch.setattr(settings, "admin_token", "test-token")
+    resp = client.post(
+        f"/api/review/{uuid.uuid4()}",
+        json={"decision": "approve", "note": "n"},
+        headers={"X-Admin-Token": "test-token"},
+    )
+    assert resp.status_code == 404
+
+
+def test_post_review_422_on_bad_decision_value(db_session, client, monkeypatch):
+    monkeypatch.setattr(settings, "admin_token", "test-token")
+    _make_ticket(db_session)
+    run = _make_run(db_session, ticket_id=1, state="escalated")
+
+    resp = client.post(
+        f"/api/review/{run.id}",
+        json={"decision": "maybe", "note": "n"},
+        headers={"X-Admin-Token": "test-token"},
+    )
+    assert resp.status_code == 422
+
+
+# (c) 401 when the admin token is missing or wrong
+def test_post_review_401_when_token_missing_or_wrong(db_session, client, monkeypatch):
+    monkeypatch.setattr(settings, "admin_token", "test-token")
+    _make_ticket(db_session)
+    run = _make_run(db_session, ticket_id=1, state="escalated")
+
+    missing = client.post(f"/api/review/{run.id}", json={"decision": "approve", "note": "n"})
+    assert missing.status_code == 401
+
+    wrong = client.post(
+        f"/api/review/{run.id}", json={"decision": "approve", "note": "n"},
+        headers={"X-Admin-Token": "wrong"},
+    )
+    assert wrong.status_code == 401
+
+
+# (d) 503 when settings.admin_token is unset — fail closed, never open
+def test_post_review_503_when_admin_token_unset(db_session, client, monkeypatch):
+    monkeypatch.setattr(settings, "admin_token", "")
+    _make_ticket(db_session)
+    run = _make_run(db_session, ticket_id=1, state="escalated")
+
+    resp = client.post(
+        f"/api/review/{run.id}",
+        json={"decision": "approve", "note": "n"},
+        headers={"X-Admin-Token": "anything"},
+    )
+    assert resp.status_code == 503

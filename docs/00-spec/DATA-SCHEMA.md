@@ -24,7 +24,7 @@ Schema changes go through a migration — never hand-edit tables.
 | `kb_docs` | 15 | Authored knowledge-base articles + their embeddings |
 | `eval_cases` | 50 | The evaluation sets: 20 representative + 5 adversarial (the **golden set**) + 25 calibration-pool |
 | `eval_results` | 50 | One row per case per eval-suite execution — the graded outcome + judge/human labels |
-| `review_decisions` | — | *(Week 3, not built yet)* human approve/reject on the review queue |
+| `review_decisions` | 0 | Human approve/reject decision on an escalated run (the review queue's write side) |
 
 ---
 
@@ -140,6 +140,24 @@ screen), `low_confidence` (gate thresholds), `budget_breach`, `validation_failed
 | `judge_reason` | text, nullable | Debugging aid — **never ground truth** |
 | `judge_rule_triggered` | str(32), nullable | `grounding` \| `helpfulness` \| `tone` |
 | `human_label` | str(16), nullable | Cai's blind label — the other half of Cohen's kappa |
+
+## `review_decisions` — the human decision on an escalated run
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | int PK | |
+| `run_id` | UUID FK → runs, **unique** | One decision per run, ever — the queue query excludes any run with a row here |
+| `decision` | str(8) | `approve` \| `reject` |
+| `note` | text | The reviewer's note — required on every decision |
+| `created_at` | timestamp | Server default |
+
+Added by Week 3 Task 3 (issue #14, Alembic revision `c6811ea1a93e`). The queue endpoint
+(`GET /api/review-queue`) reads `runs` where `state = 'escalated'` and no matching
+`review_decisions.run_id` exists, oldest first — **no filter on `escalation_reason`**, so
+adverse-action escalations (`adverse_action`, `no_entitlement_evidence`) show up like any
+other escalation. Writes go through `POST /api/review/{run_id}` (`X-Admin-Token` header,
+fail-closed: 503 if `settings.admin_token` is unset, 401 if the header is missing or wrong,
+404 unknown run, 409 if the run already has a decision).
 
 ## `eval_results_golden` — the ONLY sanctioned read path for golden metrics
 

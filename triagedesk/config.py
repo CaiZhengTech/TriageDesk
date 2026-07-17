@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     voyage_api_key: str = ""
     cost_cap_usd: float = 0.10
+    admin_token: str = ""
 
 
 settings = Settings()
