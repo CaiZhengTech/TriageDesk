@@ -4,9 +4,28 @@
 milestone. Everything here is true and defensible — every claim traces to a commit,
 a test, or a logged run.*
 
-**Last updated:** 2026-07-17 (**Week 2.5 hardening ~done** — post-council eval-layer fixes
-merged, thresholds derived from held-out data, judge v2 sees tool evidence, baseline
-re-derived and validated live; awaiting Cai's blind relabel for the official v2 kappa)
+**Last updated:** 2026-07-17 (**Week 3 in progress** — the eval layer is done and
+calibrated; the "glass box" is now something you can *see*: the Next.js ops console
+[run list + run detail] and the human review-queue API are merged, the operator's queue
+page is landing, live deploy is next.)
+
+---
+
+## How to use this file (30-second map)
+
+| If they ask about… | Jump to |
+|---|---|
+| "Tell me about a project" | **The 30-second pitch** → **the one-minute version** |
+| Safety / trust / guardrails | *Safety & trust* one-liners |
+| The agent / LangChain / SDK | *The agent* one-liners |
+| Evals / testing / metrics / honesty | *Evals & honest numbers* one-liners |
+| The UI / observability / demo | *The glass box you can see* one-liners |
+| CI / process / scope | *Process & limitations* one-liners + *"What I'd add in production"* |
+| Hard numbers | **The numbers** table at the bottom |
+
+*The spine of every answer: this project's value isn't the AI, it's the **trust
+machinery** around it — evidence trails, fail-closed cost caps, a structurally-enforced
+safety rule, and evals I calibrated against my own labels and then caught lying to me.*
 
 ---
 
@@ -40,10 +59,34 @@ re-derived and validated live; awaiting Cai's blind relabel for the official v2 
 
 ## Per-feature one-liners (drop these when a topic comes up)
 
+*Grouped so you can find the right one fast. Every quote traces to a commit, a test, or
+a logged run — nothing here is aspirational.*
+
+### 🛡️ Safety & trust — the differentiator
+
 **On the safety rule (adverse action):**
 > "My safety invariant turned out to depend on model cooperation, so I made it
 > structural — the gate now requires tool-call evidence before any auto-resolve, and I
 > wrote the exploit as a failing test before writing the fix."
+
+**On the gate's design:**
+> "The gate never asks the model how confident it is — self-reported confidence is
+> miscalibrated flattery. It uses two external signals, retrieval similarity and
+> classification margin, and Week 2 calibrates the thresholds against human labels
+> instead of me guessing them."
+
+**On cost controls:**
+> "Every run has a ten-cent cap that fails closed — if cost can't be computed, that
+> IS a breach. And the boundary is pinned by tests, including the exactly-at-cap
+> case, so the policy lives in the test suite, not in tribal knowledge."
+
+**On observability (the glass box):**
+> "Every stage writes structured spans following OTel GenAI conventions — model,
+> tokens, cost, decision reasons. When someone asks 'why did the AI escalate this
+> ticket?', I print the trace. The rationale the LLM gives is logged as context, but
+> the trace is the evidence — I never treat the model's explanation as ground truth."
+
+### 🤖 The agent — owning every line
 
 **On the hand-written agent loop (why no LangChain):**
 > "I wrote the agent loop by hand on the raw SDK because I wanted to answer for every
@@ -57,22 +100,7 @@ re-derived and validated live; awaiting Cai's blind relabel for the official v2 
 > observed live — run a real probe first, commit the actual response as a test
 > fixture, build mocks only from that. Reality is the spec."
 
-**On cost controls:**
-> "Every run has a ten-cent cap that fails closed — if cost can't be computed, that
-> IS a breach. And the boundary is pinned by tests, including the exactly-at-cap
-> case, so the policy lives in the test suite, not in tribal knowledge."
-
-**On observability (the glass box):**
-> "Every stage writes structured spans following OTel GenAI conventions — model,
-> tokens, cost, decision reasons. When someone asks 'why did the AI escalate this
-> ticket?', I print the trace. The rationale the LLM gives is logged as context, but
-> the trace is the evidence — I never treat the model's explanation as ground truth."
-
-**On the gate's design:**
-> "The gate never asks the model how confident it is — self-reported confidence is
-> miscalibrated flattery. It uses two external signals, retrieval similarity and
-> classification margin, and Week 2 calibrates the thresholds against human labels
-> instead of me guessing them."
+### 🔬 Evals & honest numbers — the #1 hiring signal
 
 **On judge calibration (the tool-blind judge — the flagship honest-number story):**
 > "I calibrated my LLM judge against 41 of my own blind labels and got a kappa of
@@ -115,11 +143,6 @@ re-derived and validated live; awaiting Cai's blind relabel for the official v2 
 > for a triage gate that's the failure direction you want. The two lenient misses
 > are the real risk, and they're why deterministic metrics carry my CI gate."
 
-**On process (CI/branch protection):**
-> "CI gates every merge: tests, linting, and gitleaks secret-scanning. I learned the
-> hard way after CI was silently red for two days — now GitHub physically refuses
-> merges without green checks."
-
 **On the CI eval gate (the Week-2 finale):**
 > "My golden set re-runs automatically in CI whenever behavior-relevant code changes —
 > agent code, knowledge base, schema migrations, dependencies — under a $1 hard cap
@@ -127,6 +150,40 @@ re-derived and validated live; awaiting Cai's blind relabel for the official v2 
 > only advises, because I measured its agreement with me first and a kappa-0.28 judge
 > hasn't earned a veto. And the trigger is path-filtered, because at a dollar per run,
 > an every-merge trigger would have eaten my entire remaining budget."
+
+### 🖥️ The glass box you can see — Week 3
+
+*Status: the console's read layer (run list + run detail) and the review-queue API are
+merged; the operator's queue page is landing this week; live deploy is next. These
+one-liners describe what's built and merged.*
+
+**On the ops console (the glass box, now visible):**
+> "Week 1 built the flight recorder — every stage writes a span. Week 3 built the
+> window to look through it: a thin Next.js console where a run is a row you click into
+> a per-stage table — duration, tokens, cost, the gate's signals, the draft reply, and
+> the agent's rationale, captioned 'post-hoc — not evidence.' I deliberately made it a
+> flat table, not a waterfall visualization — the honesty is in the data, not the
+> chrome, so I cut the fancy visual and kept the build a tenth of the size. And failed
+> runs are structurally impossible to hide: the list query has no state filter at all,
+> so 'no hidden failures' is a property of the code, not a dashboard toggle a reviewer
+> has to trust me about."
+
+**On the review queue (where the safety rule pays off):**
+> "The adverse-action rule says the agent never delivers a denial on its own — it
+> routes to a human. Week 3 built the desk that promise points at: a queue of every
+> escalated run, each showing the draft reply and the agent's reasoning, where an
+> operator approves or rejects with a note. The verdict is persisted with a
+> database-level one-verdict-per-run constraint — a second review gets a clean 409, not
+> a race. And the write fails closed: if no operator token is configured, the endpoint
+> returns 503, because an empty lock must never mean an open door — the same principle
+> as the cost cap, one level up."
+
+### ⚙️ Process & limitations
+
+**On process (CI/branch protection):**
+> "CI gates every merge: tests, linting, and gitleaks secret-scanning. I learned the
+> hard way after CI was silently red for two days — now GitHub physically refuses
+> merges without green checks."
 
 **On honest limitations (say this proactively — it builds trust):**
 > "Right now nothing auto-resolves — and my metrics can finally say precisely why: not
@@ -158,7 +215,7 @@ budget. Each cut is a talking point, not a gap:
 
 ---
 
-## The numbers (live, as of Week 2)
+## The numbers (live, as of Week 3 — in progress)
 
 | Metric | Value |
 |---|---|
@@ -177,13 +234,19 @@ budget. Each cut is a talking point, not a gap:
 | Pipeline stages, all live-verified end-to-end | 5 |
 | Cost per full pipeline run | **~3.0¢** with prompt caching (hard-capped at 10¢) |
 | Latency | p50 ~35s · p95 ~46s |
-| CI eval gate | **GREEN on main across 4 consecutive live runs** — 25 golden cases re-run on behavior-relevant pushes, $1 in-workflow cap (~$0.90 actual/run) |
-| Test suite | 188 tests + lint + secret-scan, gating every merge |
-| **Total API spend, entire project to date** | **~$7.7** against a hard $20 budget |
+| CI eval gate | **GREEN on main across 5 consecutive live runs** — 25 golden cases re-run on behavior-relevant pushes, $1 in-workflow cap (~$0.89 actual/run) |
+| Ops console (Week 3) | Next.js 15 + TypeScript, **zero UI libraries** — run list + run-detail flight recorder; reads through the API only, never the DB; failed runs structurally unhideable |
+| Human review queue (Week 3) | `review_decisions` table, one verdict/run **enforced by a DB constraint**; operator-token write that **fails closed** (503 when no token is configured) |
+| Test suite | **202 tests** + lint + secret-scan, gating every merge |
+| **Total API spend, entire project to date** | **~$8.6** against a hard $20 budget |
 
-*(Week 2.5 hardening: the eval layer was adversarially reviewed and fixed — reason-aware
-metrics, run-scoped calibration, tool-evidence judge, derived thresholds, re-derived
-baseline. Next: Cai's blind relabel → official v2 kappa, then the Week-3 console.)*
+*(Week 2.5 hardening — DONE: the eval layer was adversarially reviewed and fixed
+[reason-aware metrics, run-scoped calibration, tool-evidence judge, derived thresholds,
+re-derived baseline], and Cai's second blind labeling round produced the official v2
+kappa plus the reliability finding that single-rater labels — not judge quality — are
+the bottleneck. Week 3 IN PROGRESS: the glass-box console [run list + detail] and the
+review-queue API are merged; the operator queue page is landing; live deploy [Railway +
+Neon + Vercel] is next.)*
 
 ---
 
