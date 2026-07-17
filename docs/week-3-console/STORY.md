@@ -167,5 +167,42 @@ ledger.
 
 ---
 
-*Next: Task 7 — demo abuse protection (seeded pool, rate limit, visible spend-cap pause),
-then Task 6 — the live deploy (Railway + Neon + Vercel) with Cai.*
+## Task 7 — The bouncer at the open bar (✅ merged, PR #55, closes #16)
+
+**Analogy:** a public demo with a paid AI behind it is an open bar with your credit card
+behind it. This task hired the bouncer and wrote the house rules. **The fixed menu:**
+visitors pick from a small pool of seeded tickets — there is no text box anywhere, so
+nobody can order off-menu (which also closes the front-door prompt-injection channel).
+**The per-person limit:** one IP gets a handful of runs per hour. **The honest
+"kitchen closed" sign:** a hard daily dollar cap, checked *before* any money is spent —
+cross it and the demo visibly pauses with "Daily demo budget reached — watch the video
+instead." No recording dressed up as a live run; the council killed that idea as
+deception in miniature.
+
+**Dana's journey:** a visitor picks Dana's VPN ticket from the dropdown and watches the
+real pipeline run it — real model, real trace, ~3¢. A bored visitor hammering the button
+hits the hourly limit and gets told so. And when the day's budget is gone, the next
+visitor doesn't get a fake — they get the honest pause banner.
+
+**Under the hood:** one new module (`demo.py`) holds the three guards: the pool query
+(`source='demo'` only), a fixed-window rate limiter whose clock is injected (so tests
+drive window resets deterministically), and the daily-cap query — spent-today (UTC,
+tz-explicit on the naive column) plus one per-run cap must stay under the daily cap,
+fail closed. All three run BEFORE the pipeline is invoked; unit tests assert the
+pipeline function is literally never called on any blocked branch. The review earned its
+keep here: it asked what happens when several requests arrive at once — and the honest
+answer was that they could all pass the cap check before any of them had spent anything
+(the classic time-of-check/time-of-use race, on the money path of a public endpoint).
+The fix: demo dispatch is serialized — one demo run at a time on this instance — so the
+cap check always sees committed costs and the overspend window closes to zero. The
+regression test was proven the right way: the reviewer independently removed the lock
+and watched the double-spend appear five times out of five, then restored it and watched
+serialization hold five times out of five. Plus `scripts/smoke.py` — the turn-the-key
+script Task 6 will run against production: send one seeded ticket through the deployed
+API, poll to a terminal state, exit green only if the run finished AND recorded real
+cost. 206 unit tests green.
+
+---
+
+*Next: Task 6 — the live deploy (Railway + Neon + Vercel), a joint session with Cai
+(needs his accounts). The smoke script and the env-var checklist are ready.*
