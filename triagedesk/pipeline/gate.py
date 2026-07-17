@@ -10,8 +10,10 @@ from pathlib import Path
 
 from triagedesk.pipeline.act import ActOutcome
 
-SIM_THRESHOLD = 0.45     # Week-1 placeholders — Week 2's calibration table
-MARGIN_THRESHOLD = 0.02  # decides whether these survive.
+# Derived from the held-out calibration pool, never the golden set —
+# see docs/week-2-evals/reports/threshold-derivation.md (Refs #45).
+SIM_THRESHOLD = 0.45     # ~36th percentile of held-out retrieval similarity
+MARGIN_THRESHOLD = 0.0   # embedding evidence must AGREE with the LLM's queue choice
 
 _CENTROIDS_PATH = Path(__file__).parent.parent / "data" / "queue_centroids.json"
 

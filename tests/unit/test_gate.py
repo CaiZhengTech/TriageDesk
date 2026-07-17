@@ -44,10 +44,18 @@ def test_low_similarity_escalates():
 
 
 def test_low_margin_escalates():
-    d = decide(retrieval_similarity=0.8, margin=0.0, outcome=outcome("solve"),
+    # Negative margin = embedding evidence contradicts the LLM's queue choice
+    # (threshold derivation: docs/week-2-evals/reports/threshold-derivation.md).
+    d = decide(retrieval_similarity=0.8, margin=-0.01, outcome=outcome("solve"),
                entitlement_checked=True)
     assert d.auto_resolve is False
     assert d.reason == "low_confidence"
+
+
+def test_zero_margin_is_the_boundary_and_passes():
+    d = decide(retrieval_similarity=0.8, margin=0.0, outcome=outcome("solve"),
+               entitlement_checked=True)
+    assert d.auto_resolve is True
 
 
 def test_deny_always_escalates_even_when_confident():
