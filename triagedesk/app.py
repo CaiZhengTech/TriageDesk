@@ -14,6 +14,7 @@ from triagedesk.console_queries import get_run_detail, list_review_queue, list_r
 from triagedesk.db import get_db
 from triagedesk.demo import (
     RateLimiter,
+    _dispatch_lock,
     daily_cap_would_be_exceeded,
     get_demo_ticket,
     list_demo_pool,
@@ -140,21 +141,27 @@ def api_demo_run(
     if ticket is None:
         raise HTTPException(status_code=404, detail="ticket not in demo pool")
 
-    host = request.client.host if request.client else "unknown"
-    if not _demo_rate_limiter.check(
-        host, datetime.now(UTC), settings.demo_rate_limit_per_hour
-    ):
-        return JSONResponse(
-            status_code=429, content={"paused": False, "reason": "rate_limited"}
-        )
+    # Serialize the rate-limit check, the daily-cap check, and the dispatch
+    # itself: the cap pre-check must always see committed costs (bounded
+    # overspend -> zero) and the limiter's window update must be atomic. Demo
+    # concurrency=1 is an accepted tradeoff for a $1/day public demo, and this
+    # subsumes the limiter race at this endpoint too.
+    with _dispatch_lock:
+        host = request.client.host if request.client else "unknown"
+        if not _demo_rate_limiter.check(
+            host, datetime.now(UTC), settings.demo_rate_limit_per_hour
+        ):
+            return JSONResponse(
+                status_code=429, content={"paused": False, "reason": "rate_limited"}
+            )
 
-    if daily_cap_would_be_exceeded(
-        db, datetime.now(UTC), settings.demo_daily_cap_usd, settings.cost_cap_usd
-    ):
-        return JSONResponse(
-            status_code=402,
-            content={"paused": True, "reason": "daily_budget_reached"},
-        )
+        if daily_cap_would_be_exceeded(
+            db, datetime.now(UTC), settings.demo_daily_cap_usd, settings.cost_cap_usd
+        ):
+            return JSONResponse(
+                status_code=402,
+                content={"paused": True, "reason": "daily_budget_reached"},
+            )
 
-    run = run_ticket(body.ticket_id, db)
-    return {"run_id": str(run.id)}
+        run = run_ticket(body.ticket_id, db)
+        return {"run_id": str(run.id)}

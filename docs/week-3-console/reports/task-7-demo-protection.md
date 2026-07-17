@@ -231,13 +231,92 @@ $ cd console && npm run build
 - `console/app/demo/page.tsx`, `console/app/demo/DemoRunner.tsx` (new)
 - `console/app/page.tsx` — nav link to `/demo`
 
+## Fix: serialized dispatch (cap TOCTOU)
+
+**Finding (PR #55 task review, Important x2, same root cause):** `POST
+/api/demo/run` is a sync `def` route, and `run_ticket` takes ~35s live. Two
+concurrent requests could both read the same not-yet-committed
+`SUM(runs.total_cost_usd)`, both pass `daily_cap_would_be_exceeded`, and both
+dispatch — overspending the daily cap by up to N × the per-run cap. This is a
+direct violation of the project's "fail closed on cost" non-negotiable rule,
+so it needed closing, not just documenting. The in-memory `RateLimiter.check`
+dict read-modify-write had the identical unsynchronized race for concurrent
+same-host requests.
+
+**Decision: a single dispatch lock, not per-signal synchronization.**
+`triagedesk/demo.py` adds a module-level `_dispatch_lock = threading.Lock()`.
+`api_demo_run` in `triagedesk/app.py` wraps the rate-limit check, the
+daily-cap check, and the `run_ticket` call itself in `with _dispatch_lock:` —
+the 404 pool-existence check stays outside (read-only, no spend). This
+guarantees the cap pre-check always sees committed costs (bounded overspend
+becomes zero, not "less bad") and the limiter's window update is atomic,
+because no second request can even begin its checks until the first one has
+fully finished dispatching. **Tradeoff, accepted deliberately:** demo
+concurrency is now 1 — two simultaneous visitors serialize, the second
+waiting out the first's ~35s run before its own guards are even evaluated.
+For a $1/day public demo behind a 5/hour per-IP rate limit, this is a
+reasonable price for closing a real overspend hole, and it subsumes the
+limiter race at this endpoint too (no separate fix needed there).
+
+**New test:**
+`tests/unit/test_demo_guards.py::test_concurrent_demo_runs_serialized_cap_rechecked`
+— two threads POST concurrently. `run_ticket` is monkeypatched to sleep 0.2s
+before returning. `daily_cap_would_be_exceeded` is monkeypatched to a
+call-counting fake with a deliberately wide, unsynchronized
+read-sleep(0.05s)-write TOCTOU window of its own: the *only* way the fake's
+first call can reliably see `seen=0` and the second reliably see `seen=1` is
+if the two requests are serialized end-to-end by `_dispatch_lock`, not just
+by however the fake happens to schedule internally. Asserts the multiset of
+statuses is exactly `[202, 402]` (order-independent — either thread can win).
+Verified both directions before trusting it: reverting the app.py lock change
+alone made the test fail deterministically across 5 runs (both threads seeing
+`seen=0` and returning 202/202, or occasionally 202/404 depending on
+scheduling); with the lock restored it passed cleanly across 8+ runs.
+
+Uses its own file-backed SQLite DB and `get_db` override (one fresh `Session`
+per request, matching production's real `triagedesk/db.py::get_db`) rather
+than the file's shared `db_session`/`client` fixtures — those use an
+in-memory `StaticPool` DB pinned to one physical connection, and two threads
+genuinely sharing that connection concurrently produced intermittent 404s
+unrelated to the fix (an artifact of that test double, not a real bug). A
+file-backed DB gives each `Session` its own real connection, closer to how
+Postgres actually behaves.
+
+Test output tail (full unit suite, after the fix):
+```
+$ .venv/Scripts/python -m pytest tests/unit/test_demo_guards.py tests/unit/test_smoke.py -q
+...................                                                      [100%]
+19 passed, 1 warning in 2.94s
+$ .venv/Scripts/python -m pytest tests/unit -q
+........................................................................ [ 34%]
+........................................................................ [ 69%]
+..............................................................          [100%]
+206 passed, 1 warning in 3.18s
+$ .venv/Scripts/python -m ruff check .
+All checks passed!
+```
+(205 prior unit tests + this 1 new concurrency test = 206.)
+
+Files touched by this fix: `triagedesk/demo.py` (`_dispatch_lock`),
+`triagedesk/app.py` (`api_demo_run` now wraps the guard chain + dispatch in
+the lock), `tests/unit/test_demo_guards.py` (the new concurrency test), this
+report.
+
 ## Known gaps / not done here
 
 - No production seeding — the brief is explicit that production pool seeding
   happens at Task 6 deploy time, not here.
+- **RESOLVED (see "Fix: serialized dispatch" above):** the daily-cap TOCTOU
+  under concurrent `POST /api/demo/run` requests was a real gap in the
+  original Task 7 delivery — not caught by the guard-branch tests, which never
+  exercised true concurrency — and is now closed by `_dispatch_lock`.
 - The rate limiter's single-instance limitation is documented, not fixed (a
   multi-replica Railway deploy would need a shared store); acceptable for a
-  single-replica demo deploy per the plan.
+  single-replica demo deploy per the plan. (The unsynchronized-dict race for
+  concurrent *same-host* requests is now moot at this endpoint — see the fix
+  above — but the limiter itself is still a plain unsynchronized dict, so any
+  future caller of `RateLimiter.check` outside the dispatch lock would need
+  its own synchronization.)
 - No reverse-proxy / `X-Forwarded-For` handling — `request.client.host` is used
   directly, which is correct for a direct connection but would see the proxy's IP
   for all callers behind one (not the plan's concern this week; Railway's default

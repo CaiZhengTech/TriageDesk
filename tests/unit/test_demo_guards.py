@@ -5,6 +5,8 @@ an in-memory SQLite session stands in for Postgres (same pattern as
 test_console_api.py) and `run_ticket` is always monkeypatched.
 """
 
+import threading
+import time
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -276,3 +278,110 @@ def test_demo_run_202_dispatches_pipeline_and_returns_run_id(db_session, client,
     assert resp.status_code == 202
     assert resp.json() == {"run_id": str(fake_run.id)}
     assert calls == [1]
+
+
+# --- Concurrency: cap TOCTOU (Important finding, PR #55 review) ---
+
+def test_concurrent_demo_runs_serialized_cap_rechecked(tmp_path, monkeypatch):
+    """Two concurrent POSTs must not both pass the cap pre-check off the same
+    stale read. `_dispatch_lock` (triagedesk/demo.py) serializes the guard
+    chain + dispatch, so the second caller's cap check only runs AFTER the
+    first caller's dispatch has fully completed. A call-counting fake proves
+    that re-evaluation, without needing a real DB write in between: if the
+    lock didn't serialize the two requests, both calls could race in before
+    either wrote a count, and the multiset assertion below would fail.
+
+    Uses a file-backed SQLite DB (own engine, own `get_db` override — one
+    fresh Session per request, matching production's real `get_db` in
+    triagedesk/db.py) instead of the other tests' shared in-memory
+    `db_session`. The shared fixture's `StaticPool` in-memory DB is pinned to
+    one physical connection, so two threads genuinely using it at once (not
+    just holding separate Session objects) intermittently corrupted read
+    state — an artifact of that test double, not of the fix under test. A
+    file-backed DB gives each Session its own real connection, closer to how
+    Postgres actually behaves here.
+    """
+    db_path = tmp_path / "concurrent_demo.sqlite3"
+    engine = create_engine(
+        f"sqlite:///{db_path}", connect_args={"check_same_thread": False}
+    )
+    with engine.begin() as conn:
+        conn.execute(text("""
+            CREATE TABLE tickets (
+                id INTEGER PRIMARY KEY,
+                subject TEXT, body TEXT, queue VARCHAR(64),
+                ticket_type VARCHAR(32), priority VARCHAR(16),
+                language VARCHAR(8), source VARCHAR(16), created_at TIMESTAMP
+            )
+        """))
+        conn.execute(text("""
+            CREATE TABLE runs (
+                id CHAR(32) PRIMARY KEY,
+                ticket_id INTEGER, state VARCHAR(16), escalation_reason VARCHAR(64),
+                prompt_version VARCHAR(32), model VARCHAR(64), total_cost_usd FLOAT,
+                gate_signals JSON, final_reply TEXT, internal_rationale TEXT,
+                created_at TIMESTAMP, finished_at TIMESTAMP
+            )
+        """))
+    session_factory = sessionmaker(bind=engine)
+    seed_session = session_factory()
+    _make_ticket(seed_session, ticket_id=1, source="demo")
+    seed_session.close()
+
+    def _override():
+        session = session_factory()
+        try:
+            yield session
+        finally:
+            session.close()
+
+    fake_run = Run(
+        id=uuid.uuid4(), ticket_id=1, state="completed",
+        prompt_version="v1", model="claude-sonnet-4-6", total_cost_usd=0.03,
+    )
+
+    def fake_run_ticket(*a, **k):
+        time.sleep(0.2)
+        return fake_run
+
+    monkeypatch.setattr(app_module, "run_ticket", fake_run_ticket)
+
+    # Cap not yet reached for the first caller to reach this check under the
+    # lock; reached for the second. Deliberately unsynchronized read-sleep-write
+    # (not a real fix, just a wide TOCTOU window) so this only comes out
+    # correct if callers are serialized end-to-end by `_dispatch_lock` —
+    # without the lock, two threads could both read `seen=0` during the sleep
+    # and both return "not exceeded", which would fail the assertion below.
+    calls = {"n": 0}
+
+    def fake_cap_check(*_a, **_k):
+        seen = calls["n"]
+        time.sleep(0.05)
+        calls["n"] = seen + 1
+        return seen > 0
+
+    monkeypatch.setattr(app_module, "daily_cap_would_be_exceeded", fake_cap_check)
+
+    app.dependency_overrides[get_db] = _override
+    app_module._demo_rate_limiter.reset()
+    client = TestClient(app)
+
+    results: list[int] = []
+    results_lock = threading.Lock()
+
+    def _post():
+        resp = client.post("/api/demo/run", json={"ticket_id": 1})
+        with results_lock:
+            results.append(resp.status_code)
+
+    try:
+        threads = [threading.Thread(target=_post) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    finally:
+        app.dependency_overrides.clear()
+        app_module._demo_rate_limiter.reset()
+
+    assert sorted(results) == [202, 402]

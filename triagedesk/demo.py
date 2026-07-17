@@ -4,12 +4,20 @@ in `triagedesk/app.py` and run BEFORE the pipeline is invoked — a blocked
 request must never call `run_ticket`.
 """
 
+import threading
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from triagedesk.models import Run, Ticket
+
+# Serializes demo dispatch (rate-limit check -> daily-cap check -> run_ticket) in
+# triagedesk/app.py's POST /api/demo/run. Without it, N concurrent requests can all
+# read the same not-yet-committed daily spend and all pass the cap pre-check,
+# overspending by up to N x the per-run cap (TOCTOU) — a "fail closed on cost"
+# violation. Demo concurrency=1 is an accepted tradeoff for a $1/day public demo.
+_dispatch_lock = threading.Lock()
 
 
 def list_demo_pool(db: Session) -> dict:
