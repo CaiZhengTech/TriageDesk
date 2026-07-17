@@ -5,20 +5,25 @@ finish this project end-to-end without guessing. Last updated: 2026-07-17.
 
 ---
 
-## ⏸ BLOCKER — Cai's fresh blind labeling pass (the last Week-2.5 item)
+## ✅ WEEK 2.5 COMPLETE (2026-07-17) — Week 3 is GO
 
-**Week 2.5 hardening is otherwise COMPLETE** (all three tasks of
-`docs/week-2-evals/HARDENING-PLAN.md`; issue #45 has one unchecked box). What waits on Cai:
+**Issue #45 is fully done** (all three hardening tasks + Cai's fresh labeling round 2 +
+the official judge-v2 calibration). **Next session starts Week 3: issues #13–#16**
+(console run list/detail → review queue → deploy → demo protection), per the standing
+plan at the bottom of this file. Read `results/judge-calibration.md`'s reliability
+analysis before quoting ANY kappa — the recalibration's headline finding:
 
-1. **Blind-label `judge_labels_v2.csv`** (repo root, 41 rows — same replies as the v1
-   calibration, re-judged by the tool-evidence judge v2; verdicts withheld). Read
-   `results/LABELING-INSTRUCTIONS.md` first. Do NOT look at
-   `results/judge-calibration.md`'s v2 preview before labeling — blindness is the point.
-2. Then: `label-import judge_labels_v2.csv --eval-run 69b3fa3d-e83e-46cf-b9bb-8c157ec3e74b`
-   → `calibrate --eval-run 69b3fa3d-e83e-46cf-b9bb-8c157ec3e74b` → the official v2 kappa
-   (unweighted + weighted + CI, header stamped `JUDGE_PROMPT_VERSION = 2`) goes into
-   `results/judge-calibration.md` → tick the last box on #45, close it with a closeout
-   comment → **then Week 3 starts** (issues #13–#16).
+- **Judge v2 improved invariantly** (beats v1 against both labeling rounds:
+  0.279 → 0.418 on round-1 labels, 0.038 → 0.133 on round-2 labels).
+- **The human label standard is the measured bottleneck**: Cai's self-agreement across
+  rounds on the same 41 replies is kappa **0.212** — lower than the judge's agreement
+  with either round. Official v2 kappa (0.133 vs round-2 labels) is capped by
+  single-rater noise, not judge quality. **Next calibration step = a second rater
+  (chore #19) and/or adjudicated gold labels — NOT more judge tuning.**
+- **One real residual judge blind spot**: negative entitlement claims ("X is not in
+  your plan" — true per `PLAN_ENTITLEMENTS`) get failed as "invented policy"; a future
+  judge v3 should declare the entitlement list exhaustive in the account-facts block.
+  Judge still advises, never vetoes (`tolerance: {}` unchanged).
 
 **Week 2.5 outcome (2026-07-16/17):** metrics are reason-aware (headline catch 5/5
 design-intent, strict diagnostic 3/5 = 0.60 — both baseline-guarded); calibration is
@@ -157,7 +162,8 @@ worked example** everywhere. Continuity is the point.
 | 7 CI eval gate — **KILL CRITERION** | #12 | ✅ closed — PR #42, gate GREEN on main ($0.72) |
 | 2.5-1 Metric integrity (reason-aware catch, cap pre-check, judge cost) | #45 | ✅ merged — PR #46 (`4932aea`), review clean |
 | 2.5-2 Calibration scoping · weighted kappa+CI · judge tool-evidence · pinned temp · golden view | #45 | ✅ merged — PR #47 (`3f2cebd`), review clean |
-| 2.5-3 Thresholds (held-out) + judge-v2 backfill + baseline re-derivation (controller, live) | #45 | ✅ done — PRs #48/#49, gate validated green; ⏸ awaiting Cai's blind relabel |
+| 2.5-3 Thresholds (held-out) + judge-v2 backfill + baseline re-derivation (controller, live) | #45 | ✅ done — PRs #48/#49, gate validated green |
+| 2.5 finale: Cai's labeling round 2 → official v2 calibration + reliability analysis | #45 | ✅ done 2026-07-17 — kappa table in `results/judge-calibration.md`; #45 CLOSED |
 
 **Live numbers:** adversarial catch **5/5 (100%)** · escalation recall **1.0** · precision 0.88
 · ~**2.9¢/run** · p50 31–34s. Judge on the golden 19: 9 pass / 5 fail / 5 needs_review.
@@ -175,9 +181,10 @@ re-derive from held-out data + the calibration table.
 
 ## ➡️ Next steps, in order
 
-1. **Cai blind-labels `judge_labels_v2.csv`** → import → calibrate → official v2 kappa
-   → close #45 (see the blocker section at the top — exact commands there).
-2. **Week 3 begins** per the plan below — only after #45 closes.
+1. **Week 3 begins** (issues #13–#16, plan below). Choreography and budget rules in this
+   file apply unchanged. Two cheap standing items to fold in when convenient: the
+   dedicated Neon eval branch (update `EVAL_DATABASE_URL`), and the second rater for
+   judge calibration (chore #19).
 
 ## 🔭 Weeks 3–4 (so the whole path is visible)
 

@@ -81,11 +81,15 @@ re-derived and validated live; awaiting Cai's blind relabel for the official v2 
 > replayed those claims against the simulated CRM, seven out of seven were true —
 > facts the agent got from its tools, which the judge was never shown. The grader
 > wasn't wrong, it was under-informed. That finding changed my CI design: a
-> kappa-0.28 judge advises, it doesn't veto. Then I fixed it: the judge now receives
-> the verified account facts the agent's tools returned, and on the same 41 replies
-> agreement jumped — raw agreement 0.51 → 0.63, kappa 0.28 → 0.42 — with the final
-> number pending a fresh blind labeling pass, because you don't grade your own fix
-> with stale labels."
+> kappa-0.28 judge advises, it doesn't veto. Then I fixed it — the judge now receives
+> the verified account facts — and re-calibrated with a fresh labeling pass, because
+> you don't grade your own fix with stale labels. The result taught me something
+> better than a good number: my fresh labels disagreed with my original labels on the
+> same 41 replies (self-agreement kappa 0.21) — lower than the judge's agreement with
+> either of my rounds. The fixed judge beat the old judge against BOTH label rounds,
+> so the improvement is real and invariant; the absolute kappa is capped by
+> single-rater noise. My eval layer ended up measuring the instability of my own
+> ground truth — which is why the next step is a second rater, not more judge tuning."
 
 **On auditing my own evals (the Week-2.5 story):**
 > "After my eval gate went green I ran an adversarial review of the eval layer itself,
@@ -165,7 +169,9 @@ budget. Each cut is a talking point, not a gap:
 | Golden evaluation set | 25 cases (20 stratified real + 5 authored adversarial) |
 | Judge calibration (v1, tool-blind) | 41 blind human labels · raw agreement 0.512 · **kappa 0.279** (stricter than human in 18/20 disagreements — fails safe) |
 | Judge "hallucination" flags replayed against the CRM | 7/7 were TRUE tool-derived facts — the judge was tool-blind, so it was fixed (v2 sees the tool evidence) |
-| Judge v2 (tool-evidence) — preview on same replies | raw agreement **0.634** · kappa **0.418** · weighted kappa **0.551** (95% CI 0.21–0.61) — official number pending a fresh blind labeling pass |
+| Judge v2 (tool-evidence) vs fresh labels (round 2) | raw agreement 0.488 · **kappa 0.133** — low because the label standard moved, not the judge (see next rows) |
+| Judge v2 improvement — invariant across label rounds | v2 beats v1 against BOTH labeling rounds: 0.279 → **0.418** (round-1 labels) and 0.038 → **0.133** (round-2 labels) |
+| **Human self-agreement (same 41 replies, 3 days apart)** | **kappa 0.212** — lower than the judge's agreement with either round; single-rater ground truth is the measured bottleneck (next step: second rater, not judge tuning) |
 | Gate thresholds | Derived from **held-out** data (never the golden set), with a leakage audit showing the layered gate fails closed |
 | Knowledge-base articles authored + embedded | 15 |
 | Pipeline stages, all live-verified end-to-end | 5 |

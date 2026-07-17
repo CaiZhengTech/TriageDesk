@@ -1,23 +1,95 @@
 # Judge calibration
 
-> ⚠️ **Two judge versions live in this file — never conflate their kappas.**
-> **v1** (tool-blind, graded vs KB-only context) is the calibration below.
-> **v2** (`JUDGE_PROMPT_VERSION = 2`, Hardening Task 2/issue #45) additionally receives
-> the verified account facts the agent's tools returned.
+> ⚠️ **Versioned file — two judge versions and two human labeling rounds live here.
+> Never quote a kappa without saying which pair it comes from** (see the reliability
+> analysis below — the 2×2 table is the only honest summary).
 
-## Judge v2 — PREVIEW (official kappa pending Cai's fresh blind relabel)
+## Official judge-v2 calibration (2026-07-17, fresh labeling round 2)
 
-Re-judged the SAME 41 replies with the tool-evidence judge (backfill batch
-`69b3fa3d`, 2026-07-17, $0.35). Numbers below compare v2 verdicts against the
-**v1-era human labels** (same replies, so the judge is the only variable) —
-a preview, not the official calibration, which uses the fresh blind pass in
-`judge_labels_v2.csv`:
+- Judge prompt version: **2** (bumped whenever the judge's
+  grading context changes -- pre/post-fix kappas are never conflated)
+- Labels compared (solo): **41**
+- Raw agreement: **0.488**
+- **Cohen's kappa: 0.133**
+- **Weighted kappa (linear, ordinal fail<needs_review<pass): 0.164**
+- 95% bootstrap CI: [-0.052, 0.349] (n_boot=2000, seed=0)
 
-- Raw agreement: **0.634** (v1: 0.512)
-- Unweighted kappa: **0.418** (v1: 0.279)
-- Weighted kappa (linear): **0.551**, bootstrap 95% CI **(0.213, 0.607)**
-- Verdict shift: v2 = 18 pass / 10 fail / 13 needs_review (v1 was far stricter —
-  the tool-blindness accounted for most "invented fact" flags)
+Blind solo labeling; friend labels (chore #19) merged if they arrive.
+Judge = claude-sonnet-4-6 @ temperature 0. Verdicts are debugging aids,
+never ground truth.
+
+## Reliability analysis — the finding of the recalibration (READ THIS, not just the headline)
+
+The v2 kappa (0.133) is LOWER than v1's (0.279) despite the judge demonstrably improving.
+The recalibration exposed a deeper issue: **the human label standard itself is unstable.**
+Cai labeled the SAME 41 replies twice (round 1 = 2026-07-14 for judge v1; round 2 =
+2026-07-17 for judge v2, replies recognized from round 1 — not naive):
+
+| Comparison | Raw agreement | Kappa | Weighted |
+|---|---|---|---|
+| **Human round 1 vs human round 2 (self-agreement)** | **0.659** | **0.212** | 0.243 |
+| Judge v1 vs labels round 1 (official v1) | 0.512 | 0.279 | 0.390 |
+| Judge v2 vs labels round 1 | 0.634 | 0.418 | 0.551 |
+| Judge v1 vs labels round 2 | 0.317 | 0.038 | 0.074 |
+| Judge v2 vs labels round 2 (official v2) | 0.488 | 0.133 | 0.164 |
+
+Three conclusions the table forces:
+
+1. **The tool-evidence fix genuinely improved the judge**: v2 beats v1 against BOTH
+   labeling rounds (0.279 → 0.418 on round 1; 0.038 → 0.133 on round 2). The improvement
+   is invariant to which human standard you pick.
+2. **The human is the unstable component**: self-agreement kappa 0.212 is *lower than the
+   judge's agreement with either round*. 14/41 labels flipped between rounds (9 fail→pass —
+   round 2 is markedly more lenient; marginals went 26/13/2 → 34/5/2 pass/fail/nr, and that
+   skew also mechanically depresses kappa via the prevalence effect). A single self-rater
+   has hit the reliability ceiling — the fix is a second rater (chore #19) and/or an
+   adjudicated gold-label pass, not more judge tuning.
+3. **One residual judge blind spot is real (not label noise): negative entitlement
+   claims.** Rows 193/195/199/200/203/207: replies stating a feature is NOT in the
+   customer's plan (e.g. "custom integrations are not included in your Pro plan" — TRUE
+   per `PLAN_ENTITLEMENTS`, pro lacks `custom_integrations`). Judge v2 fails these as
+   "invented policy": it verifies positive facts against the account block but does not
+   reason "absent from the entitlement list = a verifiable exclusion" (closed-world
+   inference). Cai's round-2 pass labels are CORRECT on these; his round-1 fail labels
+   agreed with the judge's error. Fix candidate for a future judge v3: state the
+   entitlement list as exhaustive in the account-facts block.
+
+## Confusion matrix (rows = human, cols = judge)
+
+| human \ judge | pass | fail | needs_review |
+|---|---|---|---|
+| pass | 16 | 7 | 11 |
+| fail | 1 | 3 | 1 |
+| needs_review | 1 | 0 | 1 |
+
+## Disagreements (judge vs human)
+
+Where the LLM judge diverged from human judgment -- the highest-value
+artifact of this calibration pass.
+
+| result_id | human_label | judge_verdict | judge_reason |
+|---|---|---|---|
+| 168 | fail | needs_review | The reply is mostly grounded (status page check and log steps come from KB), but the Elasticsearch/analytics dashboard issue is not covered by any KB article, and the agent's suggestion to check the client log and version is loosely adapted from the software-installation article rather than directly applicable — making it ambiguous whether the steps are genuinely helpful or slightly off-topic for this specific issue. |
+| 170 | pass | needs_review | The reply is largely grounded in KB articles (status page, security steps, MFA) but includes an unverified claim that the ticket is being 'escalated to a senior technical specialist' with a follow-up, which is not supported by any KB article or account fact, making it a borderline grounding issue that warrants review rather than a clear fail. |
+| 175 | fail | pass | The reply is fully grounded in the KB articles and verified account facts, correctly addresses the ticket by providing billing cycle details and directing the customer to sales for plan/pricing comparisons, and maintains a professional tone without over-promising. |
+| 176 | pass | needs_review | The reply is grounded in the KB for the status-page advice and is professionally toned, but the claim about escalating to a 'Data Analytics Product Support team' and the specific information requests (asset class, time horizon, etc.) are not supported by any KB article or account facts, making the grounding ambiguous rather than clearly invented. |
+| 179 | pass | needs_review | The reply is well-grounded in the KB article and helpful, but the customer's account is currently suspended, which may affect their ability to access services or receive support — the agent's reply does not acknowledge this and may be misleading in that context. |
+| 184 | pass | needs_review | The reply is grounded in KB content for the immediate security steps, but the ticket appears to be a generic/misdirected request about medical data encryption that doesn't clearly relate to a Northbeam account, and the agent's claim of escalating to 'security and engineering leadership' for a platform-wide encryption plan is not supported by any KB article or account fact, making the overall grounding ambiguous rather than clearly violated. |
+| 187 | pass | needs_review | The reply is reasonable and professional, but the escalation process and data/product engineering team are not mentioned in any KB article or account facts, making the grounding ambiguous rather than clearly invented — the ticket topic itself (investment projections) is also entirely outside the provided KB scope. |
+| 189 | pass | needs_review | The reply is polite and avoids inventing steps, but the KB articles don't cover product feedback or UI enhancement requests at all, so it's unclear whether routing to a 'product team' is a grounded claim or an invented process; however, the response is also not clearly harmful or wrong enough to fail outright. |
+| 193 | pass | fail | The reply invents a policy that Basic plan excludes third-party integration support and that upgrading to 'Pro or Enterprise' unlocks it — none of this appears in the KB articles or verified account facts, making it an ungrounded fabrication. |
+| 195 | pass | fail | The agent's claim that 'custom integrations are not included in your current Pro plan' is not supported by any KB article or verified account fact — this is an invented policy statement. |
+| 196 | pass | needs_review | The KB articles provided contain no system specifications for project management software, so the agent correctly cannot answer the question, but the reply invents an escalation path ('routing to a specialist') that is not grounded in any KB article or account fact. |
+| 197 | pass | fail | The reply invents a RAID-controller/storage-infrastructure specialist escalation path and troubleshooting steps that have no basis in any of the provided KB articles, which cover only password reset, security concerns, and VPN connectivity. |
+| 198 | pass | needs_review | The reply correctly identifies the account suspension from verified facts and gives reasonable guidance, but the KB articles do not cover account suspension or reinstatement procedures, so the claim that 'a human support agent has been assigned' and the described reinstatement process are not grounded in the provided KB — however, the core account-status fact is verified, making this genuinely ambiguous rather than a clear grounding failure. |
+| 199 | pass | fail | The reply invents policies and procedures (specialist escalation team, billing review path, Cassandra optimization support) that have no basis in the provided KB articles, which cover only API keys, data export, and service status — none of which are relevant to Cassandra integration. |
+| 200 | pass | fail | The reply invents an escalation process and troubleshooting steps for a Cassandra/Investments Dashboard issue that are not grounded in any of the provided KB articles, which cover only security concerns, service status, and software installation/updates. |
+| 201 | needs_review | pass | The agent correctly acknowledges it lacks the relevant KB information to answer the system specifications question and escalates appropriately, without inventing any specs or making unsupported claims. |
+| 202 | pass | needs_review | The agent's reply is plausible and grounded in the verified account fact (suspended status), but none of the KB articles cover project syncing, account suspension, or reactivation procedures, making it impossible to confirm the steps are fully grounded or that suspension actually causes sync issues. |
+| 203 | pass | fail | The reply promises 'priority review' and escalation to a senior technical specialist, but the account is on a Basic plan with only standard_support entitlement, and nothing in the KB or account facts supports offering priority handling or specialist escalation. |
+| 205 | pass | needs_review | The ticket is about QuickBooks software accuracy, which is entirely outside the scope of the provided KB articles (billing, security, service status) and Northbeam's apparent product domain; the reply neither invents grounded steps nor addresses anything in the KB, making it impossible to verify whether escalating to a 'Product Support specialist' is a real process or an invented one. |
+| 207 | pass | fail | The agent's claim that integration/compatibility troubleshooting is unavailable on the Basic plan and requires a Pro/Enterprise upgrade is not supported by any KB article or the verified account facts — this is an invented policy. |
+| 208 | pass | needs_review | The reply is mostly grounded in KB articles (status page check, lockout steps), but it promises escalation to a 'senior technical support engineer' which is not supported by any KB article or account fact, and the account is on a basic/delinquent plan with only standard_support entitlement — however, the escalation claim is borderline invented rather than clearly contradicted, making this genuinely ambiguous. |
 
 ## Judge v1 (tool-blind) — the original calibration
 

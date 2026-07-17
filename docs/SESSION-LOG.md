@@ -9,6 +9,39 @@ read the current week's `HANDOFF.md`. For "what did task N build", read that wee
 
 ---
 
+## Session — 2026-07-17 · Labeling round 2 lands — the recalibration measures the HUMAN, and Week 2.5 CLOSES
+
+**Where it started:** everything done except Cai's fresh labeling of `judge_labels_v2.csv`.
+**Where it ended:** **#45 CLOSED — Week 2.5 complete. Week 3 is GO.**
+
+### What happened
+1. Cai labeled all 41 v2 rows (34 pass / 5 fail / 2 needs_review) → `label-import` +
+   `calibrate` scoped to batch `69b3fa3d` ($0). **Official v2 kappa: 0.133** (raw 0.488,
+   weighted 0.164, CI [−0.05, 0.35]) — LOWER than v1's 0.279, despite the judge improving.
+2. **Root-caused instead of shrugged at (again):** the human moved, not the judge.
+   Cai's round-1 vs round-2 labels on the SAME replies: self-agreement kappa **0.212** —
+   lower than the judge's agreement with either round (14/41 flips, 9 fail→pass; round 2
+   markedly more lenient, and the 34/41-pass skew depresses kappa via prevalence).
+   The judge fix's improvement is INVARIANT: v2 beats v1 against both rounds
+   (0.279→0.418 and 0.038→0.133). Full 2×2 table: `results/judge-calibration.md`.
+3. **One real residual judge blind spot found:** negative entitlement claims ("custom
+   integrations are not in your Pro plan" — TRUE per `PLAN_ENTITLEMENTS`) failed as
+   "invented policy": the judge doesn't do closed-world inference over the entitlement
+   list. Cai's round-2 passes are correct on those rows; a candidate judge-v3 fix
+   (declare the list exhaustive) is recorded — deferred, judge still advises only.
+4. **Consequence, decided calmly:** single-rater calibration has hit its reliability
+   ceiling — the next step is a second rater (chore #19) / adjudicated gold labels, not
+   judge tuning. `tolerance: {}` (judge never vetoes) unchanged. #45 closed with the
+   full analysis; HANDOFF/PITCH/CLAUDE.md updated; **Week 3 unblocked.**
+
+### Spend
+**$0 this session** (import + calibrate are DB + math). Total unchanged ≈ **$7.7 of $20**.
+
+### Open
+- Week 3 (issues #13–#16). Standing cheap items: Neon eval branch; second rater (#19).
+
+---
+
 ## Session — 2026-07-16/17 · Week 2.5 hardening EXECUTED — all three tasks done; awaiting Cai's blind relabel
 
 **Where it started:** council checkpoint done (2026-07-14), hardening plan on `main`

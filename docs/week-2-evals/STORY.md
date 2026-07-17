@@ -407,5 +407,34 @@ real money.
 
 ---
 
-*Week 2.5 is done, minus one human step: Cai's fresh blind labels on `judge_labels_v2.csv`
-→ the official v2 kappa → issue #45 closes. Then Week 3 — the glass-box console.*
+## Week 2.5 finale — The answer key moved (✅ #45 closed)
+
+**Analogy:** we fixed the grader, handed the same 41 essays to the same human examiner
+for a fresh scoring pass, and the grader's agreement score went *down* — from 0.28 to
+0.13. Panic? No: the instrumentation explained it. **The examiner disagreed with
+himself.** Comparing Cai's two labeling rounds on identical replies: self-agreement
+kappa 0.21 — *lower than the judge's agreement with either of his rounds*. The answer
+key, not the grader, was the moving part. Fourteen of 41 labels flipped between rounds,
+nine of them fail→pass — round two graded noticeably more forgivingly.
+
+**And the fix still worked — provably:** against round-1 labels the new judge scores
+0.42 vs the old judge's 0.28; against round-2 labels, 0.13 vs 0.04. Whichever answer
+key you pick, the receipts-aware judge beats the tool-blind one. That invariance is the
+real result; the absolute number is capped by one-human noise, which is why the next
+calibration step is a *second rater* — not more judge tuning.
+
+**Dana's cameo (the residual blind spot):** several flipped rows were replies like
+"custom integrations aren't included in your Pro plan" — which is TRUE in the simulated
+CRM. The new judge, shown the account facts, still failed these as "invented policy":
+it can verify what IS on the list, but doesn't yet reason "absent from the list means
+excluded." Round-2 Cai got these right; round-1 Cai had agreed with the judge's error.
+A candidate v3 fix (tell the judge the entitlement list is exhaustive) is on record —
+deferred, because the judge advises and never vetoes.
+
+**Why this chapter is the week's best interview story:** an eval layer built honestly
+enough ended up measuring the reliability of its own ground truth. Most demos never
+learn their labels are noisy; this one produced the number.
+
+---
+
+*Week 2.5 complete. Next: Week 3 — the glass-box console.*

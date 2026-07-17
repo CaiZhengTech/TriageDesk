@@ -7,15 +7,17 @@ is the #1 hiring signal; plain RAG demos are a yellow flag).
 
 ## Status (updated 2026-07-17)
 
-**WEEK 2.5 HARDENING COMPLETE except one human step** (the council checkpoint happened
-2026-07-14 → `docs/week-2-evals/HARDENING-PLAN.md`, issue #45; all 3 tasks executed,
-PRs #46–#49 merged, eval gate validated GREEN on the re-derived baseline). **⏸ BLOCKED
-on Cai: blind-label `judge_labels_v2.csv` (41 rows) → official judge-v2 kappa → close
-#45. No Week 3 work before that.** Preview: agreement 0.512→0.634, kappa 0.279→0.418
-(judge-v2 sees tool evidence). Thresholds now DERIVED from held-out data (margin 0.02→0.0,
-`reports/threshold-derivation.md`); headline catch 5/5 (design-intent) + strict diagnostic
-3/5 = 0.60, both baseline-guarded. Budget ~$7.7 of $20 (⚠️ eval-path merges auto-trigger
-the ~$0.90 gate — batch them; docs/tests don't trigger).
+**WEEK 2.5 COMPLETE — issue #45 closed (2026-07-17). WEEK 3 IS NEXT** (issues #13–#16:
+console → review queue → deploy → demo protection). All hardening merged (PRs #46–#49),
+eval gate GREEN on the re-derived baseline. **Calibration finding (quote carefully):
+judge v2 improved invariantly (0.279→0.418 on round-1 labels, 0.038→0.133 on round-2),
+but Cai's self-agreement across two labeling rounds is kappa 0.212 — the single-rater
+label standard is the measured bottleneck, so official v2 kappa = 0.133 is noise-capped;
+next step is a second rater (chore #19), not judge tuning.** Full table:
+`results/judge-calibration.md`. Thresholds DERIVED from held-out data (margin 0.02→0.0,
+`reports/threshold-derivation.md`); headline catch 5/5 (design-intent) + strict 3/5 = 0.60,
+both baseline-guarded. Judge advises, never vetoes. Budget ~$7.7 of $20 (⚠️ eval-path
+merges auto-trigger the ~$0.90 gate — batch them; docs/tests don't trigger).
 **→ RESUME HERE:** `docs/week-2-evals/HANDOFF.md` — the controller operating manual
 (blocker first, environment + tooling, per-task choreography, budget rules, binding
 decisions). For what happened last session: `docs/SESSION-LOG.md`. The map: `docs/README.md`.
