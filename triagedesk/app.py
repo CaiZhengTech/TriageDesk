@@ -1,8 +1,10 @@
 import uuid
+from datetime import UTC, datetime
 from typing import Literal
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -10,10 +12,22 @@ from sqlalchemy.orm import Session
 from triagedesk.config import settings
 from triagedesk.console_queries import get_run_detail, list_review_queue, list_runs
 from triagedesk.db import get_db
+from triagedesk.demo import (
+    RateLimiter,
+    _dispatch_lock,
+    daily_cap_would_be_exceeded,
+    get_demo_ticket,
+    list_demo_pool,
+)
 from triagedesk.logging_setup import configure_json_logging
 from triagedesk.models import ReviewDecision, Run, Ticket
+from triagedesk.pipeline.runner import run_ticket
 
 app = FastAPI(title="TriageDesk")
+
+# One rate limiter per process (see triagedesk/demo.py's RateLimiter docstring
+# for the documented single-instance limitation).
+_demo_rate_limiter = RateLimiter()
 
 if settings.log_json:
     configure_json_logging()
@@ -36,6 +50,10 @@ if _cors_origins:
 class ReviewDecisionIn(BaseModel):
     decision: Literal["approve", "reject"]
     note: str
+
+
+class DemoRunIn(BaseModel):
+    ticket_id: int
 
 
 @app.get("/health")
@@ -105,3 +123,45 @@ def api_post_review(
     db.commit()
     db.refresh(decision)
     return {"id": decision.id}
+
+
+@app.get("/api/demo/pool")
+def api_demo_pool(db: Session = Depends(get_db)) -> dict:
+    return list_demo_pool(db)
+
+
+@app.post("/api/demo/run", status_code=202)
+def api_demo_run(
+    body: DemoRunIn, request: Request, db: Session = Depends(get_db)
+) -> dict:
+    # Three guards, all evaluated BEFORE the pipeline runs — a blocked
+    # request must never spend money (docs/week-3-console/PLAN.md's "before
+    # spending" semantics for Task 7).
+    ticket = get_demo_ticket(db, body.ticket_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="ticket not in demo pool")
+
+    # Serialize the rate-limit check, the daily-cap check, and the dispatch
+    # itself: the cap pre-check must always see committed costs (bounded
+    # overspend -> zero) and the limiter's window update must be atomic. Demo
+    # concurrency=1 is an accepted tradeoff for a $1/day public demo, and this
+    # subsumes the limiter race at this endpoint too.
+    with _dispatch_lock:
+        host = request.client.host if request.client else "unknown"
+        if not _demo_rate_limiter.check(
+            host, datetime.now(UTC), settings.demo_rate_limit_per_hour
+        ):
+            return JSONResponse(
+                status_code=429, content={"paused": False, "reason": "rate_limited"}
+            )
+
+        if daily_cap_would_be_exceeded(
+            db, datetime.now(UTC), settings.demo_daily_cap_usd, settings.cost_cap_usd
+        ):
+            return JSONResponse(
+                status_code=402,
+                content={"paused": True, "reason": "daily_budget_reached"},
+            )
+
+        run = run_ticket(body.ticket_id, db)
+        return {"run_id": str(run.id)}
