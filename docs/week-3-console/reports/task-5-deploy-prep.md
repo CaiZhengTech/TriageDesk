@@ -169,3 +169,35 @@ All checks passed!
   ladder territory per the plan's ordering, not this task's file list.
 - `CORS_ORIGINS` and `LOG_JSON` are not yet set in any real environment (Railway env
   vars); that's a Task 6 action, not code.
+
+## Fix: CORS preflight coverage
+
+**Finding (code review):** The two existing CORS tests in `tests/unit/test_console_api.py`
+only cover preflight for `GET /api/runs`. The browser-real POST request this task
+unblocks — the console review-queue page's cross-origin `POST /api/review/{run_id}`
+carrying `Content-Type: application/json` + `X-Admin-Token` — had no test pinning it,
+so a future narrowing of `allow_methods` or `allow_headers` would pass the suite while
+breaking production.
+
+**Fix:** Added one new CORS test, `test_cors_preflight_review_endpoint_post_with_admin_token_header`,
+which:
+- Sends a preflight `OPTIONS` request against `/api/review/<uuid>`
+- Includes headers: `Origin: https://console.example.com`, 
+  `Access-Control-Request-Method: POST`, 
+  `Access-Control-Request-Headers: X-Admin-Token, Content-Type`
+- Asserts: status 200, origin echo, `POST` in allowed methods, and `X-Admin-Token`
+  in allowed headers (case-insensitive comparison)
+- Follows the existing test pattern (monkeypatch + `importlib.reload`)
+
+**Test run and output:**
+```
+$ .venv/Scripts/python -m pytest tests/unit/test_console_api.py -q
+................                                                         [100%]
+16 passed, 1 warning in 0.53s
+
+$ .venv/Scripts/python -m ruff check tests/unit/test_console_api.py
+All checks passed!
+```
+
+All 16 tests pass (14 pre-existing + 2 CORS baseline + 1 new review-endpoint test),
+linter clean.

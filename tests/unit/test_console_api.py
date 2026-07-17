@@ -382,3 +382,32 @@ def test_cors_empty_origins_registers_no_middleware_fail_closed(monkeypatch):
         },
     )
     assert "access-control-allow-origin" not in resp.headers
+
+
+def test_cors_preflight_review_endpoint_post_with_admin_token_header(monkeypatch):
+    """Preflight OPTIONS for POST /api/review/{run_id} with X-Admin-Token and Content-Type."""
+    monkeypatch.setattr(settings, "cors_origins", "https://console.example.com")
+    importlib.reload(app_module)
+
+    cors_client = TestClient(app_module.app)
+    test_run_id = uuid.uuid4()
+
+    resp = cors_client.options(
+        f"/api/review/{test_run_id}",
+        headers={
+            "Origin": "https://console.example.com",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "X-Admin-Token, Content-Type",
+        },
+    )
+
+    assert resp.status_code == 200
+    assert resp.headers.get("access-control-allow-origin") == "https://console.example.com"
+
+    # Check that POST is in allowed methods (case-insensitive, may be comma-separated)
+    allowed_methods = resp.headers.get("access-control-allow-methods", "").upper()
+    assert "POST" in allowed_methods
+
+    # Check that X-Admin-Token is in allowed headers (case-insensitive)
+    allowed_headers = resp.headers.get("access-control-allow-headers", "").upper()
+    assert "X-ADMIN-TOKEN" in allowed_headers
