@@ -4,10 +4,9 @@
 milestone. Everything here is true and defensible — every claim traces to a commit,
 a test, or a logged run.*
 
-**Last updated:** 2026-07-17 (**Week 3 in progress** — the eval layer is done and
-calibrated; the "glass box" is now something you can *see*: the Next.js ops console
-[run list + run detail] and the human review-queue API are merged, the operator's queue
-page is landing, live deploy is next.)
+**Last updated:** 2026-07-18 (**Week 3 COMPLETE — the system is LIVE**:
+**https://triage-desk-xi.vercel.app** — the glass-box console on the public internet,
+behind real abuse protection, smoke-verified end-to-end at 3.6¢/run. Nothing descoped.)
 
 ---
 
@@ -151,11 +150,7 @@ a logged run — nothing here is aspirational.*
 > hasn't earned a veto. And the trigger is path-filtered, because at a dollar per run,
 > an every-merge trigger would have eaten my entire remaining budget."
 
-### 🖥️ The glass box you can see — Week 3
-
-*Status: the console's read layer (run list + run detail) and the review-queue API are
-merged; the operator's queue page is landing this week; live deploy is next. These
-one-liners describe what's built and merged.*
+### 🖥️ The glass box you can see — Week 3 (LIVE: https://triage-desk-xi.vercel.app)
 
 **On the ops console (the glass box, now visible):**
 > "Week 1 built the flight recorder — every stage writes a span. Week 3 built the
@@ -177,6 +172,24 @@ one-liners describe what's built and merged.*
 > a race. And the write fails closed: if no operator token is configured, the endpoint
 > returns 503, because an empty lock must never mean an open door — the same principle
 > as the cost cap, one level up."
+
+**On the live demo (drop the URL early — it changes the conversation):**
+> "It's deployed and public — you can watch it triage a ticket live right now. The demo
+> is guarded the way the whole system is built: visitors pick from a seeded ticket pool
+> — no free-text path to the model exists, which also closes the prompt-injection front
+> door — there's a per-IP rate limit, and a hard daily budget that's checked *before*
+> any money is spent. When the budget runs out, the demo says so honestly and points to
+> the video; I refused to silently replay cached runs, because a visitor believing they
+> triggered a live run while watching a recording is deception in miniature — inside a
+> project whose entire pitch is transparency."
+
+**On the demo's best bug (concurrency on the money path):**
+> "Review of the demo endpoint asked the right adversarial question: what if several
+> requests arrive at once? They could all pass the budget check before any of them had
+> spent anything — a classic check-then-act race, on a public endpoint that spends real
+> money. I fixed it by serializing demo dispatch — one run at a time is a feature at a
+> dollar a day — and the reviewer validated the regression test by removing the lock
+> and watching the double-spend appear five times out of five."
 
 ### ⚙️ Process & limitations
 
@@ -234,19 +247,19 @@ budget. Each cut is a talking point, not a gap:
 | Pipeline stages, all live-verified end-to-end | 5 |
 | Cost per full pipeline run | **~3.0¢** with prompt caching (hard-capped at 10¢) |
 | Latency | p50 ~35s · p95 ~46s |
-| CI eval gate | **GREEN on main across 5 consecutive live runs** — 25 golden cases re-run on behavior-relevant pushes, $1 in-workflow cap (~$0.89 actual/run) |
-| Ops console (Week 3) | Next.js 15 + TypeScript, **zero UI libraries** — run list + run-detail flight recorder; reads through the API only, never the DB; failed runs structurally unhideable |
+| CI eval gate | **GREEN on main across 6 consecutive live runs** — 25 golden cases re-run on behavior-relevant pushes, $1 in-workflow cap (~$0.90 actual/run) |
+| **LIVE demo (Week 3)** | **https://triage-desk-xi.vercel.app** — Vercel console + Railway API + Neon Postgres; smoke-verified end-to-end in production (Dana's ticket: escalated, 3.6¢, exit 0); **nothing on the descope ladder was cut** |
+| Ops console (Week 3) | Next.js 15 + TypeScript, **zero UI libraries** — run list + run-detail flight recorder + review queue + demo page; reads through the API only, never the DB; failed runs structurally unhideable |
 | Human review queue (Week 3) | `review_decisions` table, one verdict/run **enforced by a DB constraint**; operator-token write that **fails closed** (503 when no token is configured) |
-| Test suite | **202 tests** + lint + secret-scan, gating every merge |
-| **Total API spend, entire project to date** | **~$8.6** against a hard $20 budget |
+| Demo abuse protection (Week 3) | Seeded pool only (no free text = no prompt-injection front door) · 5 runs/hr/IP · **$1/day hard cap, pre-checked before spending, fail closed** · concurrency race on the cap closed by serialized dispatch, regression-proven both ways |
+| Test suite | **206 unit tests** (+ integration) + lint + secret-scan, gating every merge |
+| **Total API spend, entire project to date** | **~$9.6** against a hard $20 budget |
 
-*(Week 2.5 hardening — DONE: the eval layer was adversarially reviewed and fixed
-[reason-aware metrics, run-scoped calibration, tool-evidence judge, derived thresholds,
-re-derived baseline], and Cai's second blind labeling round produced the official v2
-kappa plus the reliability finding that single-rater labels — not judge quality — are
-the bottleneck. Week 3 IN PROGRESS: the glass-box console [run list + detail] and the
-review-queue API are merged; the operator queue page is landing; live deploy [Railway +
-Neon + Vercel] is next.)*
+*(Week 2.5 hardening — DONE: the eval layer was adversarially reviewed and fixed;
+official v2 kappa + the single-rater-noise reliability finding. Week 3 — DONE and LIVE:
+runs API → console pages → review queue API+page → CORS/JSON-log deploy prep → demo
+guards → Railway+Neon+Vercel deploy, smoke-verified. Next: Week 4 — demo video (#17),
+case study (#18); console polish (#56) as stretch.)*
 
 ---
 

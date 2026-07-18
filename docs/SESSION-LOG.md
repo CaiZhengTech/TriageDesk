@@ -9,6 +9,48 @@ read the current week's `HANDOFF.md`. For "what did task N build", read that wee
 
 ---
 
+## Session — 2026-07-18 · Wk3 Task 6 — THE SYSTEM IS LIVE; #15 CLOSED; WEEK 3 COMPLETE
+
+**Where it started:** all Week-3 code merged; Cai present with his Railway/Vercel accounts.
+**Where it ended:** **TriageDesk is on the public internet, smoke-verified, nothing
+descoped.** Console: https://triage-desk-xi.vercel.app · API:
+https://agenticproject-production.up.railway.app. **#13/#14/#15/#16 all closed — Week 3
+done.** Next: Week 4 (#17 video, #18 case study; #56 UI polish stretch).
+
+### What happened (joint session — Cai drove the browser, controller drove config/verification)
+1. **Neon `prod` branch** created off dev (Cai chose the recommended option): copy-on-write
+   carried all tickets, KB embeddings, the demo pool, and run history — the planned
+   "seed the prod pool" step evaporated.
+2. **Railway**: repo-linked service, uvicorn start command with `--proxy-headers` (closing
+   Task 7's rate-limiter deploy TODO), pre-deploy `alembic upgrade head`, `/health`
+   healthcheck, full env-var set. **Incident 1:** first build failed — Railway's new
+   default builder (Railpack, Nixpacks' successor — plan deviation, same no-Docker
+   property) requires an explicit start command. **Incident 2:** CORS preflight rejected
+   post-deploy — `CORS_ORIGINS` had a trailing slash; origin matching is exact-string
+   (the 400-from-middleware vs 405-from-app signature localized it fast).
+3. **Vercel**: `console/` root, `NEXT_PUBLIC_API_URL` → Railway; then CORS backfilled
+   with the exact Vercel origin (the API ran fail-closed until then, by design).
+4. **Live verification, all observed:** `/health` ok · real run history · demo pool = the
+   3 seeded tickets · wrong operator token → 401 · browser-real preflight → 200 with
+   origin echo + `X-Admin-Token` allowed · foreign origin → 400, no CORS grant · all
+   three console pages 200 with real data.
+5. **Smoke run GREEN:** `scripts/smoke.py` sent Dana's 12027 through production —
+   `41a3486e`, escalated (honest conservatism), **$0.0355, exit 0**. Week 3's kill
+   criterion territory fully cleared; the descope ladder was never touched.
+6. **#56 opened** (Cai's ask): console UI/UX polish pass — deliberately deferred, full
+   explainer + constraints in the issue; `console/**`-only ⇒ $0 gate when it happens.
+
+### Spend
+**$0.0355 this session** (the smoke run). Total ≈ **$9.6 of $20** at Week-3 close.
+
+### Open
+- **Week 4:** #17 demo video (wire its URL into the demo pause banner's placeholder when
+  it exists) → #18 case study + results/ + README. Stretch: #56 polish.
+- Standing: prod has zero completed runs (styling code-verified only); Neon eval branch;
+  second rater (#19); `TEST_DATABASE_URL` on Railway removable.
+
+---
+
 ## Session — 2026-07-17 (night) · Wk3 Tasks 5 + 7 — deploy-prep + demo protection; #16 CLOSED; all Week-3 CODE done
 
 **Where it started:** continue past Task 4 (#14 closed earlier today) into Tasks 5–7.

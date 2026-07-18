@@ -204,5 +204,39 @@ cost. 206 unit tests green.
 
 ---
 
-*Next: Task 6 — the live deploy (Railway + Neon + Vercel), a joint session with Cai
-(needs his accounts). The smoke script and the env-var checklist are ready.*
+## Task 6 — Turning the key (✅ LIVE — closes #15, and Week 3)
+
+**Analogy:** three weeks of building an engine on a workbench, and this was the day it
+got bolted into a car and driven on a public road. Moving software from "works on my
+laptop" to a real URL is exactly reassembly — the same parts, new wiring — and the smoke
+test is turning the key afterward: it proves nothing new about the engine, only that the
+*assembly* held. It did: the key turned once, the engine ran all five stages, and the
+trip cost 3.6 cents.
+
+**Dana's journey:** her VPN ticket was the smoke run. It went to the deployed API on
+Railway, through pre-check, classify, retrieval, the tool-using agent loop, and the
+confidence gate — which, true to form, escalated it to a human. That run now sits at the
+top of the public console's run list, and its full flight recording is one click away,
+on the open internet: https://triage-desk-xi.vercel.app
+
+**Under the hood:** the API lives on Railway (built straight from the repo — no Docker,
+per the council cut; Railway's new Railpack builder replaced the planned Nixpacks, same
+idea). A production database branch was created on Neon by *branching* the dev data —
+copy-on-write, so the demo pool, knowledge base, and real run history came along for
+free. The console deploys from `console/` on Vercel and talks to the API across origins,
+which is where the week's wiring paid off: the API's CORS guest list names exactly one
+origin (the console) and rejects everyone else — verified live from a fake "evil" origin.
+Two small deploy incidents, both instructive: the builder needed the start command
+spelled out, and the CORS guest list initially rejected the console because the pasted
+URL carried a trailing slash — origin matching is exact-string, and the browser never
+sends the slash. Diagnosed from the rejection's own signature (a 400 from the middleware,
+not a 405 from the app — proof the lock existed and was locked). And the operator's lock
+was probed live before anything else: a wrong token got 401, a foreign origin got
+nothing. **Week 3 is complete: the glass box is on the internet, guarded, and its first
+public act was honestly asking a human for help.**
+
+---
+
+*Week 3 done. Next: Week 4 — the demo video (#17) and the case study (#18), with the
+console polish pass (#56) as stretch. The pause banner's video link placeholder is
+waiting for #17's URL.*

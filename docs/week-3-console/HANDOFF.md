@@ -1,8 +1,10 @@
 # RESUME HERE — Week 3 state + how to continue
 
-**Any new session starts with this file.** Last updated: 2026-07-17 (night — **Wk3 Tasks
-5 + 7 done, #16 CLOSED**; all Week-3 CODE is merged. The only remaining Week-3 work is
-**Task 6: the live deploy — a JOINT session needing Cai's Railway + Vercel accounts**).
+**Any new session starts with this file.** Last updated: 2026-07-18 — **WEEK 3 IS
+COMPLETE. The system is LIVE:** console https://triage-desk-xi.vercel.app · API
+https://agenticproject-production.up.railway.app (deploy record:
+`reports/task-6-deploy.md`). **#13/#14/#15/#16 all CLOSED.** Next: Week 4 (#17 demo
+video → #18 case study; #56 console polish as stretch).
 
 > The **operating manual** (environment facts, per-task choreography, budget rules,
 > binding decisions, the three standing deliverables) lives in
@@ -11,43 +13,34 @@
 
 ---
 
-## ▶️ NEXT ACTION: Task 6 — the live deploy (issue #15, closes it) — CONTROLLER + CAI
+## ▶️ NEXT ACTION: Week 4 — #17 (demo video) then #18 (case study + results/ + README)
 
-All code is on `main`. This step is a **joint session** (Cai creates/links the accounts;
-the controller drives config and verification). Sequence per PLAN.md Task 6:
+Per the standing plan (operating manual, bottom section): the **adversarial catch rate
+is the standalone headline number**; every deliberate cut gets a "what I'd add in
+production" paragraph; the fail-closed/all-escalate finding is the approved opening
+narrative. Stretch (fit before #17 if schedule allows, else skip): **#56 console UI
+polish** — `console/**`-only ⇒ $0 gate. When #17's video URL exists, wire it into the
+demo page's pause-banner placeholder (one-line console change, $0).
 
-1. **Cai: create a Railway project** linked to the GitHub repo. Settings:
-   - Build: Nixpacks from repo root (NO Docker).
-   - Start command: `uvicorn triagedesk.app:app --host 0.0.0.0 --port $PORT --proxy-headers`
-     (**`--proxy-headers` matters** — without it the demo rate limiter keys every visitor
-     to Railway's proxy IP instead of real client IPs; ledger minor from Task 7 review).
-   - Release phase: `alembic upgrade head`.
-   - Env vars (values from `credentials.env` / Neon dashboard / choices made live):
-     `DATABASE_URL` (Neon — decide with Cai: dev branch vs a fresh prod branch; a prod
-     branch is cleaner and cheap), `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`,
-     `COST_CAP_USD=0.10`, `ADMIN_TOKEN=<generate a long random string>`,
-     `CORS_ORIGINS=<the exact Vercel URL, once known>`, `LOG_JSON=1`,
-     `DEMO_DAILY_CAP_USD=1.00`, `DEMO_RATE_LIMIT_PER_HOUR=5`.
-2. **Cai: create a Vercel project** with root directory `console/`; env var
-   `NEXT_PUBLIC_API_URL=<the Railway URL>`. (Then backfill `CORS_ORIGINS` on Railway
-   with the Vercel URL — chicken-and-egg resolved in that order.)
-3. Verify `/health` live on the Railway URL.
-4. **Seed the prod demo pool** (tickets with `source='demo'` — the pool endpoint serves
-   ONLY those; dev has ids 12023/12027/12039 as the model) + at least one completed run
-   if feasible (the console's completed-row styling has never rendered real data).
-5. Run the smoke script (ONE live run ≈ 3¢):
-   `python scripts/smoke.py --base-url <railway-url> --ticket-id <seeded-demo-id>` —
-   exit 0 iff terminal state ∈ {completed, escalated} AND cost > 0.
-6. Record everything in `docs/week-3-console/reports/task-6-deploy.md`; close #15;
-   STORY chapter; ledger. Descope ladder (if overrunning): smoke → JSON logs → rate
-   limit; the daily cap is NEVER cut.
+## 🌐 Live deployment facts (Task 6, 2026-07-18)
+
+| Thing | Value |
+|---|---|
+| Console | https://triage-desk-xi.vercel.app (Vercel, root `console/`) |
+| API | https://agenticproject-production.up.railway.app (Railway, Railpack builder — NOT Nixpacks, deprecated; still no-Docker) |
+| DB | Neon **`prod` branch** (branched off dev — carried all data incl. demo pool 12023/12027/12039) |
+| Start cmd | `uvicorn triagedesk.app:app --host 0.0.0.0 --port $PORT --proxy-headers` + pre-deploy `alembic upgrade head` + healthcheck `/health` |
+| CORS | exactly `https://triage-desk-xi.vercel.app` — **NO trailing slash** (exact-string match; the slash cost us a debug loop) |
+| Admin token | in Cai's `credentials.env` (`ADMIN_TOKEN`) — used in the review page's operator field |
+| Smoke run | `41a3486e` escalated, $0.0355, exit 0 (Dana's 12027) — full record: `reports/task-6-deploy.md` |
+| Demo guards | live: $1/day cap (fail-closed pre-check), 5/hr/IP, pool-only |
 
 ## ✅ Verify at session start (30 seconds)
 
-- Gate run **29621157110 confirmed GREEN** (PR #55's merge — the Task 5+7 wave's ONE
-  billed run), cost **$0.911** ($0.750 base + $0.161 judge) — in the ledger. Task 5's
-  own gate run (29610154311) was cancelled as superseded (~$0), per the batching rule.
-  **Nothing is pending at session start** — go straight to the Task 6 checklist above.
+- `curl https://agenticproject-production.up.railway.app/health` → `{"status":"ok"}` and
+  the console loads with the run list. If the API is down, check Railway deployments
+  first (a failed pre-deploy migration is the likely culprit after any schema change).
+- No pending gate runs; last billed: 29621157110 GREEN $0.911 (ledger).
 
 ## Week 3 state
 
@@ -58,7 +51,7 @@ the controller drives config and verification). Sequence per PLAN.md Task 6:
 | 3 review_decisions + queue API + admin token | #14 | ✅ merged `f760367` (PR #52), review clean |
 | 4 Console review-queue page | #14 | ✅ merged `4f51143` (PR #53), review APPROVE-WITH-MINORS (1 dead-CSS Minor fixed in-PR) — **#14 CLOSED** |
 | 5 Deploy-prep: CORS + JSON logs | #15 | ✅ merged `d1275f7` (PR #54), review APPROVE (1 Important — real-preflight test gap — fixed in-PR, re-review APPROVE); its gate run cancelled as superseded (~$0) |
-| 6 Live deploy Railway+Neon+Vercel + smoke — **controller + Cai** (needs his accounts) | #15 | ▶️ **NEXT — the only remaining Week-3 work** (checklist above) |
+| 6 Live deploy Railway+Neon+Vercel + smoke — **controller + Cai** | #15 | ✅ **LIVE 2026-07-18** — smoke exit 0 ($0.0355); nothing descoped; 2 incidents (Railpack start cmd, CORS trailing slash) in `reports/task-6-deploy.md` — **#15 CLOSED, WEEK 3 COMPLETE** |
 | 7 Demo protection (pool, rate limit, visible spend-cap pause) + smoke script | #16 | ✅ merged `f37ceec` (PR #55), review APPROVE (2 Importants — cap TOCTOU + limiter race — fixed in-PR with a serialized-dispatch lock, race independently reproduced both ways by the reviewer) — **#16 CLOSED** |
 
 **Plan:** `docs/week-3-console/PLAN.md` (canonical; global constraints at top are binding
@@ -70,9 +63,10 @@ rate limit. The daily spend cap is NEVER cut.
 
 ## Budget
 
-≈ **$9.5 of $20** (run 29621157110 finalized at $0.911 — the Task 5+7 wave's one billed
-run; Task 5's own run cancelled ~$0; Task 4's merge and all docs $0). Week 3's only
-remaining live spend: Task 6's smoke run (~3¢).
+≈ **$9.6 of $20** at Week-3 close (wave gate run $0.911 + smoke run $0.0355; Task 5's
+own gate run cancelled ~$0). Week 4 is docs/video — near-$0 API spend expected, EXCEPT:
+each public demo run costs ~3.5¢ against the demo's own $1/day cap (that's the demo
+budget working, not a leak), and any eval-path merge still bills the ~$0.90 gate.
 
 ## Standing items to fold in when convenient
 

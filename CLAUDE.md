@@ -7,16 +7,17 @@ is the #1 hiring signal; plain RAG demos are a yellow flag).
 
 ## Status (updated 2026-07-17)
 
-**WEEK 3 (2026-07-17 night): ALL CODE DONE — #13/#14/#16 CLOSED** (console: run list ·
-run detail · review queue · demo page; API: runs read, review-queue write, CORS, JSON
-logs, demo guards — PRs #50–#55, every review clean after in-PR fixes). The Task 5+7
-wave's ONE billed gate run (29621157110) verified **GREEN, $0.911** — batching worked.
-**The ONLY remaining Week-3 work is Task 6: the live deploy (Railway + Neon + Vercel +
-smoke, closes #15) — a JOINT session needing Cai's accounts.** The full checklist (exact
-env vars, `--proxy-headers` gotcha, prod demo-pool seeding, the 3¢ smoke run) is at the
-top of `docs/week-3-console/HANDOFF.md`. Budget ~$9.5 of $20 (⚠️ eval-path merges
-auto-trigger the ~$0.90 gate — batch them, cancel superseded queued runs;
-`console/**`/docs/tests don't trigger).
+**WEEK 3 COMPLETE (2026-07-18) — THE SYSTEM IS LIVE, #13–#16 ALL CLOSED.**
+Console: **https://triage-desk-xi.vercel.app** · API:
+**https://agenticproject-production.up.railway.app** (Railway/Railpack + Neon `prod`
+branch + Vercel; smoke run `41a3486e` exit 0, $0.0355; NOTHING descoped; deploy record
++ live facts: `docs/week-3-console/reports/task-6-deploy.md` + HANDOFF). **Next: Week 4
+— #17 demo video (wire its URL into the demo pause banner placeholder) → #18 case study
++ `results/` + final README (adversarial catch rate = the standalone headline; every
+deliberate cut gets a "what I'd add in production" paragraph). Stretch: #56 console UI
+polish (Cai's ask, `console/**`-only ⇒ $0 gate).** Budget ~$9.6 of $20 (⚠️ eval-path
+merges still auto-trigger the ~$0.90 gate — batch them; `console/**`/docs don't; public
+demo runs bill ~3.5¢ each against the demo's own $1/day cap — that's the guard working).
 Week 2.5 record (quote kappas carefully): judge v2 improved invariantly (0.279→0.418 r1,
 0.038→0.133 r2) but Cai's self-agreement is kappa 0.212 — single-rater labels are the
 bottleneck; official v2 kappa 0.133 is noise-capped; next step = second rater (#19).
