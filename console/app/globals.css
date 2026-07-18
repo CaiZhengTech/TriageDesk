@@ -188,6 +188,7 @@ td {
   padding: 0.6rem 0.85rem;
   text-align: left;
   font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
 }
 
 tr:last-child th,
@@ -294,6 +295,7 @@ button,
   color: var(--text);
   text-decoration: none;
   cursor: pointer;
+  touch-action: manipulation;
   transition: transform 160ms var(--ease-out),
     border-color 150ms var(--ease-out), background 150ms var(--ease-out);
 }
@@ -421,6 +423,7 @@ label {
 .hero h1 {
   font-size: clamp(1.6rem, 4vw, 2.4rem);
   margin: 0.8rem 0 0.6rem;
+  text-wrap: balance;
 }
 
 .hero-sub {

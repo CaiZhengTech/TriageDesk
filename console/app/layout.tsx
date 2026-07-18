@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 import SiteHeader from "./SiteHeader";
@@ -14,6 +14,10 @@ const plexSans = IBM_Plex_Sans({
   weight: ["400", "500", "600"],
   variable: "--font-sans",
 });
+
+export const viewport: Viewport = {
+  themeColor: "#0b0e11",
+};
 
 export const metadata: Metadata = {
   title: "TriageDesk Console",
