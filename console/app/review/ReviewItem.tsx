@@ -66,26 +66,26 @@ export default function ReviewItem({
   return (
     <section
       className="review-card"
-      style={{ padding: "1rem", marginBottom: "1rem", borderRadius: 4 }}
+      style={{ padding: "1rem 1.25rem", marginBottom: "1rem" }}
     >
       <h3 style={{ marginTop: 0 }}>
         #{item.ticket_id} — {item.ticket_subject}
       </h3>
-      <p style={{ color: "var(--muted)" }}>
+      <p className="muted">
         escalation reason: {item.escalation_reason ?? "—"} · cost{" "}
         {formatCost(item.total_cost_usd)} · latency{" "}
         {formatLatency(item.latency_ms)} · created{" "}
         {formatCreatedAt(item.created_at)}
       </p>
 
-      <h4>Draft reply</h4>
-      <p>{item.final_reply ?? "— none —"}</p>
+      <h4 className="eyebrow">Draft reply</h4>
+      <p className="prose">{item.final_reply ?? "— none —"}</p>
 
-      <h4>Internal rationale</h4>
+      <h4 className="eyebrow">Internal rationale</h4>
       <p className="rationale-caption">
         agent&apos;s post-hoc rationale — not evidence
       </p>
-      <p>{item.internal_rationale ?? "— none —"}</p>
+      <p className="prose">{item.internal_rationale ?? "— none —"}</p>
 
       <label htmlFor={`note-${item.id}`}>Note (required)</label>
       <br />
@@ -94,12 +94,13 @@ export default function ReviewItem({
         value={note}
         onChange={(e) => setNote(e.target.value)}
         rows={2}
-        style={{ width: "100%", marginBottom: "0.5rem" }}
+        style={{ width: "100%", margin: "0.35rem 0 0.6rem" }}
         disabled={submitting}
       />
       <br />
       <button
         type="button"
+        className="btn-approve"
         onClick={() => submit("approve")}
         disabled={submitting}
       >
@@ -107,15 +108,14 @@ export default function ReviewItem({
       </button>{" "}
       <button
         type="button"
+        className="btn-reject"
         onClick={() => submit("reject")}
         disabled={submitting}
       >
         Reject
       </button>
 
-      {error && (
-        <p style={{ color: "var(--failed-border)" }}>{error}</p>
-      )}
+      {error && <p className="error-text">{error}</p>}
     </section>
   );
 }

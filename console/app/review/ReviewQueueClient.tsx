@@ -58,19 +58,17 @@ export default function ReviewQueueClient({
           type="password"
           value={token}
           onChange={(e) => updateToken(e.target.value)}
-          style={{ width: "100%", maxWidth: 400 }}
+          style={{ width: "100%", maxWidth: 400, marginTop: "0.35rem" }}
           placeholder="X-Admin-Token sent with each review"
         />
       </div>
 
-      <p style={{ color: "var(--muted)" }}>
+      <p className="muted">
         {items.length} of {total} queued at page load — oldest escalations
         first.
       </p>
 
-      {banner && (
-        <p style={{ color: "var(--failed-border)" }}>{banner}</p>
-      )}
+      {banner && <p className="error-text">{banner}</p>}
 
       {items.length === 0 && <p>Nothing waiting for review.</p>}
 

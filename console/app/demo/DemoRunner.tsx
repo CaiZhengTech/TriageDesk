@@ -75,12 +75,17 @@ export default function DemoRunner({ tickets }: { tickets: DemoPoolTicket[] }) {
         ))}
       </select>
       <br />
-      <button type="button" onClick={handleRun} disabled={submitting}>
-        {submitting ? "Running…" : "Run"}
+      <button
+        type="button"
+        className="btn-primary"
+        onClick={handleRun}
+        disabled={submitting}
+      >
+        {submitting ? "Running…" : "▶ Run"}
       </button>
 
       {budgetBanner && (
-        <p style={{ color: "var(--failed-border)", fontWeight: 600 }}>
+        <p className="pause-banner">
           Daily demo budget reached — watch the video instead
           {/* link placeholder for #17 */}
         </p>
