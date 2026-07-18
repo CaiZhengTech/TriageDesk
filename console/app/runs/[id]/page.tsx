@@ -21,22 +21,20 @@ export default async function RunDetailPage({
   }
 
   return (
-    <main style={{ padding: "2rem", maxWidth: 1100, margin: "0 auto" }}>
+    <main>
       <p>
         <Link href="/runs">&larr; back to runs</Link>
       </p>
       <h1>Run {run.id}</h1>
 
-      <section style={{ marginBottom: "1.5rem" }}>
-        <h2>Summary</h2>
+      <section className="panel">
+        <h2 className="eyebrow">Summary</h2>
         <table>
           <tbody>
             <tr>
               <th>State</th>
               <td>
-                <span className={stateBadgeClass(run.state)}>
-                  {run.state}
-                </span>
+                <span className={stateBadgeClass(run.state)}>{run.state}</span>
               </td>
             </tr>
             <tr>
@@ -70,8 +68,8 @@ export default async function RunDetailPage({
       </section>
 
       {run.gate_signals && (
-        <section style={{ marginBottom: "1.5rem" }}>
-          <h2>Gate signals</h2>
+        <section className="panel">
+          <h2 className="eyebrow">Gate signals</h2>
           <table>
             <tbody>
               {Object.entries(run.gate_signals).map(([key, value]) => (
@@ -85,8 +83,8 @@ export default async function RunDetailPage({
         </section>
       )}
 
-      <section style={{ marginBottom: "1.5rem" }}>
-        <h2>Trace</h2>
+      <section className="panel">
+        <h2 className="eyebrow">Trace</h2>
         <table>
           <thead>
             <tr>
@@ -113,17 +111,23 @@ export default async function RunDetailPage({
         </table>
       </section>
 
-      <section style={{ marginBottom: "1.5rem" }}>
-        <h2>Final reply</h2>
-        <p>{run.final_reply ?? "— none —"}</p>
+      <section className="panel">
+        <h2 className="eyebrow">Final reply</h2>
+        <p className="panel-pad prose" style={{ marginTop: 0 }}>
+          {run.final_reply ?? "— none —"}
+        </p>
       </section>
 
-      <section style={{ marginBottom: "1.5rem" }}>
-        <h2>Internal rationale</h2>
-        <p className="rationale-caption">
-          agent&apos;s post-hoc rationale — not evidence
-        </p>
-        <p>{run.internal_rationale ?? "— none —"}</p>
+      <section className="panel">
+        <h2 className="eyebrow">Internal rationale</h2>
+        <div className="panel-pad">
+          <p className="rationale-caption">
+            agent&apos;s post-hoc rationale — not evidence
+          </p>
+          <p className="prose" style={{ margin: 0 }}>
+            {run.internal_rationale ?? "— none —"}
+          </p>
+        </div>
       </section>
     </main>
   );

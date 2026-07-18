@@ -27,7 +27,9 @@ export default function RunRow({ run }: { run: RunSummary }) {
     >
       <td>
         <span className={stateBadgeClass(run.state)}>{run.state}</span>
-        {run.escalation_reason ? ` (${run.escalation_reason})` : ""}
+        {run.escalation_reason ? (
+          <span className="muted"> {run.escalation_reason}</span>
+        ) : null}
       </td>
       <td>
         <a href={`/runs/${run.id}`}>{run.ticket_subject}</a>
