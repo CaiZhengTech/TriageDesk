@@ -15,10 +15,10 @@ const PHRASES = [
   "Every decision leaves auditable evidence.",
 ];
 
-const TYPE_MS = 45;
-const DELETE_MS = 22;
-const HOLD_MS = 3600;
-const GAP_MS = 500;
+const TYPE_MS = 70;
+const DELETE_MS = 35;
+const HOLD_MS = 5200;
+const GAP_MS = 750;
 
 const LONGEST = PHRASES.reduce((a, b) => (b.length > a.length ? b : a));
 
@@ -31,13 +31,15 @@ export default function TypedHeadline() {
       return;
     }
 
+    // The thesis renders fully typed on load, so the cycle begins in the
+    // DELETING phase — starting in the typing phase from full length would
+    // increment past the completion check and never rotate (the bug Cai saw).
     let phrase = 0;
     let pos = PHRASES[0].length;
-    let deleting = false;
+    let deleting = true;
     let timer: ReturnType<typeof setTimeout>;
 
     const step = () => {
-      const current = PHRASES[phrase];
       let delay: number;
       if (deleting) {
         pos -= 1;
@@ -50,12 +52,12 @@ export default function TypedHeadline() {
       } else {
         pos += 1;
         delay = TYPE_MS;
-        if (pos === current.length) {
+        if (pos === PHRASES[phrase].length) {
           deleting = true;
           delay = HOLD_MS;
         }
       }
-      setText((deleting ? current : PHRASES[phrase]).slice(0, pos));
+      setText(PHRASES[phrase].slice(0, pos));
       timer = setTimeout(step, delay);
     };
 

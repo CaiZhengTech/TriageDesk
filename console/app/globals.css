@@ -636,7 +636,7 @@ label {
   border-radius: 4px;
   opacity: 0;
   pointer-events: none;
-  animation: stage-pulse 7s var(--ease-out) infinite;
+  animation: stage-pulse 10s ease-in-out infinite;
 }
 
 .outcome-green::after {
@@ -645,23 +645,23 @@ label {
 
 @keyframes stage-pulse {
   0%,
-  12%,
+  16%,
   100% {
     opacity: 0;
   }
-  4%,
-  8% {
+  5%,
+  11% {
     opacity: 1;
   }
 }
 
 .pl-1::after { animation-delay: 0ms; }
-.pl-2::after { animation-delay: 700ms; }
-.pl-3::after { animation-delay: 1400ms; }
-.pl-4::after { animation-delay: 2100ms; }
-.pl-5::after { animation-delay: 2800ms; }
-.pl-6::after { animation-delay: 3500ms; }
-.pl-7::after { animation-delay: 3500ms; }
+.pl-2::after { animation-delay: 900ms; }
+.pl-3::after { animation-delay: 1800ms; }
+.pl-4::after { animation-delay: 2700ms; }
+.pl-5::after { animation-delay: 3600ms; }
+.pl-6::after { animation-delay: 4500ms; }
+.pl-7::after { animation-delay: 4500ms; }
 
 /* No hover states on the ambient pipeline — a hover that pauses one stage's
    glow restarts its animation out of phase with its siblings on exit,
