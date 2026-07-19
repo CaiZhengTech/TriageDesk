@@ -190,10 +190,31 @@ th,
 td {
   border: 0;
   border-bottom: 1px solid var(--border-subtle);
-  padding: 0.6rem 0.85rem;
+  padding: 0.75rem 1.25rem;
   text-align: left;
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
+}
+
+th.num,
+td.num {
+  text-align: right;
+}
+
+td.dim {
+  color: var(--text-dim);
+}
+
+/* Row links: the row itself affords the click (hover tint + real <a>) —
+   constant underlines read as noise in a data table. Underline returns on
+   hover/keyboard focus so the affordance is never lost. */
+tbody td a {
+  text-decoration: none;
+}
+
+tbody td a:hover,
+tbody td a:focus-visible {
+  text-decoration: underline;
 }
 
 tbody tr:last-child th,
@@ -211,8 +232,9 @@ tbody th {
 }
 
 tbody th {
-  width: 200px;
+  width: 220px;
   vertical-align: top;
+  padding-top: 0.85rem;
 }
 
 tbody tr {
@@ -412,8 +434,21 @@ label {
   border: 1px solid var(--border);
   border-left: 3px solid var(--amber);
   border-radius: 6px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.review-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.review-card h4.eyebrow {
+  margin: 1.4rem 0 0.5rem;
+}
+
+.review-card .prose {
+  margin: 0;
 }
 
 /* ---- landing (cockpit dashboard) ---- */
@@ -458,6 +493,34 @@ label {
   font-size: clamp(1.6rem, 4vw, 2.4rem);
   margin: 0.8rem 0 0.6rem;
   text-wrap: balance;
+}
+
+/* rotating headline: an invisible ghost of the longest phrase reserves the
+   height, the typed text overlays it — the hero never shifts as it types */
+.type-wrap {
+  position: relative;
+  display: block;
+}
+
+.type-ghost {
+  visibility: hidden;
+}
+
+.type-live {
+  position: absolute;
+  inset: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .hero-sub {
@@ -600,13 +663,9 @@ label {
 .pl-6::after { animation-delay: 3500ms; }
 .pl-7::after { animation-delay: 3500ms; }
 
-@media (hover: hover) and (pointer: fine) {
-  .stage:hover::after,
-  .outcome:hover::after {
-    animation: none;
-    opacity: 1;
-  }
-}
+/* No hover states on the ambient pipeline — a hover that pauses one stage's
+   glow restarts its animation out of phase with its siblings on exit,
+   desyncing the whole loop. The diagram is choreography, not a control. */
 
 .flow {
   align-self: center;
@@ -657,6 +716,29 @@ label {
 
 .pipeline-live .outcome-green[data-lit="true"] {
   background: var(--green-tint);
+}
+
+/* live pipeline reads slightly larger than the ambient one — it's the show */
+.pipeline-live {
+  gap: 0.6rem;
+}
+
+.pipeline-live .stage,
+.pipeline-live .outcome {
+  flex-basis: 140px;
+  min-width: 130px;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.75rem;
+}
+
+.pipeline-live .stage b,
+.pipeline-live .outcome b {
+  font-size: 0.8rem;
+}
+
+.pipeline-live .stage span,
+.pipeline-live .outcome span {
+  font-size: 0.68rem;
 }
 
 /* entrance: @starting-style — the panel appears the moment a run starts */

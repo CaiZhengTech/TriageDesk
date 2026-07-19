@@ -22,8 +22,8 @@ export default async function RunListPage() {
               <th>State</th>
               <th>Ticket subject</th>
               <th>Model</th>
-              <th>Cost</th>
-              <th>Latency</th>
+              <th className="num">Cost</th>
+              <th className="num">Latency</th>
               <th>Created</th>
             </tr>
           </thead>

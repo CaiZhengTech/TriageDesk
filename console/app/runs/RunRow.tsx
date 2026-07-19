@@ -34,10 +34,10 @@ export default function RunRow({ run }: { run: RunSummary }) {
       <td>
         <a href={`/runs/${run.id}`}>{run.ticket_subject}</a>
       </td>
-      <td>{run.model}</td>
-      <td>{formatCost(run.total_cost_usd)}</td>
-      <td>{formatLatency(run.latency_ms)}</td>
-      <td>{formatCreatedAt(run.created_at)}</td>
+      <td className="dim">{run.model}</td>
+      <td className="num">{formatCost(run.total_cost_usd)}</td>
+      <td className="num">{formatLatency(run.latency_ms)}</td>
+      <td className="dim">{formatCreatedAt(run.created_at)}</td>
     </tr>
   );
 }

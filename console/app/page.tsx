@@ -2,6 +2,7 @@ import Link from "next/link";
 import { listRuns } from "@/lib/api";
 import { formatCost } from "@/lib/format";
 import Pipeline from "./Pipeline";
+import TypedHeadline from "./TypedHeadline";
 
 export const metadata = {
   title: "TriageDesk — glass-box ticket triage",
@@ -30,10 +31,7 @@ export default async function LandingPage() {
           Glass-box ticket triage — every decision leaves evidence
         </p>
         <h1 className="boot boot-2">
-          The AI never sends bad news on its own.
-          <span className="cursor" aria-hidden="true">
-            _
-          </span>
+          <TypedHeadline />
         </h1>
         <p className="hero-sub boot boot-3">
           An agent that triages support tickets — wrapped in evidence, cost
