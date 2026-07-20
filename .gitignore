@@ -39,3 +39,8 @@ data/
 
 # Task 6: judge-calibration label export -- contains ticket text, never commit
 judge_labels*.csv
+
+# superpowers local workspace: the raw ledger, brainstorm session state
+# (contains a local auth token), and regenerated review diffs. Per
+# CLAUDE.md these stay local — never committed.
+.superpowers/

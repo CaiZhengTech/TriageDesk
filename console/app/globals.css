@@ -71,10 +71,20 @@ code {
   color: var(--text-dim);
 }
 
+/* Agent replies arrive with real paragraph breaks and bullet lines; preserve
+   them instead of collapsing everything into one block, and cap the measure
+   so long replies stay readable. */
 .prose {
   font-family: var(--font-sans), system-ui, sans-serif;
   font-size: 0.95rem;
-  line-height: 1.6;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  max-width: 68ch;
+}
+
+.prose strong {
+  font-weight: 600;
+  color: var(--text);
 }
 
 .eyebrow {
@@ -159,6 +169,19 @@ code {
   }
 }
 
+/* leaves the site — set apart from the section nav by a hairline */
+.repo-link {
+  padding-left: 1.25rem;
+  border-left: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+@media (max-width: 560px) {
+  .repo-link {
+    display: none;
+  }
+}
+
 /* ---- panels ---- */
 
 .panel {
@@ -190,10 +213,31 @@ th,
 td {
   border: 0;
   border-bottom: 1px solid var(--border-subtle);
-  padding: 0.6rem 0.85rem;
+  padding: 0.75rem 1.25rem;
   text-align: left;
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
+}
+
+th.num,
+td.num {
+  text-align: right;
+}
+
+td.dim {
+  color: var(--text-dim);
+}
+
+/* Row links: the row itself affords the click (hover tint + real <a>) —
+   constant underlines read as noise in a data table. Underline returns on
+   hover/keyboard focus so the affordance is never lost. */
+tbody td a {
+  text-decoration: none;
+}
+
+tbody td a:hover,
+tbody td a:focus-visible {
+  text-decoration: underline;
 }
 
 tbody tr:last-child th,
@@ -211,8 +255,9 @@ tbody th {
 }
 
 tbody th {
-  width: 200px;
+  width: 220px;
   vertical-align: top;
+  padding-top: 0.85rem;
 }
 
 tbody tr {
@@ -412,21 +457,95 @@ label {
   border: 1px solid var(--border);
   border-left: 3px solid var(--amber);
   border-radius: 6px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
-/* ---- landing (cockpit stack) ---- */
+.review-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.review-card h4.eyebrow {
+  margin: 1.4rem 0 0.5rem;
+}
+
+.review-card .prose {
+  margin: 0;
+}
+
+/* ---- landing (cockpit dashboard) ---- */
 
 .hero {
+  position: relative;
   text-align: center;
-  padding: 4rem 1rem 2.5rem;
+  padding: 2.8rem 1rem 2rem;
+}
+
+/* faint scanlines — instrument-panel atmosphere, decorative only */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(232, 237, 242, 0.05) 0,
+    rgba(232, 237, 242, 0.05) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  opacity: 0.5;
+}
+
+.hero > * {
+  position: relative;
+}
+
+.cursor {
+  animation: cursor-blink 1.1s steps(2, start) infinite;
+}
+
+@keyframes cursor-blink {
+  to {
+    opacity: 0;
+  }
 }
 
 .hero h1 {
   font-size: clamp(1.6rem, 4vw, 2.4rem);
   margin: 0.8rem 0 0.6rem;
   text-wrap: balance;
+}
+
+/* Rotating headline: the wrapper's height is measured from a hidden ghost of
+   the CURRENT phrase (see TypedHeadline.tsx) and animated, so the space below
+   adapts to whatever is being typed instead of standing at the tallest phrase
+   forever. Ghost and live text share one grid cell, so the typed text is
+   always inside the claimed space. */
+.type-wrap {
+  display: grid;
+  transition: height 420ms var(--ease-out);
+}
+
+.type-wrap > * {
+  grid-area: 1 / 1;
+}
+
+.type-ghost {
+  visibility: hidden;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .hero-sub {
@@ -439,9 +558,26 @@ label {
 .stats {
   display: flex;
   justify-content: center;
-  gap: 2.5rem;
+  gap: 0.9rem;
   flex-wrap: wrap;
-  margin: 2.2rem 0;
+  margin: 2rem 0;
+}
+
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.85rem 1.5rem;
+  min-width: 150px;
+  transition: transform 160ms var(--ease-out),
+    border-color 150ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .stat:hover {
+    transform: translateY(-2px);
+    border-color: var(--muted);
+  }
 }
 
 .stat-value {
@@ -473,11 +609,478 @@ label {
   flex-wrap: wrap;
 }
 
-.ticker {
-  border-top: 1px solid var(--border-subtle);
-  margin-top: 3rem;
-  padding-top: 1.2rem;
+/* ---- lifecycle pipeline (the signature: the run loop, animated) ---- */
+
+.lifecycle .panel-pad {
+  padding-bottom: 0.75rem;
 }
+
+.pipeline {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.stage,
+.outcome {
+  position: relative;
+  flex: 1 1 120px;
+  min-width: 118px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+}
+
+.stage b,
+.outcome b {
+  display: block;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.stage span,
+.outcome span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.03em;
+  margin-top: 0.15rem;
+}
+
+/* the traveling pulse: each stage's glow overlay lights in sequence */
+.stage::after,
+.outcome::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--amber);
+  border-radius: 4px;
+  opacity: 0;
+  pointer-events: none;
+  animation: stage-pulse 15s ease-in-out infinite;
+}
+
+.outcome-green::after {
+  border-color: var(--green);
+}
+
+/* One stage at a time: the lit window (2.02s of the 15s cycle) is strictly
+   shorter than the 2.2s stagger, so each stage fully fades out before its
+   successor begins to warm — a single light walking the pipeline, never a
+   trail. The two exits share the last slot; then the cycle rests ~2s. */
+@keyframes stage-pulse {
+  0%,
+  13.5%,
+  100% {
+    opacity: 0;
+  }
+  2%,
+  11% {
+    opacity: 1;
+  }
+}
+
+.pl-1::after { animation-delay: 0ms; }
+.pl-2::after { animation-delay: 2200ms; }
+.pl-3::after { animation-delay: 4400ms; }
+.pl-4::after { animation-delay: 6600ms; }
+.pl-5::after { animation-delay: 8800ms; }
+.pl-6::after { animation-delay: 11000ms; }
+.pl-7::after { animation-delay: 11000ms; }
+
+/* No hover states on the ambient pipeline — a hover that pauses one stage's
+   glow restarts its animation out of phase with its siblings on exit,
+   desyncing the whole loop. The diagram is choreography, not a control. */
+
+.flow {
+  align-self: center;
+  color: var(--faint);
+  font-size: 0.8rem;
+  user-select: none;
+}
+
+/* ---- live mode: stage state comes from real span data, not the clock ---- */
+
+.pipeline-live .stage::after,
+.pipeline-live .outcome::after {
+  animation: none;
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+
+.pipeline-live .stage[data-state="done"]::after {
+  opacity: 0.55;
+}
+
+.pipeline-live .stage[data-state="active"]::after {
+  animation: live-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.pipeline-live .stage[data-state="done"] b,
+.pipeline-live .stage[data-state="active"] b {
+  color: var(--amber);
+}
+
+.pipeline-live .outcome[data-lit="true"]::after {
+  opacity: 1;
+}
+
+.pipeline-live .outcome[data-lit="true"] {
+  background: var(--amber-tint);
+}
+
+.pipeline-live .outcome-green[data-lit="true"] {
+  background: var(--green-tint);
+}
+
+/* Live pipeline: a strict equal-cell grid — five stages plus the outcome
+   stack, every cell the same width, every row the same height, one gap
+   rhythm throughout. Slightly larger than the ambient one — it's the show.
+   The flow arrows are dropped here; the lights carry the order. */
+.pipeline-live {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.pipeline-live .flow {
+  display: none;
+}
+
+.pipeline-live .stage,
+.pipeline-live .outcome {
+  flex: none;
+  min-width: 0;
+  min-height: 96px;
+  padding: 0.8rem 0.9rem;
+  font-size: 0.75rem;
+}
+
+.pipeline-live .stage b,
+.pipeline-live .outcome b {
+  font-size: 0.8rem;
+}
+
+.pipeline-live .stage span,
+.pipeline-live .outcome span {
+  font-size: 0.68rem;
+}
+
+.pipeline-live .outcomes {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.pipeline-live .outcomes .outcome {
+  min-height: 0;
+}
+
+@media (max-width: 820px) {
+  .pipeline-live {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .pipeline-live .outcomes {
+    grid-column: 1 / -1;
+    grid-template-rows: none;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* entrance: @starting-style — the panel appears the moment a run starts */
+.live-panel {
+  margin-top: 1.5rem;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 480ms var(--ease-out), transform 480ms var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.live-verdict {
+  margin: 0.9rem 0 0;
+}
+
+.live-footer {
+  font-size: 0.75rem;
+  margin: 0.6rem 0 0;
+}
+
+.outcomes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1 1 150px;
+  min-width: 140px;
+}
+
+.outcomes .outcome {
+  flex: 1;
+}
+
+.outcome b {
+  color: var(--amber);
+}
+
+.outcome-green b {
+  color: var(--green);
+}
+
+.lifecycle-caption {
+  font-size: 0.75rem;
+  margin: 0.8rem 0 0;
+}
+
+@media (max-width: 820px) {
+  .pipeline {
+    flex-direction: column;
+  }
+  .flow {
+    display: none;
+  }
+}
+
+/* ---- state distribution (status colors + glyph legend, never color-alone) ---- */
+
+.dash {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 1rem;
+  align-items: start;
+  margin-top: 1rem;
+}
+
+@media (max-width: 820px) {
+  .dash {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dist-bar {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  border-radius: 3px;
+  overflow: hidden;
+  clip-path: inset(0 0 0 0);
+  animation: bar-reveal 700ms var(--ease-out) 900ms both;
+}
+
+@keyframes bar-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.dist-seg {
+  height: 100%;
+}
+
+.dist-seg.escalated {
+  background: var(--amber);
+}
+
+.dist-seg.failed {
+  background: var(--red);
+}
+
+.dist-seg.completed {
+  background: var(--green);
+}
+
+.dist-legend {
+  list-style: none;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.dist-legend li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.dist-legend .escalated {
+  color: var(--amber);
+}
+
+.dist-legend .failed {
+  color: var(--red);
+}
+
+.dist-legend .completed {
+  color: var(--green);
+}
+
+.dist-note {
+  font-size: 0.75rem;
+  margin: 0.7rem 0 0;
+}
+
+/* ---- expandable cards (runs list + review queue) ---- */
+
+.run-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+}
+
+.run-card.escalated {
+  border-left: 3px solid var(--amber);
+}
+
+.run-card.failed {
+  border-left: 3px solid var(--red);
+}
+
+.run-card.completed {
+  border-left: 3px solid var(--green);
+}
+
+.run-head {
+  display: grid;
+  grid-template-columns: minmax(110px, max-content) 1fr auto 1rem;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.85rem 1.25rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  letter-spacing: normal;
+  transition: background 150ms var(--ease-out);
+}
+
+@media (max-width: 720px) {
+  .run-head {
+    grid-template-columns: minmax(90px, max-content) 1fr 1rem;
+  }
+  .run-meta {
+    display: none;
+  }
+}
+
+.run-head:active {
+  transform: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .run-head:hover {
+    background: var(--surface-2);
+    border-color: transparent;
+  }
+}
+
+.run-subject {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.run-meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.chevron {
+  color: var(--faint);
+  font-size: 0.8rem;
+  transition: transform 200ms var(--ease-out);
+}
+
+.run-card.open .chevron {
+  transform: rotate(90deg);
+}
+
+/* smooth expand/retract: the 0fr -> 1fr grid-row technique */
+.card-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 320ms var(--ease-out);
+}
+
+.card-body > div {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.run-card.open .card-body {
+  grid-template-rows: 1fr;
+}
+
+.card-inner {
+  padding: 0.35rem 1.25rem 1.25rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.card-inner .eyebrow {
+  display: block;
+  margin: 1.1rem 0 0.4rem;
+}
+
+/* ---- page transition (template.tsx remounts per navigation) ---- */
+
+.page-enter {
+  animation: page-in 240ms var(--ease-out);
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.ticker {
+  margin: 0;
+}
+
+.ticker .ticker-row {
+  opacity: 0;
+  animation: boot-in 480ms var(--ease-out) 760ms forwards;
+}
+
+.ticker .ticker-row:nth-child(2) { animation-delay: 820ms; }
+.ticker .ticker-row:nth-child(3) { animation-delay: 880ms; }
+.ticker .ticker-row:nth-child(4) { animation-delay: 940ms; }
+.ticker .ticker-row:nth-child(5) { animation-delay: 1000ms; }
 
 .ticker-row {
   display: flex;
@@ -559,13 +1162,75 @@ label {
 .boot-11 { animation-delay: 760ms; }
 .boot-12 { animation-delay: 820ms; }
 
-@media (prefers-reduced-motion: reduce) {
-  .boot {
-    animation: none;
+/* scroll-driven reveals for below-fold panels: compositor-only, zero JS,
+   no-motion-first (motion only for users who haven't asked for less) */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .lifecycle,
+    .dash .panel {
+      animation: scroll-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+    }
+  }
+}
+
+@keyframes scroll-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
     opacity: 1;
     transform: none;
   }
-  .rec-dot {
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot,
+  .ticker .ticker-row,
+  .dist-bar {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    clip-path: none;
+  }
+  .rec-dot,
+  .cursor {
+    animation: none;
+  }
+  .stage::after,
+  .outcome::after {
+    animation: none;
+    opacity: 0.45;
+  }
+  .pipeline-live .stage::after,
+  .pipeline-live .outcome::after {
+    opacity: 0;
+    transition: none;
+  }
+  .pipeline-live .stage[data-state="done"]::after {
+    opacity: 0.55;
+  }
+  .pipeline-live .stage[data-state="active"]::after {
+    animation: none;
+    opacity: 1;
+  }
+  .pipeline-live .outcome[data-lit="true"]::after {
+    opacity: 1;
+  }
+  .live-panel {
+    transition: none;
+  }
+  .stat:hover {
+    transform: none;
+  }
+  .card-body,
+  .chevron,
+  .type-wrap {
+    transition: none;
+  }
+  .page-enter {
     animation: none;
   }
   button,

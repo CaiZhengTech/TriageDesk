@@ -99,6 +99,12 @@ def daily_cap_would_be_exceeded(
     dedicated counter table, per the plan. Fail closed: if the sum can't be
     computed (query raises), treat it as a breach rather than let a demo run
     through with unknown cost exposure.
+
+    In-flight reserve (issue #58): with background dispatch, a running run's
+    cost is not yet committed, so each `state='running'` run today reserves
+    the full per-run cap on top of committed spend. Conservative — a running
+    run's partial committed cost can be double-counted up to the per-run cap —
+    but that error is in the fail-closed direction.
     """
     day_start, day_end = _utc_day_window(now)
     try:
@@ -107,8 +113,16 @@ def daily_cap_would_be_exceeded(
                 Run.created_at >= day_start, Run.created_at < day_end
             )
         )
+        n_running = db.scalar(
+            select(func.count()).select_from(Run).where(
+                Run.created_at >= day_start,
+                Run.created_at < day_end,
+                Run.state == "running",
+            )
+        )
     except Exception:
         return True
-    if spent is None:
+    if spent is None or n_running is None:
         return True
-    return spent + per_run_cost_cap_usd > daily_cap_usd
+    reserve = n_running * per_run_cost_cap_usd
+    return spent + reserve + per_run_cost_cap_usd > daily_cap_usd

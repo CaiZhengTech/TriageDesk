@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import type { DemoPoolTicket } from "@/lib/api";
 import { runDemo } from "@/lib/api";
+import LiveProgress from "./LiveProgress";
 
 /**
  * The pool dropdown + Run button + guard-branch messaging. A client
@@ -29,7 +29,6 @@ export default function DemoRunner({ tickets }: { tickets: DemoPoolTicket[] }) {
       switch (result.status) {
         case "ok":
           setRunId(result.runId);
-          setMessage("Run started.");
           break;
         case "rate_limited":
           setMessage(
@@ -91,11 +90,7 @@ export default function DemoRunner({ tickets }: { tickets: DemoPoolTicket[] }) {
         </p>
       )}
       {message && <p>{message}</p>}
-      {runId && (
-        <p>
-          <Link href={`/runs/${runId}`}>View run &rarr;</Link>
-        </p>
-      )}
+      {runId && <LiveProgress key={runId} runId={runId} />}
     </div>
   );
 }

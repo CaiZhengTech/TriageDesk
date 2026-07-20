@@ -24,13 +24,7 @@ export function formatCreatedAt(iso: string): string {
   return new Date(iso).toLocaleString();
 }
 
-/** CSS row/badge class for run state — failed/escalated stay visible, just styled. */
-export function stateRowClass(state: string): string {
-  if (state === "escalated") return "row-escalated";
-  if (state === "failed") return "row-failed";
-  return "";
-}
-
+/** CSS badge class for run state — failed/escalated stay visible, just styled. */
 export function stateBadgeClass(state: string): string {
   if (state === "escalated") return "badge badge-escalated";
   if (state === "failed") return "badge badge-failed";

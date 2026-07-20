@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getRun } from "@/lib/api";
+import AgentText from "../../AgentText";
 import {
   formatCost,
   formatCreatedAt,
@@ -25,7 +26,9 @@ export default async function RunDetailPage({
       <p>
         <Link href="/runs">&larr; back to runs</Link>
       </p>
-      <h1>Run {run.id}</h1>
+      <h1>
+        Run <span className="muted">{run.id}</span>
+      </h1>
 
       <section className="panel">
         <h2 className="eyebrow">Summary</h2>
@@ -90,21 +93,21 @@ export default async function RunDetailPage({
             <tr>
               <th>Stage</th>
               <th>Status</th>
-              <th>Duration</th>
-              <th>Tokens in</th>
-              <th>Tokens out</th>
-              <th>Cost</th>
+              <th className="num">Duration</th>
+              <th className="num">Tokens in</th>
+              <th className="num">Tokens out</th>
+              <th className="num">Cost</th>
             </tr>
           </thead>
           <tbody>
             {run.spans.map((span, i) => (
               <tr key={`${span.name}-${i}`}>
                 <td>{span.name}</td>
-                <td>{span.status}</td>
-                <td>{formatLatency(span.duration_ms)}</td>
-                <td>{span.input_tokens ?? "—"}</td>
-                <td>{span.output_tokens ?? "—"}</td>
-                <td>{formatCost(span.cost_usd)}</td>
+                <td className="dim">{span.status}</td>
+                <td className="num">{formatLatency(span.duration_ms)}</td>
+                <td className="num">{span.input_tokens ?? "—"}</td>
+                <td className="num">{span.output_tokens ?? "—"}</td>
+                <td className="num">{formatCost(span.cost_usd)}</td>
               </tr>
             ))}
           </tbody>
@@ -113,9 +116,9 @@ export default async function RunDetailPage({
 
       <section className="panel">
         <h2 className="eyebrow">Final reply</h2>
-        <p className="panel-pad prose" style={{ marginTop: 0 }}>
-          {run.final_reply ?? "— none —"}
-        </p>
+        <div className="panel-pad">
+          <AgentText text={run.final_reply} />
+        </div>
       </section>
 
       <section className="panel">
@@ -124,9 +127,7 @@ export default async function RunDetailPage({
           <p className="rationale-caption">
             agent&apos;s post-hoc rationale — not evidence
           </p>
-          <p className="prose" style={{ margin: 0 }}>
-            {run.internal_rationale ?? "— none —"}
-          </p>
+          <AgentText text={run.internal_rationale} />
         </div>
       </section>
     </main>

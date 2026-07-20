@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Literal
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from triagedesk.config import settings
 from triagedesk.console_queries import get_run_detail, list_review_queue, list_runs
-from triagedesk.db import get_db
+from triagedesk.db import SessionLocal, get_db
 from triagedesk.demo import (
     RateLimiter,
     _dispatch_lock,
@@ -21,7 +21,7 @@ from triagedesk.demo import (
 )
 from triagedesk.logging_setup import configure_json_logging
 from triagedesk.models import ReviewDecision, Run, Ticket
-from triagedesk.pipeline.runner import run_ticket
+from triagedesk.pipeline.runner import create_run, execute_run
 
 app = FastAPI(title="TriageDesk")
 
@@ -132,7 +132,10 @@ def api_demo_pool(db: Session = Depends(get_db)) -> dict:
 
 @app.post("/api/demo/run", status_code=202)
 def api_demo_run(
-    body: DemoRunIn, request: Request, db: Session = Depends(get_db)
+    body: DemoRunIn,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
 ) -> dict:
     # Three guards, all evaluated BEFORE the pipeline runs — a blocked
     # request must never spend money (docs/week-3-console/PLAN.md's "before
@@ -141,11 +144,13 @@ def api_demo_run(
     if ticket is None:
         raise HTTPException(status_code=404, detail="ticket not in demo pool")
 
-    # Serialize the rate-limit check, the daily-cap check, and the dispatch
-    # itself: the cap pre-check must always see committed costs (bounded
-    # overspend -> zero) and the limiter's window update must be atomic. Demo
-    # concurrency=1 is an accepted tradeoff for a $1/day public demo, and this
-    # subsumes the limiter race at this endpoint too.
+    # Serialize the guards AND the run-row creation: creating the row inside
+    # the lock makes the new run visible (state='running') to the next
+    # request's cap pre-check, which reserves the per-run cap for it — the
+    # background-dispatch replacement for the old serialized-execution
+    # guarantee (bounded overspend -> zero). Issue #58 moved execution out of
+    # the request so the console can poll the run id and watch it live; a
+    # 202 that blocked to completion was never really a 202.
     with _dispatch_lock:
         host = request.client.host if request.client else "unknown"
         if not _demo_rate_limiter.check(
@@ -163,5 +168,22 @@ def api_demo_run(
                 content={"paused": True, "reason": "daily_budget_reached"},
             )
 
-        run = run_ticket(body.ticket_id, db)
-        return {"run_id": str(run.id)}
+        run = create_run(body.ticket_id, db)
+
+    background_tasks.add_task(_execute_demo_run, run.id)
+    return {"run_id": str(run.id)}
+
+
+def _execute_demo_run(run_id) -> None:
+    """Background half of the demo dispatch. The request-scoped session dies
+    with the response, so this opens its own; execute_run's internal handlers
+    map every failure to a terminal state, so a run can't be left 'running'
+    unless the process itself dies mid-run."""
+    session = SessionLocal()
+    try:
+        run = session.get(Run, run_id)
+        if run is None:
+            return
+        execute_run(run, session)
+    finally:
+        session.close()

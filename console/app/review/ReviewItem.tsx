@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ReviewQueueItem } from "@/lib/api";
 import { postReview } from "@/lib/api";
+import AgentText from "../AgentText";
 import { formatCost, formatCreatedAt, formatLatency } from "@/lib/format";
 
 /**
@@ -24,6 +25,7 @@ export default function ReviewItem({
   onAlreadyReviewed: () => void;
   onNotConfigured: () => void;
 }) {
+  const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,55 +66,74 @@ export default function ReviewItem({
   }
 
   return (
-    <section className="review-card">
-      <h3 style={{ marginTop: 0 }}>
-        #{item.ticket_id} — {item.ticket_subject}
-      </h3>
-      <p className="muted">
-        escalation reason: {item.escalation_reason ?? "—"} · cost{" "}
-        {formatCost(item.total_cost_usd)} · latency{" "}
-        {formatLatency(item.latency_ms)} · created{" "}
-        {formatCreatedAt(item.created_at)}
-      </p>
-
-      <h4 className="eyebrow">Draft reply</h4>
-      <p className="prose">{item.final_reply ?? "— none —"}</p>
-
-      <h4 className="eyebrow">Internal rationale</h4>
-      <p className="rationale-caption">
-        agent&apos;s post-hoc rationale — not evidence
-      </p>
-      <p className="prose">{item.internal_rationale ?? "— none —"}</p>
-
-      <label htmlFor={`note-${item.id}`}>Note (required)</label>
-      <br />
-      <textarea
-        id={`note-${item.id}`}
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        rows={2}
-        style={{ width: "100%", margin: "0.35rem 0 0.6rem" }}
-        disabled={submitting}
-      />
-      <br />
+    <section className={`run-card escalated ${open ? "open" : ""}`}>
       <button
         type="button"
-        className="btn-approve"
-        onClick={() => submit("approve")}
-        disabled={submitting}
+        className="run-head"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
       >
-        Approve
-      </button>{" "}
-      <button
-        type="button"
-        className="btn-reject"
-        onClick={() => submit("reject")}
-        disabled={submitting}
-      >
-        Reject
+        <span className="badge badge-escalated">escalated</span>
+        <span className="run-subject">
+          #{item.ticket_id} — {item.ticket_subject}
+        </span>
+        <span className="run-meta">
+          {item.escalation_reason ?? "—"} ·{" "}
+          {formatCost(item.total_cost_usd)} · {formatLatency(item.latency_ms)}
+        </span>
+        <span className="chevron" aria-hidden="true">
+          ▸
+        </span>
       </button>
+      <div className="card-body">
+        <div>
+          <div className="card-inner">
+            <p className="muted" style={{ margin: "0.75rem 0 0" }}>
+              created {formatCreatedAt(item.created_at)}
+            </p>
+            <h4 className="eyebrow">Draft reply</h4>
+            <AgentText text={item.final_reply} />
 
-      {error && <p className="error-text">{error}</p>}
+            <h4 className="eyebrow">Internal rationale</h4>
+            <p className="rationale-caption">
+              agent&apos;s post-hoc rationale — not evidence
+            </p>
+            <AgentText text={item.internal_rationale} />
+
+            <div style={{ marginTop: "1.1rem" }}>
+              <label htmlFor={`note-${item.id}`}>Note (required)</label>
+              <br />
+              <textarea
+                id={`note-${item.id}`}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={2}
+                style={{ width: "100%", margin: "0.35rem 0 0.6rem" }}
+                disabled={submitting}
+              />
+              <br />
+              <button
+                type="button"
+                className="btn-approve"
+                onClick={() => submit("approve")}
+                disabled={submitting}
+              >
+                Approve
+              </button>{" "}
+              <button
+                type="button"
+                className="btn-reject"
+                onClick={() => submit("reject")}
+                disabled={submitting}
+              >
+                Reject
+              </button>
+
+              {error && <p className="error-text">{error}</p>}
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

@@ -20,7 +20,10 @@ from triagedesk.tracing import (
 )
 
 
-def run_ticket(ticket_id: int, session) -> Run:
+def create_run(ticket_id: int, session) -> Run:
+    """Create and commit the run row (state='running') WITHOUT executing.
+    Split from execution for issue #58: the demo endpoint returns this row's
+    id immediately so the console can poll the run while it executes."""
     ticket = session.get(Ticket, ticket_id)
     if ticket is None:
         raise ValueError(f"no ticket {ticket_id}")
@@ -29,6 +32,15 @@ def run_ticket(ticket_id: int, session) -> Run:
               prompt_version=PROMPT_VERSION, model=PIPELINE_MODEL)
     session.add(run)
     session.commit()
+    return run
+
+
+def run_ticket(ticket_id: int, session) -> Run:
+    return execute_run(create_run(ticket_id, session), session)
+
+
+def execute_run(run: Run, session) -> Run:
+    ticket = session.get(Ticket, run.ticket_id)
     tracer = RunTracer(session, run)
 
     try:

@@ -155,6 +155,38 @@ def test_daily_cap_no_runs_today_is_not_a_breach(db_session):
     ) is False
 
 
+def test_daily_cap_reserves_per_run_cap_for_inflight_running_runs(db_session):
+    """Background dispatch (issue #58) means a running run's cost is not yet
+    committed — the pre-check must reserve the per-run cap for each one, or N
+    concurrent demo runs could all pass the check (the TOCTOU the dispatch
+    lock used to close by serializing execution)."""
+    _make_ticket(db_session)
+    # Committed spend 0.85 + one in-flight run (reserve 0.10) + this run's
+    # 0.10 = 1.05 > 1.00 -> breach.
+    _make_run(
+        db_session, ticket_id=1,
+        created_at=datetime(2026, 1, 2, 3, 0, 0), total_cost_usd=0.85,
+    )
+    _make_run(
+        db_session, ticket_id=1,
+        created_at=datetime(2026, 1, 2, 11, 0, 0), total_cost_usd=0.0,
+        state="running",
+    )
+
+    now = datetime(2026, 1, 2, 12, 0, 0, tzinfo=UTC)
+
+    assert daily_cap_would_be_exceeded(
+        db_session, now, daily_cap_usd=1.00, per_run_cost_cap_usd=0.10
+    ) is True
+
+    # Without the in-flight run the same numbers fit: 0.85 + 0.10 <= 1.00.
+    db_session.query(Run).filter(Run.state == "running").delete()
+    db_session.commit()
+    assert daily_cap_would_be_exceeded(
+        db_session, now, daily_cap_usd=1.00, per_run_cost_cap_usd=0.10
+    ) is False
+
+
 def test_daily_cap_fails_closed_when_sum_cannot_be_computed():
     class ExplodingSession:
         def scalar(self, *_args, **_kwargs):
@@ -196,15 +228,16 @@ def test_demo_run_404_when_ticket_not_in_pool(db_session, client, monkeypatch):
     _make_ticket(db_session, ticket_id=1, source="kaggle")  # exists, but not source='demo'
     called = {"n": 0}
 
-    def fake_run_ticket(*a, **k):
+    def fake_execute(*a, **k):
         called["n"] += 1
 
-    monkeypatch.setattr(app_module, "run_ticket", fake_run_ticket)
+    monkeypatch.setattr(app_module, "_execute_demo_run", fake_execute)
 
     resp = client.post("/api/demo/run", json={"ticket_id": 1})
 
     assert resp.status_code == 404
     assert called["n"] == 0
+    assert db_session.query(Run).count() == 0  # no run row either
 
     resp_missing = client.post("/api/demo/run", json={"ticket_id": 999})
     assert resp_missing.status_code == 404
@@ -214,17 +247,12 @@ def test_demo_run_404_when_ticket_not_in_pool(db_session, client, monkeypatch):
 def test_demo_run_429_when_rate_limited(db_session, client, monkeypatch):
     _make_ticket(db_session, ticket_id=1, source="demo")
     monkeypatch.setattr(settings, "demo_rate_limit_per_hour", 1)
-    fake_run = Run(
-        id=uuid.uuid4(), ticket_id=1, state="completed",
-        prompt_version="v1", model="claude-sonnet-4-6", total_cost_usd=0.03,
-    )
     called = {"n": 0}
 
-    def fake_run_ticket(*a, **k):
+    def fake_execute(*a, **k):
         called["n"] += 1
-        return fake_run
 
-    monkeypatch.setattr(app_module, "run_ticket", fake_run_ticket)
+    monkeypatch.setattr(app_module, "_execute_demo_run", fake_execute)
 
     first = client.post("/api/demo/run", json={"ticket_id": 1})
     assert first.status_code == 202
@@ -233,7 +261,8 @@ def test_demo_run_429_when_rate_limited(db_session, client, monkeypatch):
     second = client.post("/api/demo/run", json={"ticket_id": 1})
     assert second.status_code == 429
     assert second.json() == {"paused": False, "reason": "rate_limited"}
-    assert called["n"] == 1  # not called again
+    assert called["n"] == 1  # not dispatched again
+    assert db_session.query(Run).count() == 1  # and no second run row
 
 
 def test_demo_run_402_when_daily_cap_reached(db_session, client, monkeypatch):
@@ -247,37 +276,72 @@ def test_demo_run_402_when_daily_cap_reached(db_session, client, monkeypatch):
     )
     called = {"n": 0}
 
-    def fake_run_ticket(*a, **k):
+    def fake_execute(*a, **k):
         called["n"] += 1
 
-    monkeypatch.setattr(app_module, "run_ticket", fake_run_ticket)
+    monkeypatch.setattr(app_module, "_execute_demo_run", fake_execute)
 
     resp = client.post("/api/demo/run", json={"ticket_id": 1})
 
     assert resp.status_code == 402
     assert resp.json() == {"paused": True, "reason": "daily_budget_reached"}
     assert called["n"] == 0
+    assert db_session.query(Run).count() == 1  # only the pre-existing run
 
 
-def test_demo_run_202_dispatches_pipeline_and_returns_run_id(db_session, client, monkeypatch):
+def test_demo_run_202_returns_running_run_id_before_execution(db_session, client, monkeypatch):
+    """Issue #58: the endpoint must create the run row and hand back its id
+    IMMEDIATELY (state='running'), executing the pipeline afterward — the
+    console polls that id to light the pipeline live. A synchronous endpoint
+    would return only after the terminal state, and the live view could
+    never be live."""
     _make_ticket(db_session, ticket_id=1, source="demo")
-    fake_run = Run(
-        id=uuid.uuid4(), ticket_id=1, state="completed",
-        prompt_version="v1", model="claude-sonnet-4-6", total_cost_usd=0.03,
-    )
-    calls = []
+    seen = {}
 
-    def fake_run_ticket(ticket_id, session):
-        calls.append(ticket_id)
-        return fake_run
+    def fake_execute(run_id):
+        # State AT DISPATCH TIME must already be committed as 'running'.
+        run = db_session.get(Run, run_id)
+        seen["run_id"] = run_id
+        seen["state_at_dispatch"] = run.state if run else None
 
-    monkeypatch.setattr(app_module, "run_ticket", fake_run_ticket)
+    monkeypatch.setattr(app_module, "_execute_demo_run", fake_execute)
 
     resp = client.post("/api/demo/run", json={"ticket_id": 1})
 
     assert resp.status_code == 202
-    assert resp.json() == {"run_id": str(fake_run.id)}
-    assert calls == [1]
+    body = resp.json()
+    assert body["run_id"] == str(seen["run_id"])
+    assert seen["state_at_dispatch"] == "running"
+
+
+def test_execute_demo_run_uses_its_own_session_and_runs_pipeline(db_session, monkeypatch):
+    """The request-scoped session dies with the response; the background
+    executor must open its own and hand the run to execute_run."""
+    _make_ticket(db_session, ticket_id=1, source="demo")
+    run = _make_run(
+        db_session, ticket_id=1,
+        created_at=datetime.now(UTC).replace(tzinfo=None),
+        total_cost_usd=0.0, state="running",
+    )
+    calls = {}
+
+    def fake_session_factory():
+        return db_session
+
+    def fake_execute_run(run_arg, session_arg):
+        calls["run_id"] = run_arg.id
+        calls["session"] = session_arg
+        return run_arg
+
+    monkeypatch.setattr(app_module, "SessionLocal", fake_session_factory)
+    monkeypatch.setattr(app_module, "execute_run", fake_execute_run)
+    # db_session must survive the executor's finally-close for later asserts.
+    monkeypatch.setattr(db_session, "close", lambda: None)
+
+    app_module._execute_demo_run(run.id)
+
+    assert calls["run_id"] == run.id
+    assert calls["session"] is db_session
 
 
 # --- Concurrency: cap TOCTOU (Important finding, PR #55 review) ---
@@ -285,8 +349,9 @@ def test_demo_run_202_dispatches_pipeline_and_returns_run_id(db_session, client,
 def test_concurrent_demo_runs_serialized_cap_rechecked(tmp_path, monkeypatch):
     """Two concurrent POSTs must not both pass the cap pre-check off the same
     stale read. `_dispatch_lock` (triagedesk/demo.py) serializes the guard
-    chain + dispatch, so the second caller's cap check only runs AFTER the
-    first caller's dispatch has fully completed. A call-counting fake proves
+    chain + run-row creation (execution is a background task since issue #58;
+    the in-flight reserve in `daily_cap_would_be_exceeded` covers the running
+    run's not-yet-committed cost). A call-counting fake proves
     that re-evaluation, without needing a real DB write in between: if the
     lock didn't serialize the two requests, both calls could race in before
     either wrote a count, and the multiset assertion below would fail.
@@ -335,16 +400,10 @@ def test_concurrent_demo_runs_serialized_cap_rechecked(tmp_path, monkeypatch):
         finally:
             session.close()
 
-    fake_run = Run(
-        id=uuid.uuid4(), ticket_id=1, state="completed",
-        prompt_version="v1", model="claude-sonnet-4-6", total_cost_usd=0.03,
-    )
-
-    def fake_run_ticket(*a, **k):
-        time.sleep(0.2)
-        return fake_run
-
-    monkeypatch.setattr(app_module, "run_ticket", fake_run_ticket)
+    # Background executor is a no-op here: this test is about the guard
+    # chain's serialization, and the real one would open the process-level
+    # SessionLocal (a live DB) from a unit test.
+    monkeypatch.setattr(app_module, "_execute_demo_run", lambda run_id: None)
 
     # Cap not yet reached for the first caller to reach this check under the
     # lock; reached for the second. Deliberately unsynchronized read-sleep-write
