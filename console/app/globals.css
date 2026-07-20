@@ -159,6 +159,19 @@ code {
   }
 }
 
+/* leaves the site — set apart from the section nav by a hairline */
+.repo-link {
+  padding-left: 1.25rem;
+  border-left: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+@media (max-width: 560px) {
+  .repo-link {
+    display: none;
+  }
+}
+
 /* ---- panels ---- */
 
 .panel {

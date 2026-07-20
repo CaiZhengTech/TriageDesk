@@ -63,6 +63,14 @@ export default async function LandingPage() {
           <Link className="btn" href="/runs">
             Open the recorder
           </Link>
+          <a
+            className="btn"
+            href="https://github.com/CaiZhengTech/TriageDesk"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Read the code ↗
+          </a>
         </div>
       </section>
 
