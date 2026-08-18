@@ -15,7 +15,21 @@ const stateGlyph: Record<string, string> = {
 };
 
 export default async function LandingPage() {
-  const { runs, total } = await listRuns(50, 0);
+  // The landing page is the front door: it must never 500 just because the API
+  // is unreachable. Every other route can fall through to app/error.tsx, but a
+  // recruiter's first click deserves the static half of the page (hero, headline
+  // numbers, lifecycle diagram) plus an honest note, not a crash. Free-tier
+  // hosts expire — see issue #60, where a paused Railway service took the whole
+  // console down with it.
+  let live: Awaited<ReturnType<typeof listRuns>> | null = null;
+  try {
+    live = await listRuns(50, 0);
+  } catch {
+    live = null;
+  }
+
+  const runs = live?.runs ?? [];
+  const total = live?.total ?? 0;
   const recent = runs.slice(0, 5);
   const counts = {
     escalated: runs.filter((r) => r.state === "escalated").length,
@@ -85,6 +99,30 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {live === null ? (
+        <section className="panel boot boot-10">
+          <h2 className="eyebrow">Live data — temporarily unavailable</h2>
+          <div className="panel-pad">
+            <p className="muted">
+              The run history is served by the TriageDesk API, which isn&apos;t
+              responding right now. The numbers above are the recorded results
+              and don&apos;t depend on it; the live recorder, review queue, and
+              demo need the API to be up.
+            </p>
+            <p className="muted">
+              Everything is still readable in the repo —{" "}
+              <a
+                href="https://github.com/CaiZhengTech/TriageDesk"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                the code, the evals, and the write-ups ↗
+              </a>
+              .
+            </p>
+          </div>
+        </section>
+      ) : (
       <div className="dash">
         <section className="panel boot boot-10">
           <h2 className="eyebrow">State — last {sample} runs</h2>
@@ -156,6 +194,7 @@ export default async function LandingPage() {
           </div>
         </section>
       </div>
+      )}
     </main>
   );
 }
