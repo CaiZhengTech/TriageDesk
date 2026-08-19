@@ -13,65 +13,56 @@ https://agenticproject-production.up.railway.app.
 
 ---
 
-## 🚨 NEXT ACTION (before anything else): the eval-gate is writing into PROD
+## 🚨 CURRENT STATE (2026-08-19): the database was lost and rebuilt-able, the API is down
 
-**Confirmed finding, not a guess.** The eval-gate CI job (`.github/workflows/eval.yml`)
-reads `DATABASE_URL` from the `EVAL_DATABASE_URL` GitHub secret. The Week 3
-HANDOFF recorded that secret as pointing at the **dev** Neon branch. It no
-longer does — on the 2026-07-20 eval-gate run (triggered by merging PR #59),
-**25 golden-set eval runs landed in the production database**, the same one
-the public console reads from.
+Three linked failures, in the order they must be fixed.
 
-**Evidence:** the eval-gate log shows `n_cases: 25`, `cost_total: $0.719022`,
-`judge_cost_total: $0.160035`, running 16:12:32–16:25:49 UTC on 2026-07-20.
-Querying prod's `/api/runs` for that exact window returns **exactly 25 rows**,
-timestamped 16:12:35–16:25:06, ticket subjects matching the golden set (VPN
-disconnect, dedicated IP, security incident, etc.) — not real demo-pool
-traffic. The count and window match too precisely to be coincidence.
+### 1. Neon free-tier branches EXPIRED — the database is gone (issue #64)
 
-**Likely cause:** the `EVAL_DATABASE_URL` secret was probably repointed at
-prod during the Week 3 Task 6 deploy session (2026-07-18), when Railway's own
-`DATABASE_URL` was being configured against the new `prod` Neon branch — an
-easy secret-name mixup during a live joint session, never caught because no
-eval-gate ran between then and the 2026-07-20 merge (PR #57 was `console/**`
-only, $0 gate, no eval-gate trigger).
+Neon expires idle branches on the free tier. Both `prod` and `test` were
+garbage-collected. The replacements are **new endpoints and were completely
+empty** — no tables, no `pgvector`. Lost: schema, 11,922 tickets, KB
+embeddings, all eval cases, all run history.
 
-**Impact:**
-- Every future eval-gate run pollutes the "glass-box" run history a
-  recruiter can browse with synthetic golden-set runs, indistinguishable
-  from real demo traffic without checking the ticket subject against the
-  known 25-case set.
-- Cost isolation is also gone: eval-gate spend and demo spend are now the
-  same ledger. The demo's $1/day cap and the eval-gate's $1 cost-cap could
-  in theory interact (not yet observed, but untested).
-- This is an **infra/secrets change** — I did not touch it. Fixing it means
-  creating (or re-verifying) a dedicated Neon eval branch and updating the
-  `EVAL_DATABASE_URL` GitHub secret to point at it, which needs your Neon
-  dashboard access.
+This is the real root cause of the `password authentication failed` errors
+that looked like a rotated password: the stored connection strings pointed at
+endpoints that no longer existed.
 
-**Also caused by a separate, second mechanism:** this session's own local
-verification runs (for #58's live-progress feature and its follow-up polish)
-were run with a local `uvicorn` pointed at prod's `DATABASE_URL` too — my
-mistake, confirmed by matching run ids between local and prod `/api/runs`.
-That's `TRIAGEDESK_ENV_FILE` / local env, unrelated to the CI secret, but it
-added more non-demo runs to prod's history this week. See the correction
-note in `reports/task-live-progress.md`.
+**Done:** `TEST_DATABASE_URL` refreshed + migrated + secret updated, CI green
+again. `scripts/bootstrap.py` now rebuilds an empty database in one command.
 
-**Suggested fix (do first, before more eval-gate runs):**
-1. Confirm/create a dedicated Neon **eval** branch (separate from `dev` and
-   `prod` — the Week 3 HANDOFF already flagged wanting this, now it's urgent
-   rather than a nice-to-have).
-2. Point the `EVAL_DATABASE_URL` GitHub secret at it; re-run migrations there.
-3. When testing locally against a real API, always set
-   `DATABASE_URL`/`TRIAGEDESK_ENV_FILE` explicitly to a non-prod branch and
-   verify with one `curl .../api/runs?limit=1` id-match check before trusting
-   "local" isolation, the way this session should have.
-4. The 25 golden-set runs already in prod are real, harmless data (nothing
-   sent to a real customer, no cost breach) — leaving them is fine; flagging
-   this so a future session doesn't mistake them for demo-pool activity when
-   reading run history.
+**Still to do:** run `python -m scripts.bootstrap` against the new prod branch.
 
----
+**Survived:** the 41 human labels (both rounds) in `judge_labels.csv` /
+`judge_labels_v2.csv`, `results/`, the centroids, and every report. The
+headline numbers are still evidenced by committed artifacts — only the
+console's ability to *display* traces was lost.
+
+### 2. Railway paused the service — the API 404s (issue #60)
+
+Railway's permanent free tier ended in 2023; the Week-3 deploy used the 30-day
+trial, which expired. Migration target chosen: **Northflank** free tier
+(always-on, buildpacks, no Docker). Full runbook is in the #60 comments.
+`Procfile` + `.python-version` are now committed (#63) so the start command
+lives in the repo instead of a dashboard field.
+
+The console no longer 500s while the API is down — the landing page degrades
+to its static half (#63).
+
+### 3. `EVAL_DATABASE_URL` still points at a dead endpoint (issue #61)
+
+The old finding — that the eval-gate wrote 25 golden-set runs into the
+production database — is now moot in practice, because that database no longer
+exists. The **fix is still required**: point the secret at a dedicated eval
+branch before the next eval-path merge, or the same contamination recurs on the
+rebuilt prod.
+
+### The lesson that keeps repeating
+
+Railway's start command, the demo pool, and two golden cases were all lost the
+same way: **they lived outside version control.** #63 and #64 move all three
+into the repo. Before adding any new deploy or seed step, ask where it lives if
+the machine holding it disappears tonight.
 
 ## Week 4 progress
 

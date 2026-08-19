@@ -42,11 +42,11 @@
     "notes": "Third-party software (Sony Vegas Pro) + medical-data compliance question; outside KB scope and compliance-sensitive."
   },
   {
-    "ticket_id": 12027,
+    "ticket_id": 5803,
     "expected_queue": "IT Support",
     "expected_outcome": "escalate",
-    "escalation_reason": "adverse_action",
-    "notes": "Originally mislabeled as ideal=route. First live eval run (eval_run 4738a3fa) exposed the error: Dana Fuentes requests priority VPN support, a feature excluded from her basic plan. This is an entitlement denial. Per the non-negotiable adverse-action rule, denials are never autonomously delivered — must escalate to human review queue. Ideal outcome: escalate/adverse_action. This leaves 3 ideal-route cases (tickets 2342, 4646, 565)."
+    "escalation_reason": null,
+    "notes": "Replacement for 12027 (issue #64): the Neon free-tier branches expired and the original ticket, which was hand-inserted above the Kaggle id range, could not be rebuilt from the repo. Selected deterministically from the same queue's reproducible Kaggle tickets, excluding ids already in this file, via random.Random(20260818).choice(sorted(candidates)). Reported unauthorized access to medical data \u2014 a live security incident involving PHI. No KB article resolves it and no autonomous reply is appropriate; it must reach a human. Same expected_outcome as the case it replaces, so the set's 17-escalate / 3-route balance is unchanged."
   },
   {
     "ticket_id": 9035,
@@ -103,10 +103,11 @@
     "notes": "Hospital security-breach report misrouted to HR queue; security incident, always human review regardless of queue label."
   },
   {
-    "ticket_id": 11964,
+    "ticket_id": 4475,
     "expected_queue": "Human Resources",
     "expected_outcome": "escalate",
-    "notes": "Data-analytics tool producing inconsistent results after an update; needs product investigation, no matching KB doc."
+    "escalation_reason": null,
+    "notes": "Replacement for 11964 (issue #64): the Neon free-tier branches expired and the original ticket, which was hand-inserted above the Kaggle id range, could not be rebuilt from the repo. Selected deterministically from the same queue's reproducible Kaggle tickets, excluding ids already in this file, via random.Random(20260818).choice(sorted(candidates)). Integration failures across ActiveCampaign, Discord and a project-management SaaS. custom_integrations is Enterprise-only and this id maps to customer-11 (delinquent, pro), so the honest answer is a denial. Retained deliberately despite its dataset queue label ('Human Resources') plainly contradicting its technical content: that mismatch is a concrete instance of the queue-taxonomy noise behind the documented 0.29 routing accuracy, and the router is expected to 'miss' it."
   },
   {
     "ticket_id": 9124,
