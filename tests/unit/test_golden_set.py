@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from triagedesk.evals.adversarial import ADVERSARIAL
 from triagedesk.tools import PLAN_ENTITLEMENTS
 
@@ -53,13 +55,36 @@ def test_entitlement_trap_ticket_id_resolves_to_an_unentitled_basic_account():
 #
 # The Neon free-tier branches expired and took the database with them. Two golden
 # cases (12027, 11964) turned out to have been hand-inserted above the Kaggle id
-# range, so they could not be rebuilt from the repo and had to be replaced. These
-# tests fail loudly if that ever becomes true again.
+# range, so they could not be rebuilt and had to be replaced. These tests fail
+# loudly if that ever becomes true again.
+#
+# Two layers, deliberately. The source CSV is a ~19 MB CC-BY-NC HuggingFace dataset
+# clone that is gitignored and absent in CI, so the deep check can only run where
+# the data is. The cheap invariant below catches the exact failure mode without it
+# and therefore runs everywhere — which matters, because a guard that only runs on
+# one laptop is the same class of problem as seed data that only exists on one.
 
 EXPECTATIONS = json.loads(
     (Path(__file__).parents[2] / "triagedesk" / "evals" /
      "golden_expectations.json").read_text()
 )
+
+# Rows surviving ingest_tickets' English/non-empty-body filter over the pinned
+# dataset revision. Asserted against the real CSV by the deep check below.
+KAGGLE_INGEST_ROWS = 11922
+
+
+def test_no_representative_case_sits_above_the_ingest_range():
+    """The cheap invariant, and the one that actually failed in August 2026: a
+    golden id above the ingest range cannot have come from the dataset, so it was
+    inserted by hand and dies with the database. Needs no CSV, so it runs in CI."""
+    strays = [r["ticket_id"] for r in EXPECTATIONS
+              if r["ticket_id"] > KAGGLE_INGEST_ROWS]
+    assert not strays, (
+        f"golden ids {strays} are above the ingest range ({KAGGLE_INGEST_ROWS}) — "
+        "hand-inserted cases cannot be rebuilt; see docs/week-4-launch/reports/"
+        "task-db-rebuild.md"
+    )
 
 
 def _ingested_tickets():
@@ -68,6 +93,13 @@ def _ingested_tickets():
     import csv
 
     from scripts.ingest_tickets import DEFAULT_CSV, row_to_ticket
+
+    if not Path(DEFAULT_CSV).exists():
+        pytest.skip(
+            f"{DEFAULT_CSV} not present (gitignored CC-BY-NC dataset clone). "
+            "Clone https://huggingface.co/datasets/Tobi-Bueck/customer-support-tickets "
+            "into data/customer-support-tickets to run the deep check."
+        )
 
     out = []
     with open(DEFAULT_CSV, encoding="utf-8", newline="") as f:
@@ -78,11 +110,14 @@ def _ingested_tickets():
     return out
 
 
-def test_every_representative_case_is_rebuildable_from_the_repo():
-    """Each golden ticket must be one the ingest script actually recreates, at the
-    same id, in the same queue. A case that only exists because someone inserted a
-    row by hand is unrecoverable the moment the database is."""
+def test_every_representative_case_is_rebuildable_from_the_dataset():
+    """The deep check: each golden ticket must be one the ingest actually recreates,
+    at the same id, in the same queue. Skipped where the dataset clone is absent."""
     tickets = _ingested_tickets()
+    assert len(tickets) == KAGGLE_INGEST_ROWS, (
+        f"the pinned dataset revision now yields {len(tickets)} rows, not "
+        f"{KAGGLE_INGEST_ROWS} — every golden ticket id has shifted"
+    )
     problems = []
     for row in EXPECTATIONS:
         tid = row["ticket_id"]

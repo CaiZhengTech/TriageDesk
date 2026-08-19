@@ -12,6 +12,27 @@ they were connection strings pointing at endpoints that no longer existed.
 **What this task delivers:** not "the data, restored" — the *ability* to restore it. The
 branches will expire again.
 
+### Correction, caught by CI
+
+The first version of this work claimed a rebuild "from the repo alone." **That was
+wrong**, and CI proved it: `test_every_representative_case_is_rebuildable_from_the_repo`
+failed on the runner with `FileNotFoundError` on the ticket CSV.
+
+The corpus is a **separate, gitignored HuggingFace clone** — `Tobi-Bueck/customer-support-tickets`,
+pinned at `ddf1c81`, ~19 MB, CC-BY-NC-4.0. Correctly not committed (size and licence
+both argue against it), but it means the honest claim is "**this repo plus one pinned
+external dataset**."
+
+That distinction has teeth. Ticket ids are the insertion order of the rows surviving the
+ingest filter, so **a different dataset revision silently renumbers every ticket** and
+invalidates `golden_expectations.json` without any error. `bootstrap.py` now checks the
+clone exists before touching the database, and the deep test asserts the row count is
+still 11,922 before trusting a single id.
+
+It is also, precisely, a *fifth* instance of the finding below — external state the
+rebuild depends on. The difference is that this one is legitimately external; what was
+missing was it being *written down*.
+
 ---
 
 ## The real finding: state that lived outside the repo
@@ -140,9 +161,14 @@ presenting a continuous history that isn't.
   destructive by default.
 - `tests/integration/test_seed_demo_pool.py` (4) — idempotency, visibility to the
   `source='demo'` pool query, the fail-closed guard when runs exist, and `--reset-history`.
-- `tests/unit/test_golden_set.py` (+2) — **the regression that prevents a recurrence**:
-  every representative case must be one the ingest actually recreates, at the same id, in
-  the same queue; and the 17/3 outcome balance is pinned.
+- `tests/unit/test_golden_set.py` (+3) — **the regression that prevents a recurrence**,
+  deliberately in two layers. The cheap invariant (no golden id above the 11,922 ingest
+  range) needs no dataset and therefore runs in CI — it is exactly the check that would
+  have caught 12027 and 11964 years earlier. The deep check (every id recreates at the
+  same id *and* queue, and the corpus still yields 11,922 rows) skips where the gitignored
+  dataset clone is absent. A guard that only runs on one laptop is the same class of
+  problem as seed data that only exists on one, so the important half runs everywhere.
+  The 17/3 outcome balance is pinned too.
 
 ---
 

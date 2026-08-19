@@ -1,4 +1,4 @@
-"""Rebuild an empty database from nothing but this repository (issue #64).
+"""Rebuild an empty database from this repository plus one pinned dataset (issue #64).
 
   set TRIAGEDESK_ENV_FILE=...
   python -m scripts.bootstrap --dry-run     # print the plan, touch nothing
@@ -14,6 +14,20 @@ This script is the answer to that: one command, no API spend beyond KB embedding
 that takes an empty Postgres to a fully seeded TriageDesk. The next expiry should
 cost ten minutes, not an afternoon.
 
+THE ONE EXTERNAL DEPENDENCY
+---------------------------
+The Kaggle/HuggingFace ticket corpus is NOT in this repo and should not be: it is
+~19 MB and licensed CC-BY-NC-4.0. It is a separate git clone, gitignored:
+
+    git clone https://huggingface.co/datasets/Tobi-Bueck/customer-support-tickets \\
+        data/customer-support-tickets
+
+Pinned revision `ddf1c81`. This matters more than it looks — ticket ids are the
+insertion order of the rows surviving the ingest filter, so a different dataset
+revision silently renumbers every ticket and quietly invalidates
+`triagedesk/evals/golden_expectations.json`. If the row count is no longer 11,922,
+stop and re-derive the golden set rather than seeding on top.
+
 WHAT IT DOES NOT DO
 -------------------
 It does not recreate run history. Traces are the record of real executions and
@@ -26,9 +40,11 @@ landing page now degrades gracefully to show (issue #60).
 import argparse
 import subprocess
 import sys
+from pathlib import Path
 
 from sqlalchemy import func, select
 
+from scripts.ingest_tickets import DEFAULT_CSV
 from triagedesk.db import SessionLocal, engine
 from triagedesk.models import Ticket
 
@@ -82,6 +98,16 @@ def main() -> None:
     if engine is None:
         raise SystemExit("DATABASE_URL is not configured — nothing to bootstrap.")
     print(f"target: {engine.url.host}/{engine.url.database}")
+
+    # Check the external dependency before migrating anything, so a missing
+    # dataset fails in one clear line instead of three steps into a half-built
+    # database.
+    if not Path(DEFAULT_CSV).exists():
+        raise SystemExit(
+            f"ticket dataset not found at {DEFAULT_CSV}\n"
+            "  git clone https://huggingface.co/datasets/Tobi-Bueck/"
+            "customer-support-tickets data/customer-support-tickets"
+        )
 
     # Fail closed on the one mistake that actually hurts: pointing this at a
     # database that already has data. Every step below is individually idempotent
