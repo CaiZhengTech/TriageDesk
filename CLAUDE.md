@@ -5,20 +5,37 @@ Northeast US (NYC/Boston) new-grad SWE roles, fall 2026 cycle. The differentiato
 agent — it's the eval/observability/trust discipline around it (market research: eval design
 is the #1 hiring signal; plain RAG demos are a yellow flag).
 
-## Status (updated 2026-07-21)
+## Status (updated 2026-08-19)
 
-**WEEK 4 IN PROGRESS — #56 + #58 CLOSED AND LIVE; #17/#18 REMAIN.**
-Console: **https://triage-desk-xi.vercel.app** (flight-recorder redesign +
-live run progress, both deployed and re-verified 2026-07-21) · API:
-**https://agenticproject-production.up.railway.app**. **⚠️ Read
-`docs/week-4-launch/HANDOFF.md` FIRST** — a confirmed finding: the eval-gate
-CI job's `EVAL_DATABASE_URL` secret is currently pointed at the **production**
-Neon branch, not a dedicated eval branch (25 golden-set runs landed in prod
-on the 2026-07-20 eval-gate run). Needs a dedicated eval branch + secret fix
-before the next eval-gate run. **Next: fix that, then #17 demo video (wire
-its URL into the demo pause banner placeholder) → #18 case study +
-`results/` + final README** (adversarial catch rate = the standalone
-headline; every deliberate cut gets a "what I'd add in production"
+**WEEK 4 — INFRASTRUCTURE RECOVERY IN PROGRESS. The public deploy is DOWN.**
+**⚠️ Read `docs/week-4-launch/HANDOFF.md` FIRST.** After ~4 weeks idle, three
+free-tier services lapsed at once:
+
+1. **Neon expired both branches (#64)** — the database is GONE (schema, 11,922
+   tickets, KB embeddings, eval cases, all run history). Test branch is
+   rebuilt + CI is green; **prod still needs `python -m scripts.bootstrap`**.
+   Survived: the 41 human labels (both rounds) in `judge_labels*.csv`,
+   `results/`, the centroids, every report — so all published numbers remain
+   evidenced.
+2. **Railway paused the service (#60)** — API 404s. Migrating to **Northflank**
+   free (always-on, buildpacks, no Docker); runbook is in #60's comments.
+3. **`EVAL_DATABASE_URL` (#61)** — still needs a dedicated eval branch.
+
+**The recurring lesson:** Railway's start command, the demo pool, and two
+golden cases were all lost the same way — **they lived outside version
+control.** #63 (`Procfile`, `.python-version`, console degrades instead of
+500ing) and #64 (`triagedesk/demo_pool.py`, `scripts/seed_demo_pool.py`,
+`scripts/bootstrap.py`) move all three into the repo.
+
+**Golden set changed (#64):** cases 12027 and 11964 were hand-inserted above
+the Kaggle id range and unrebuildable; replaced by 5803 and 4475. Both were
+`escalate`, so the **17/3 balance is preserved** — but
+`results/eval-baseline.json` is **no longer like-for-like** and must be
+re-derived on the next golden run. Say so in the case study.
+
+**Then:** #17 demo video (wire its URL into the demo pause banner placeholder)
+→ #18 case study + `results/` + final README (adversarial catch rate = the
+standalone headline; every deliberate cut gets a "what I'd add in production"
 paragraph). Budget ~**$10.8 of $20** (⚠️ eval-path merges still auto-trigger
 the ~$0.90 gate — batch them; `console/**`/docs don't; public demo runs bill
 ~3.5¢ each against the demo's own $1/day cap — that's the guard working).
