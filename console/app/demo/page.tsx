@@ -1,3 +1,4 @@
+import ApiOffline from "../ApiOffline";
 import { listDemoPool } from "@/lib/api";
 import DemoRunner from "./DemoRunner";
 
@@ -6,7 +7,26 @@ export const metadata = {
 };
 
 export default async function DemoPage() {
-  const { tickets } = await listDemoPool();
+  let data: Awaited<ReturnType<typeof listDemoPool>> | null = null;
+  try {
+    data = await listDemoPool();
+  } catch {
+    data = null;
+  }
+
+  if (data === null) {
+    return (
+      <main>
+        <h1>Try the demo</h1>
+        <ApiOffline
+          what="Live demo"
+          detail="Running a ticket needs the agent itself, not just its records."
+        />
+      </main>
+    );
+  }
+
+  const { tickets } = data;
 
   return (
     <main>
@@ -17,7 +37,13 @@ export default async function DemoPage() {
         repeatable, and every run is subject to a per-visitor rate limit and a
         shared daily spend cap.
       </p>
-      <DemoRunner tickets={tickets} />
+      {tickets.length === 0 ? (
+        <p className="muted">
+          The demo pool is empty — no seeded tickets are available to run.
+        </p>
+      ) : (
+        <DemoRunner tickets={tickets} />
+      )}
     </main>
   );
 }
