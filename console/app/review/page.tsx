@@ -1,3 +1,4 @@
+import ApiOffline from "../ApiOffline";
 import { listReviewQueue } from "@/lib/api";
 import ReviewQueueClient from "./ReviewQueueClient";
 
@@ -6,7 +7,26 @@ export const metadata = {
 };
 
 export default async function ReviewQueuePage() {
-  const { items, total } = await listReviewQueue();
+  let data: Awaited<ReturnType<typeof listReviewQueue>> | null = null;
+  try {
+    data = await listReviewQueue();
+  } catch {
+    data = null;
+  }
+
+  if (data === null) {
+    return (
+      <main>
+        <h1>Review queue</h1>
+        <ApiOffline
+          what="Review queue"
+          detail="Escalated runs waiting on a human decision are listed here."
+        />
+      </main>
+    );
+  }
+
+  const { items, total } = data;
 
   return (
     <main>
