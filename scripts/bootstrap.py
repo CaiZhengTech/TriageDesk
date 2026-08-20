@@ -42,7 +42,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from sqlalchemy import func, select
+from sqlalchemy import func, inspect, select
 
 from scripts.ingest_tickets import DEFAULT_CSV
 from triagedesk.db import SessionLocal, engine
@@ -74,6 +74,16 @@ STEPS: list[tuple[str, list[str], str]] = [
 
 
 def database_is_empty(session) -> bool:
+    """True when there is nothing to lose.
+
+    The obvious implementation — count the tickets — crashes with
+    `UndefinedTable` on the one case this script exists for: a database so
+    empty it has no schema yet. Migrations are step 1, so the guard has to run
+    against a database where `tickets` may not exist. No table is the emptiest
+    a database gets.
+    """
+    if not inspect(session.get_bind()).has_table(Ticket.__tablename__):
+        return True
     return session.scalar(select(func.count()).select_from(Ticket)) == 0
 
 
