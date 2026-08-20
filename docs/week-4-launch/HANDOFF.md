@@ -57,6 +57,41 @@ exists. The **fix is still required**: point the secret at a dedicated eval
 branch before the next eval-path merge, or the same contamination recurs on the
 rebuilt prod.
 
+### 4. Classification signal — measured, not yet fixed (issue #67)
+
+Asked whether classification can be optimised so tickets actually auto-resolve.
+Investigated for **$0** against the Anthropic budget. Two answers:
+
+**Accuracy: no, and this is settled.** Nearest-centroid on embeddings scores
+28% against dataset labels; the LLM classifier scores 29%; random is 10%. Two
+unrelated methods within a point of each other means the ceiling is the label
+set. The geometry shows why — mean pairwise cosine between the 10 queue
+centroids is **0.9782**, and Technical Support ↔ IT Support is **0.9963**.
+Those are not ten separable categories. This is the first *quantitative*
+evidence for the standing "29% is a dataset finding, not a defect" claim; fold
+it into #18.
+
+**The margin signal: yes, two real defects.** `retrieve.py:20` embeds the
+ticket as `input_type="query"` while the centroids were built as `"document"`
+(Voyage trains those asymmetrically on purpose — right for the KB search that
+same vector does, wrong for comparing a ticket to a prototype of tickets), and
+the raw cosines are dominated by a shared component so the margin varies only
+in the third decimal. Fixing both widens its usable range **~8.7×**.
+
+**Why nothing auto-resolves — three causes, one defect:**
+
+| Cause | Verdict |
+|---|---|
+| Demo pool was 100% adverse-shaped | fixed in #64 (80010, 80011 designed to complete) |
+| Golden set is **22 of 25 expected-escalate** | working as intended — only 3 cases could *ever* auto-resolve, so "0 completed" was never evidence of a bug |
+| Margin gate rejects ~72% of tickets on noise | **the actual defect** — #67 |
+
+Decision recorded on #67: fix the signal first, re-run the held-out calibration
+pool, and only *then* decide whether the repaired margin keeps its veto or
+becomes an observability signal. Blocked on the deploy — recomputing centroids
+needs a populated database. Full analysis:
+`reports/classification-signal-analysis.md`.
+
 ### The lesson that keeps repeating
 
 Railway's start command, the demo pool, and two golden cases were all lost the
