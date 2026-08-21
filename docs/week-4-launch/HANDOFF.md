@@ -50,6 +50,61 @@ measured offline shows up in live runs.
 ⚠️ **n=1, on a ticket authored the same day.** This is a *capability existence
 proof*, never a resolution rate. Do not quote it as one — see #68.
 
+### Gate behaviour, verified live (2026-08-21)
+
+| Ticket | Outcome | Why |
+|---|---|---|
+| 80010 Morgan / **pro** / VPN | ✅ **completed** | plan covers the feature, KB answers it |
+| 80011 Taylor / basic / lockout | ✅ **completed** | nothing plan-gated, KB answers it |
+| 80007 Dana / basic / VPN | escalated `adverse_action` | genuine denial |
+| 80019 Dana / basic / dedicated IP | escalated `adverse_action` | genuine denial |
+
+**2 of 4 auto-resolve; the 2 escalations are both real denials.** The premise
+works: routine KB-answerable tickets close themselves, customer-facing "no"
+always reaches a human. Safety layers verified three separate times across the
+day's changes.
+
+80011 completed with `classification_margin: -0.1409` recorded in its trace —
+the demoted signal visibly disagreeing while the decision proceeds. That is what
+observability-not-veto looks like, and it is a better demo than hiding a signal
+you chose not to trust.
+
+### The margin was demoted on evidence (#74)
+
+Measured against held-out human labels, it could not be shown to separate good
+replies from bad — AUC 0.334 / 0.442, both 95% CIs spanning 0.50, and the #67
+repair moved those by +0.003 / 0.000. The repair made it *decisive* without
+making it *informative*: it asks "did the router agree with itself about the
+queue", not "may this reply be sent unseen".
+
+`low_confidence` is now retrieval similarity alone. `SIM_THRESHOLD` unchanged at
+its derived 0.45 — re-tuning a threshold while changing what it gates is how a
+tuning decision gets laundered. Acts on a **null result**, which is stated in the
+code and the report, not just the commit message.
+Full measurement: `reports/margin-separation-measurement.md`. Re-runnable for $0
+(`python -m scripts.measure_margin_separation`; signals cached).
+
+### The KB is not the problem (checked, $0)
+
+Hypothesis: maybe retrieval underperforms because the KB docs are poorly
+structured. Measured — they are not:
+
+| | mean pairwise cosine |
+|---|---|
+| Queue taxonomy (10 centroids) | **0.9414** |
+| KB docs (15) | **0.7472** (range 0.632-0.884) |
+
+Doc lengths are uniform (1612-2490 chars), so whole-doc embedding isn't blurring
+multi-topic documents — the "no chunking" cut holds up. Same model, same
+pipeline: **the authored KB separates cleanly; the inherited Kaggle queue
+taxonomy does not.** That is a sharper framing of the 0.29 routing finding than
+"the dataset is noisy" — it's a controlled comparison inside the project.
+
+Watch item: `password-reset-and-lockout` <-> `reporting-security-concerns` at
+0.8835 is the one genuinely confusable pair, and 80011 is a lockout ticket. It
+retrieved correctly here, but that is where a near-miss would produce a
+plausible-looking wrong answer.
+
 ### What was fixed to get here
 
 | # | Fix |
