@@ -104,12 +104,39 @@ def test_agent_requested_human_escalates(monkeypatch):
     assert run.escalation_reason == "agent_requested_human"
 
 
-def test_solve_without_entitlement_evidence_escalates(monkeypatch):
-    patch_happy_stages(monkeypatch, act_outcome=outcome("solve", checked=False),
+def test_solve_granting_a_gated_feature_without_evidence_escalates(monkeypatch):
+    """The soft-denial shape the rule exists for: the reply promises a
+    plan-gated feature with no check_entitlement receipt behind it. Scoped to
+    gated features in #69 — see the sibling test for the informational case."""
+    promise = ActOutcome(
+        resolution=Resolution(resolution_type="solve",
+                              customer_reply="No problem — I've enabled API access for you.",
+                              internal_rationale="i"),
+        entitlement_denied=False, entitlement_checked=False)
+    patch_happy_stages(monkeypatch, act_outcome=promise,
                        top_similarity=0.8, margin=0.3)
     run = runner.run_ticket(3, FakeSession())
     assert run.state == "escalated"
     assert run.escalation_reason == "no_entitlement_evidence"
+
+
+def test_informational_solve_auto_resolves_without_an_entitlement_check(monkeypatch):
+    """The 80011 case, end to end through the runner: the ticket implicates no
+    plan-gated feature, so there is no receipt to demand and a KB-grounded
+    answer completes instead of escalating."""
+    informational = ActOutcome(
+        resolution=Resolution(resolution_type="solve",
+                              customer_reply="Use the self-service unlock link to get back in.",
+                              internal_rationale="i"),
+        entitlement_denied=False, entitlement_checked=False)
+    session = FakeSession(SimpleNamespace(
+        id=3, subject="Locked out after too many password attempts",
+        body="I mistyped my password a few times and now the portal says I am locked."))
+    patch_happy_stages(monkeypatch, act_outcome=informational,
+                       top_similarity=0.8, margin=0.3)
+    run = runner.run_ticket(3, session)
+    assert run.state == "completed"
+    assert run.escalation_reason is None
 
 
 def test_budget_exceeded_maps_to_escalated_budget_breach(monkeypatch):

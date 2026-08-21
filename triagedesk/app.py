@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import UTC, datetime
 from typing import Literal
@@ -45,6 +46,17 @@ if _cors_origins:
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["X-Admin-Token", "Content-Type"],
     )
+else:
+    # Fail-closed is correct, but it used to fail SILENTLY, and the resulting
+    # symptom points nowhere near the cause: server-rendered pages load fine
+    # (Next fetches from the server, no CORS involved) while every browser-side
+    # call — the demo Run button, expanding a trace — dies with a generic
+    # "couldn't reach the API". Cost a live debugging session; say it loudly.
+    logging.getLogger("triagedesk").warning(
+        "CORS_ORIGINS is unset: no CORSMiddleware registered. Server-rendered "
+        "pages will work, but every browser-side fetch will be blocked. Set "
+        "CORS_ORIGINS to the console origin (e.g. https://<app>.vercel.app)."
+    )
 
 
 class ReviewDecisionIn(BaseModel):
@@ -57,8 +69,16 @@ class DemoRunIn(BaseModel):
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+def health() -> dict:
+    """Liveness, plus the two config facts whose absence is invisible from the
+    outside. `cors_configured` false is the single most likely cause of a
+    console that renders but whose buttons do nothing; `admin_token_configured`
+    false means every review POST fails closed with 503."""
+    return {
+        "status": "ok",
+        "cors_configured": bool(_cors_origins),
+        "admin_token_configured": bool(settings.admin_token),
+    }
 
 
 @app.get("/tickets/{ticket_id}")
