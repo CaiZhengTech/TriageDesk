@@ -21,6 +21,9 @@ behind real abuse protection, smoke-verified end-to-end at 3.6¢/run. Nothing de
 | The UI / observability / demo | *The glass box you can see* one-liners |
 | CI / process / scope | *Process & limitations* one-liners + *"What I'd add in production"* |
 | Hard numbers | **The numbers** table at the bottom |
+| Async / event loop, "why 5 iterations", "what was your kappa" | **Hard follow-ups — verified answers** |
+| OOP / class design / "walk me through the architecture" | **Hard follow-ups** → *One correction to the OOP answer* |
+| Writing or updating the résumé | **Résumé bullets (verified)** |
 
 *The spine of every answer: this project's value isn't the AI, it's the **trust
 machinery** around it — evidence trails, fail-closed cost caps, a structurally-enforced
@@ -252,7 +255,7 @@ budget. Each cut is a talking point, not a gap:
 | Ops console (Week 3) | Next.js 15 + TypeScript, **zero UI libraries** — run list + run-detail flight recorder + review queue + demo page; reads through the API only, never the DB; failed runs structurally unhideable |
 | Human review queue (Week 3) | `review_decisions` table, one verdict/run **enforced by a DB constraint**; operator-token write that **fails closed** (503 when no token is configured) |
 | Demo abuse protection (Week 3) | Seeded pool only (no free text = no prompt-injection front door) · 5 runs/hr/IP · **$1/day hard cap, pre-checked before spending, fail closed** · concurrency race on the cap closed by serialized dispatch, regression-proven both ways |
-| Test suite | **206 unit tests** (+ integration) + lint + secret-scan, gating every merge |
+| Test suite | **228 tests** (unit + integration) + lint + secret-scan, gating every merge |
 | **Total API spend, entire project to date** | **~$9.6** against a hard $20 budget |
 
 *(Week 2.5 hardening — DONE: the eval layer was adversarially reviewed and fixed;
@@ -260,6 +263,131 @@ official v2 kappa + the single-rater-noise reliability finding. Week 3 — DONE 
 runs API → console pages → review queue API+page → CORS/JSON-log deploy prep → demo
 guards → Railway+Neon+Vercel deploy, smoke-verified. Next: Week 4 — demo video (#17),
 case study (#18); console polish (#56) as stretch.)*
+
+---
+
+## Résumé bullets (verified against the code — safe to paste)
+
+Every number below was checked against the repo, not recalled. Sources in parentheses
+are for your reference; strip them before pasting.
+
+- Built an LLM support-ticket triage agent in Python/FastAPI/Postgres+pgvector with a
+  **hand-written tool loop on the Anthropic SDK — no orchestration framework** — spanning
+  five stages: injection/PII pre-check, classification, vector retrieval, tool-calling act
+  loop, and a multi-signal confidence gate. *(`triagedesk/pipeline/`)*
+- Designed the evaluation layer as the primary artifact: a **25-case golden set with 5
+  authored adversarial traps** and a CI eval gate with a $1 in-workflow cap; holds a
+  **100% design-intent adversarial catch rate (5/5)** and **escalation recall 1.0 /
+  precision 0.88**, regression-guarded on every behavior-relevant merge.
+  *(`results/eval-baseline.json`)*
+- Calibrated an LLM-as-judge against **41 blind human labels**, root-caused weak agreement
+  (**Cohen's κ = 0.279**) to the judge being tool-blind, and verified the fix improved it
+  **invariantly across two independent label rounds** (κ 0.279 → 0.418); then measured
+  **human self-agreement at κ = 0.212**, proving single-rater labels — not the judge — were
+  the reliability ceiling, and left the judge advisory (gating nothing).
+  *(`results/judge-calibration.md`)*
+- Instrumented all five stages with **OTel-GenAI-convention spans written incrementally to
+  Postgres**, so a run that crashes mid-stage still leaves a partial trace; per-run cost is
+  computed from real token usage against a **fail-closed $0.10 cap** (an uncomputable cost
+  is treated as a breach). *(`triagedesk/tracing.py`)*
+- Shipped a glass-box Next.js console (Vercel) over a FastAPI service (Railway) and Neon
+  Postgres, with a human review queue enforced one-verdict-per-run at the **DB constraint**
+  level and a public demo hardened by a seeded ticket pool, per-IP rate limiting, and a
+  pre-checked **$1/day spend cap that fails closed**. *(`triagedesk/app.py`, `demo.py`)*
+
+**Do not put on a résumé:** routing accuracy (0.29 — needs the dataset-noise explanation to
+not read as failure) and the official v2 κ = 0.133 in isolation. Both are strong *spoken*
+material and terrible *skimmed* material.
+
+---
+
+## Hard follow-ups — verified answers (checked against the code, 2026-08-10)
+
+The three questions most likely to expose a rehearsed answer. These are verified, not
+plausible-sounding.
+
+**"You're on FastAPI, which is async. Your spans write to Postgres synchronously inside
+the request. Doesn't that block the event loop?"**
+
+> "It would if my handlers were `async def` — but there is no `async def` anywhere in the
+> codebase. Every path operation is a plain `def`, and FastAPI runs those in a worker
+> threadpool, so the blocking SQLAlchemy commits never touch the event loop. The pipeline
+> itself is pushed out further via `BackgroundTasks` — the demo endpoint creates the run
+> row, returns the id immediately, and the console polls it, so a ~30-second run isn't
+> sitting inside a request at all. The real tradeoff is that my concurrency ceiling is the
+> threadpool, roughly 40 workers, and each in-flight run holds a thread for its whole
+> duration. That's fine at demo scale and wrong at production scale — there the pipeline
+> belongs in a task queue, not in `BackgroundTasks`."
+
+The trap in this question is agreeing that you have an event-loop problem. You don't.
+The honest gap is the threadpool ceiling — lead with the fact, then volunteer the ceiling.
+
+**"Why five iterations in the act loop?"**
+
+> "I picked it at design time as a safety bound and never tuned it. It's a stop-loss, not
+> an empirical number — the point was that loop exhaustion becomes an honest failure
+> (`agent_incomplete`) instead of a silent success. What I'd say in its favour is that I
+> did instrument it: every act span records `triage.act.iterations`, so the data to derive
+> a real cap exists. I just haven't pulled the distribution."
+
+Do **not** claim "most tickets resolve in one or two calls and past five it was circling."
+Nothing in the repo measures that. If you want the empirical version before an interview,
+run this — it's read-only and costs nothing:
+
+```sql
+SELECT (attributes->>'triage.act.iterations')::int AS iters, count(*)
+FROM spans
+WHERE name = 'act' AND attributes ? 'triage.act.iterations'
+GROUP BY 1 ORDER BY 1;
+```
+
+**"What was your kappa?"**
+
+> "Depends which pair you mean, and that's the actual finding. Judge v1 against my first
+> label round was **0.279**. I root-caused that — the judge was tool-blind, grading replies
+> against KB context only, so 7 out of 7 'hallucinations' it flagged were true CRM-derived
+> facts. I gave it the tool evidence, and v2 improved against *both* label rounds:
+> 0.279 → **0.418** on round one, 0.038 → **0.133** on round two. The official number is the
+> **0.133**, and it's lower than v1's — because between rounds my own labels moved. I
+> relabeled the same 41 replies three days apart and my **self-agreement was κ = 0.212**,
+> lower than the judge's agreement with either round. So the ceiling was my single-rater
+> ground truth, not the judge. The right fix is a second rater, not more judge tuning —
+> and until then the judge gates nothing. `tolerance` is an empty dict in the eval
+> baseline; deterministic metrics carry the gate."
+
+Lead with 0.279 and the tool-blind root cause — it's the number with the best story. Quote
+0.133 as the official figure with the self-agreement finding attached, never bare.
+
+### One correction to the OOP answer
+
+The draft opens with *"I went with composition rather than an inheritance hierarchy — the
+pipeline holds the stages, it doesn't inherit from them."* This is the weakest claim in the
+answer, because `runner.py` is five function calls; there are no stage objects to hold.
+An interviewer who opens the file sees that immediately. Say this instead:
+
+> "The first decision was that the stages shouldn't be classes at all. There's no `Stage`
+> base class and nothing inherits from anything — each stage is a function with an explicit
+> signature, and the runner sequences them. They're decoupled because they share no state
+> and pass explicit arguments, not because an abstraction enforces it. The classes I did
+> write each earn it: SQLAlchemy models for identity and persistence, Pydantic schemas for
+> the trust boundary, dataclasses for stage outputs, and one `RunTracer` that carries the
+> session and run across the pipeline. `run_act` takes an optional `_client` so tests can
+> inject a fake — that's the one seam I actually needed."
+
+That's a stronger OOP answer than the original, because it demonstrates judgment about
+when *not* to reach for a hierarchy — and it survives someone opening the repo.
+
+Two smaller precision fixes for the same answer:
+
+- **The classification margin is not softmax over LLM classes.** It's an
+  **embedding-centroid** margin: the ticket embedding's cosine similarity to its predicted
+  queue's centroid, minus its similarity to the nearest competing queue. The whole point is
+  that it's evidence *independent* of the model's own output — a margin ≤ 0 means the
+  embeddings disagree with the LLM's queue choice. Describing it as "top class vs.
+  runner-up" invites "so you're reading the model's logits?", and the answer is no.
+- **The context manager is `@contextmanager` with a `finally:` block**, not a class with a
+  hand-written `__exit__`. The effect you described is exactly right; just say "the
+  `finally` block runs even when the stage throws" so the detail matches the file.
 
 ---
 
