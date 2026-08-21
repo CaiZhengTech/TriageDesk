@@ -8,7 +8,13 @@ from triagedesk.llm import PIPELINE_MODEL, LLMRefusalError, RepairFailedError
 from triagedesk.models import Run, Ticket
 from triagedesk.pipeline.act import AgentIncompleteError, ToolFailedError, run_act
 from triagedesk.pipeline.classify import run_classify
-from triagedesk.pipeline.gate import classification_margin, decide, load_centroids
+from triagedesk.pipeline.gate import (
+    classification_margin,
+    decide,
+    gated_feature_implicated,
+    load_centroids,
+    load_global_mean,
+)
 from triagedesk.pipeline.precheck import run_precheck
 from triagedesk.pipeline.retrieve import run_retrieve
 from triagedesk.prompts import PROMPT_VERSION
@@ -55,13 +61,22 @@ def execute_run(run: Run, session) -> Run:
 
         with tracer.span("gate") as span:
             margin = classification_margin(
-                retrieval.query_embedding, classify_result.queue, load_centroids()
+                retrieval.query_embedding, classify_result.queue, load_centroids(),
+                load_global_mean(),
+            )
+            # Scanned from the ticket AND the proposed reply: the entitlement
+            # rule guards against the model promising a plan-gated feature, and
+            # a vague ticket with a generous reply is exactly the shape a
+            # ticket-only scan would miss (issue #69).
+            gated_feature = gated_feature_implicated(
+                ticket.subject, ticket.body, outcome.resolution.customer_reply
             )
             decision = decide(
                 retrieval_similarity=retrieval.top_similarity,
                 margin=margin,
                 outcome=outcome,
                 entitlement_checked=outcome.entitlement_checked,
+                gated_feature=gated_feature,
             )
             run.gate_signals = decision.signals
             tracer.set_attributes(

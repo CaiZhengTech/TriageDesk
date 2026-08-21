@@ -17,10 +17,19 @@ def _vo() -> voyageai.Client:
     return _client
 
 
-def embed_documents(texts: list[str]) -> list[list[float]]:
+def embed_batch(texts: list[str], input_type: str) -> list[list[float]]:
+    """Voyage places `query` and `document` embeddings in deliberately
+    asymmetric regions — right for retrieval (a question near its answer),
+    wrong for comparing a ticket to a prototype OF tickets. Callers that
+    classify must therefore embed both sides with the SAME input_type; see
+    issue #67 for the mismatch this parameter exists to prevent recurring."""
     return _vo().embed(
-        texts, model=EMBED_MODEL, input_type="document", output_dimension=EMBED_DIMS
+        texts, model=EMBED_MODEL, input_type=input_type, output_dimension=EMBED_DIMS
     ).embeddings
+
+
+def embed_documents(texts: list[str]) -> list[list[float]]:
+    return embed_batch(texts, "document")
 
 
 def embed_query(text: str) -> list[float]:
