@@ -1,7 +1,46 @@
-"""Multi-signal confidence gate. Signals are EXTERNAL gauges only:
-retrieval similarity + embedding-centroid classification margin. The LLM's
+"""Multi-signal confidence gate. Signals are EXTERNAL gauges only — the LLM's
 self-reported confidence is never consulted (spec rule). Adverse actions
-(deny / entitlement denial) escalate unconditionally."""
+(deny / entitlement denial) escalate unconditionally.
+
+WHAT ACTUALLY BLOCKS AUTO-RESOLVE, IN ORDER
+-------------------------------------------
+1. `adverse_action`          — a denial, or an entitlement check that came back
+                               false. Unconditional; outranks everything.
+2. `agent_requested_human`   — the model submitted `needs_human`.
+3. `no_entitlement_evidence` — a `solve` granting a PLAN-GATED feature with no
+                               `check_entitlement` receipt behind it (#69).
+4. `low_confidence`          — retrieval similarity below SIM_THRESHOLD.
+
+WHY THE CLASSIFICATION MARGIN IS NO LONGER IN THAT LIST (#74)
+-------------------------------------------------------------
+It used to be half of layer 4. It was measured against held-out human labels
+and could not be shown to carry reply-quality information:
+
+    ability to rank human-PASS replies above human-FAIL ones (AUC)
+      round 1:  0.334   95% CI [0.17, 0.52]
+      round 2:  0.442   95% CI [0.26, 0.63]
+
+Both intervals span 0.50, and the #67 repair — which widened the signal's
+usable range ~26x — moved those numbers by +0.003 and 0.000. Repairing the
+instrument made it decisive without making it informative, because it answers
+the wrong question: the margin asks "did the router agree with itself about
+which queue this belongs in?", while this gate decides "may this reply be sent
+unseen?" Those are different quantities.
+
+A layer that BLOCKS work bears the burden of proof, and this one could not meet
+it — so it rejects good and bad replies at the same rate, which is throughput
+loss with no demonstrated safety gain.
+
+Stated honestly: this acts on a NULL RESULT. At ~39 labels with 11-13 failures
+the sample cannot establish separation in either direction, so "cannot be shown
+to help" is not the same as "proven useless". The margin is therefore demoted,
+not deleted — still computed, still recorded in `gate_signals`, still visible in
+every trace. Full measurement and both sides of the argument:
+docs/week-4-launch/reports/margin-separation-measurement.md
+
+SIM_THRESHOLD is deliberately UNCHANGED at its derived value. Re-tuning a
+threshold in the same change that alters what it gates is how a tuning decision
+gets laundered into a principled one."""
 
 import json
 from dataclasses import dataclass
@@ -59,7 +98,6 @@ def gated_feature_implicated(*texts: str) -> str | None:
 # Derived from the held-out calibration pool, never the golden set —
 # see docs/week-2-evals/reports/threshold-derivation.md (Refs #45).
 SIM_THRESHOLD = 0.45     # ~36th percentile of held-out retrieval similarity
-MARGIN_THRESHOLD = 0.0   # embedding evidence must AGREE with the LLM's queue choice
 
 _CENTROIDS_PATH = Path(__file__).parent.parent / "data" / "queue_centroids.json"
 
@@ -113,8 +151,10 @@ def classification_margin(query_embedding, predicted_queue, centroids,
     the label set, not the classifier. It makes the signal capable of carrying
     a decision at all.
 
-    The threshold does not move: 0.0 is a semantic boundary (agree / disagree),
-    not a tuned value, and it means the same thing before and after.
+    NOTE (#74): this value no longer gates anything. Measured against held-out
+    human labels it could not be shown to separate good replies from bad, so it
+    was demoted to observability — still computed, still recorded in the trace,
+    but no longer able to veto a reply. See the module docstring.
     """
     if global_mean is not None:
         query_embedding = _centre(query_embedding, global_mean)
@@ -158,6 +198,10 @@ def decide(*, retrieval_similarity: float, margin: float, outcome: ActOutcome,
             and gated_feature is not None
             and not entitlement_checked):
         return GateDecision(False, "no_entitlement_evidence", signals)
-    if retrieval_similarity < SIM_THRESHOLD or margin < MARGIN_THRESHOLD:
+    # Similarity only. The margin was demoted to observability in #74 — see the
+    # module docstring. It is still computed and still in `signals` above, so
+    # the trace shows it; it just no longer vetoes a reply that cleared every
+    # layer that can be justified.
+    if retrieval_similarity < SIM_THRESHOLD:
         return GateDecision(False, "low_confidence", signals)
     return GateDecision(True, None, signals)
