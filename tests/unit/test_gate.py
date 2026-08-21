@@ -51,19 +51,18 @@ def test_low_similarity_escalates():
     assert d.reason == "low_confidence"
 
 
-def test_low_margin_escalates():
-    # Negative margin = embedding evidence contradicts the LLM's queue choice
-    # (threshold derivation: docs/week-2-evals/reports/threshold-derivation.md).
-    d = decide(retrieval_similarity=0.8, margin=-0.01, outcome=outcome("solve"),
-               entitlement_checked=True, gated_feature=None)
-    assert d.auto_resolve is False
-    assert d.reason == "low_confidence"
+def test_margin_sign_no_longer_changes_the_decision():
+    """Was `test_low_margin_escalates` / `test_zero_margin_is_the_boundary`.
 
-
-def test_zero_margin_is_the_boundary_and_passes():
-    d = decide(retrieval_similarity=0.8, margin=0.0, outcome=outcome("solve"),
-               entitlement_checked=True, gated_feature=None)
-    assert d.auto_resolve is True
+    Both encoded the pre-#74 rule that a negative margin vetoes auto-resolve.
+    The margin is now observability only, so the sign is irrelevant to the
+    outcome — asserted here rather than deleted, because "this input stopped
+    mattering" is the behaviour change and deserves a test that says so."""
+    for m in (-0.9, -0.01, 0.0, 0.9):
+        d = decide(retrieval_similarity=0.8, margin=m, outcome=outcome("solve"),
+                   entitlement_checked=True, gated_feature=None)
+        assert d.auto_resolve is True, f"margin {m} should not block"
+        assert d.signals["classification_margin"] == m
 
 
 def test_deny_always_escalates_even_when_confident():
@@ -242,3 +241,64 @@ def test_committed_centroids_are_anisotropic_enough_to_need_centring():
     assert sum(sims) / len(sims) > 0.8, (
         "centroids are no longer near-collinear; re-derive whether centring helps"
     )
+
+
+# --- the margin is observability, not a veto (issue #74) -------------------
+#
+# Measured on held-out human labels (docs/week-4-launch/reports/
+# margin-separation-measurement.md): the margin's ability to rank human-PASS
+# replies above human-FAIL ones is AUC 0.337 / 0.442 across the two label
+# rounds, with both 95% CIs spanning 0.50 — and the #67 repair moved that by
+# +0.003 / 0.000. It cannot be shown to carry reply-quality information.
+#
+# A layer that BLOCKS work bears the burden of proof. The margin is still
+# computed and still recorded in the trace, because it is genuinely interesting
+# evidence about routing confidence — it just no longer vetoes a reply that
+# passed every layer that can be justified.
+
+
+def test_negative_margin_alone_no_longer_blocks_auto_resolve():
+    """The 80011 case: a KB-answerable lockout ticket with strong retrieval
+    (0.7175) and a strongly negative margin (-0.1409). Under the old gate the
+    margin vetoed it; it now auto-resolves on the strength of the evidence that
+    can actually be defended."""
+    d = decide(retrieval_similarity=0.7175, margin=-0.1409, outcome=outcome("solve"),
+               entitlement_checked=True, gated_feature=None)
+    assert d.auto_resolve is True
+    assert d.reason is None
+
+
+def test_low_similarity_still_blocks():
+    """retrieval_similarity keeps its veto. It is the only signal above 0.50 in
+    both label rounds (0.559 / 0.643), and its 0.45 threshold was derived from
+    the held-out pool — unchanged here, because re-tuning a threshold while
+    changing what it gates is how you launder a tuning decision."""
+    d = decide(retrieval_similarity=0.2, margin=0.9, outcome=outcome("solve"),
+               entitlement_checked=True, gated_feature=None)
+    assert d.auto_resolve is False
+    assert d.reason == "low_confidence"
+
+
+def test_margin_is_still_recorded_for_the_trace():
+    """Demoted, not deleted. The glass box still shows it."""
+    d = decide(retrieval_similarity=0.8, margin=-0.5, outcome=outcome("solve"),
+               entitlement_checked=True, gated_feature=None)
+    assert d.signals["classification_margin"] == -0.5
+    assert d.auto_resolve is True
+
+
+def test_safety_layers_still_outrank_everything():
+    """Regression guard on the whole point of the project: demoting a
+    statistical layer must not weaken any of the three rules that do the real
+    work. Each must still fire on perfect signals."""
+    perfect = dict(retrieval_similarity=0.99, margin=0.9, gated_feature=None)
+    assert decide(**perfect, outcome=outcome("deny"),
+                  entitlement_checked=True).reason == "adverse_action"
+    assert decide(**perfect, outcome=outcome("solve", denied=True),
+                  entitlement_checked=True).reason == "adverse_action"
+    assert decide(**perfect, outcome=outcome("needs_human"),
+                  entitlement_checked=True).reason == "agent_requested_human"
+    assert decide(retrieval_similarity=0.99, margin=0.9,
+                  outcome=outcome("solve", checked=False),
+                  entitlement_checked=False,
+                  gated_feature="api_access").reason == "no_entitlement_evidence"
