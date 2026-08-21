@@ -13,84 +13,69 @@ https://agenticproject-production.up.railway.app.
 
 ---
 
-## 🚨 CURRENT STATE (2026-08-19): the database was lost and rebuilt-able, the API is down
+## ✅ CURRENT STATE (2026-08-21): LIVE, and the gate auto-resolves
 
-Three linked failures, in the order they must be fixed.
+**Console:** https://triage-desk-xi.vercel.app
+**API:** https://site--triagedesk-api--26d8jdlxzvsv.code.run (Northflank, US-Central)
+**DB:** Neon, rebuilt from scratch via `python -m scripts.bootstrap`
 
-### 1. Neon free-tier branches EXPIRED — the database is gone (issue #64)
+### ⚠️ ONE ACTION OUTSTANDING
 
-Neon expires idle branches on the free tier. Both `prod` and `test` were
-garbage-collected. The replacements are **new endpoints and were completely
-empty** — no tables, no `pgvector`. Lost: schema, 11,922 tickets, KB
-embeddings, all eval cases, all run history.
+`CORS_ORIGINS` is **not set** on Northflank — confirm with
+`curl <api>/health` → `"cors_configured": false`. Pages render (Next fetches
+server-side) but every browser-side call fails: the demo Run button and the
+trace expander. Set `CORS_ORIGINS=https://triage-desk-xi.vercel.app` in the
+Northflank service env and redeploy.
 
-This is the real root cause of the `password authentication failed` errors
-that looked like a rotated password: the stored connection strings pointed at
-endpoints that no longer existed.
+### The headline: first auto-resolve in the project's history
 
-**Done:** `TEST_DATABASE_URL` refreshed + migrated + secret updated, CI green
-again. `scripts/bootstrap.py` now rebuilds an empty database in one command.
+Ticket **80010** (Morgan, **pro** plan, plain VPN question) ran end to end and
+returned `state: completed`, `escalation_reason: null`. Same ticket, before
+and after the gate repair, **identical retrieval similarity (0.7295)**:
 
-**Still to do:** run `python -m scripts.bootstrap` against the new prod branch.
+| | margin | outcome |
+|---|---|---|
+| Before | **−0.007037** | escalated `low_confidence` |
+| After | **+0.013737** | **completed** |
 
-**Survived:** the 41 human labels (both rounds) in `judge_labels.csv` /
-`judge_labels_v2.csv`, `results/`, the centroids, and every report. The
-headline numbers are still evidenced by committed artifacts — only the
-console's ability to *display* traces was lost.
+Nothing else changed. `MARGIN_THRESHOLD` is still 0.0 — no threshold was tuned.
 
-### 2. Railway paused the service — the API 404s (issue #60)
+**Safety layers survived**: both adverse-action tickets (80007, 80019) still
+escalate correctly. That was the check that mattered.
 
-Railway's permanent free tier ended in 2023; the Week-3 deploy used the 30-day
-trial, which expired. Migration target chosen: **Northflank** free tier
-(always-on, buildpacks, no Docker). Full runbook is in the #60 comments.
-`Procfile` + `.python-version` are now committed (#63) so the start command
-lives in the repo instead of a dashboard field.
+**Dynamic range is real**: observed production margins now span +0.0137 to
+−0.2354 (~0.25 wide) against an old band of roughly ±0.007 — the ~26× widening
+measured offline shows up in live runs.
 
-The console no longer 500s while the API is down — the landing page degrades
-to its static half (#63).
+⚠️ **n=1, on a ticket authored the same day.** This is a *capability existence
+proof*, never a resolution rate. Do not quote it as one — see #68.
 
-### 3. `EVAL_DATABASE_URL` still points at a dead endpoint (issue #61)
+### What was fixed to get here
 
-The old finding — that the eval-gate wrote 25 golden-set runs into the
-production database — is now moot in practice, because that database no longer
-exists. The **fix is still required**: point the secret at a dedicated eval
-branch before the next eval-path merge, or the same contamination recurs on the
-rebuilt prod.
-
-### 4. Classification signal — measured, not yet fixed (issue #67)
-
-Asked whether classification can be optimised so tickets actually auto-resolve.
-Investigated for **$0** against the Anthropic budget. Two answers:
-
-**Accuracy: no, and this is settled.** Nearest-centroid on embeddings scores
-28% against dataset labels; the LLM classifier scores 29%; random is 10%. Two
-unrelated methods within a point of each other means the ceiling is the label
-set. The geometry shows why — mean pairwise cosine between the 10 queue
-centroids is **0.9782**, and Technical Support ↔ IT Support is **0.9963**.
-Those are not ten separable categories. This is the first *quantitative*
-evidence for the standing "29% is a dataset finding, not a defect" claim; fold
-it into #18.
-
-**The margin signal: yes, two real defects.** `retrieve.py:20` embeds the
-ticket as `input_type="query"` while the centroids were built as `"document"`
-(Voyage trains those asymmetrically on purpose — right for the KB search that
-same vector does, wrong for comparing a ticket to a prototype of tickets), and
-the raw cosines are dominated by a shared component so the margin varies only
-in the third decimal. Fixing both widens its usable range **~8.7×**.
-
-**Why nothing auto-resolves — three causes, one defect:**
-
-| Cause | Verdict |
+| # | Fix |
 |---|---|
-| Demo pool was 100% adverse-shaped | fixed in #64 (80010, 80011 designed to complete) |
-| Golden set is **22 of 25 expected-escalate** | working as intended — only 3 cases could *ever* auto-resolve, so "0 completed" was never evidence of a bug |
-| Margin gate rejects ~72% of tickets on noise | **the actual defect** — #67 |
+| #69 | `no_entitlement_evidence` was over-scoped — demanded a receipt on tickets with no entitlement at stake. Now scoped to plan-gated features, derived from `PLAN_ENTITLEMENTS`. |
+| #67 | The margin was noise — `input_type` mismatch (query vs document) + anisotropy (centroids at 0.978 mean cosine). Centroids recomputed with matching `input_type`; margin now mean-centred. |
+| #71 | **Prod outage:** `anthropic>=0.116` unpinned; the redeploy installed 1.0.0, which removed `temperature` from `Messages.create()`. Every run died at precheck. Pinned `<1.0` and added `test_sdk_compat.py`, which introspects the **installed** SDK — the first real enforcement of the project's own SDK-reality rule. |
+| #64 | Neon branches expired; DB rebuilt reproducibly. Demo pool and golden set are now repo-owned. |
+| #60/#63/#66 | Railway paused → migrated to Northflank; `Procfile` + `.python-version` committed; console degrades instead of 500ing; `/health` reports config. |
 
-Decision recorded on #67: fix the signal first, re-run the held-out calibration
-pool, and only *then* decide whether the repaired margin keeps its veto or
-becomes an observability signal. Blocked on the deploy — recomputing centroids
-needs a populated database. Full analysis:
-`reports/classification-signal-analysis.md`.
+### 🔴 Highest-priority open item: #68
+
+**Three published headline numbers are matched by a one-line `return "escalate"`.**
+Verified arithmetic: on the 22-escalate/3-route golden set, the null stub scores
+escalation recall 1.00, precision 0.88, adversarial catch 5/5 — identical to what
+the README publishes. The strict 3/5 catch rate does *not* collapse to the stub and
+is currently the only headline safety number that distinguishes the system from it.
+
+Publish the baseline beside every metric before anything else.
+
+### Still open on #67
+
+Re-run the **held-out calibration pool**, measure whether the repaired margin
+separates human-pass from human-fail replies, and only then decide whether it
+keeps its veto or becomes an observability signal. Then re-derive
+`results/eval-baseline.json` (also required by #64's golden-set change).
 
 ### The lesson that keeps repeating
 
