@@ -1,0 +1,494 @@
+{
+  "26": {
+    "queue": "Technical Support",
+    "sim": 0.4864325974454722,
+    "new_margin": -0.14865548621139074,
+    "old_margin": -0.009410499462847
+  },
+  "27": {
+    "queue": "IT Support",
+    "sim": 0.4278034653897923,
+    "new_margin": -0.33892664165240777,
+    "old_margin": -0.03728521177919408
+  },
+  "29": {
+    "queue": "Technical Support",
+    "sim": 0.5879796743392987,
+    "new_margin": -0.257699475491736,
+    "old_margin": -0.020566197975449563
+  },
+  "31": {
+    "queue": "Technical Support",
+    "sim": 0.38200190663337974,
+    "new_margin": -0.23582060055069876,
+    "old_margin": -0.012964924201638861
+  },
+  "32": {
+    "queue": "Sales and Pre-Sales",
+    "sim": 0.5860718139367225,
+    "new_margin": -0.2865426388801481,
+    "old_margin": -0.020758599727079385
+  },
+  "33": {
+    "queue": "IT Support",
+    "sim": 0.7235299348831177,
+    "new_margin": -0.005360054330410785,
+    "old_margin": -0.008821896373425231
+  },
+  "34": {
+    "queue": "Billing and Payments",
+    "sim": 0.6080425720113387,
+    "new_margin": 0.3972050562742804,
+    "old_margin": 0.06377720871418868
+  },
+  "35": {
+    "queue": "Sales and Pre-Sales",
+    "sim": 0.7075629445184233,
+    "new_margin": -0.48212005096202737,
+    "old_margin": -0.07026519371024365
+  },
+  "36": {
+    "queue": "Product Support",
+    "sim": 0.48532444238663064,
+    "new_margin": -0.06862238587691893,
+    "old_margin": -0.004306983317087898
+  },
+  "37": {
+    "queue": "IT Support",
+    "sim": 0.3898481494278825,
+    "new_margin": -0.2324100053546087,
+    "old_margin": -0.02336146193738803
+  },
+  "38": {
+    "queue": "Product Support",
+    "sim": 0.5200281298168938,
+    "new_margin": -0.08504600225181447,
+    "old_margin": -0.00035967254625635103
+  },
+  "39": {
+    "queue": "Service Outages and Maintenance",
+    "sim": 0.7021044074234732,
+    "new_margin": 0.2025205381036303,
+    "old_margin": 0.04612797037383398
+  },
+  "41": {
+    "queue": "Sales and Pre-Sales",
+    "sim": 0.6097868317492715,
+    "new_margin": -0.10931724365914997,
+    "old_margin": -0.005694164845316707
+  },
+  "42": {
+    "queue": "IT Support",
+    "sim": 0.4706178360072676,
+    "new_margin": -0.3887492758175335,
+    "old_margin": -0.029699015123662964
+  },
+  "43": {
+    "queue": "Technical Support",
+    "sim": 0.3327544133213518,
+    "new_margin": -0.1267573802519208,
+    "old_margin": -0.0062869588655910524
+  },
+  "44": {
+    "queue": "General Inquiry",
+    "sim": 0.30913234894678954,
+    "new_margin": 0.10887952187609032,
+    "old_margin": 0.018327590284367534
+  },
+  "45": {
+    "queue": "IT Support",
+    "sim": 0.603248930171078,
+    "new_margin": -0.4521529239552864,
+    "old_margin": -0.015592524275255037
+  },
+  "49": {
+    "queue": "General Inquiry",
+    "sim": 0.5720104234212394,
+    "new_margin": -0.39477632714507827,
+    "old_margin": -0.04677623896945615
+  },
+  "50": {
+    "queue": "Technical Support",
+    "sim": 0.7221291710849884,
+    "new_margin": -0.20350868017274654,
+    "old_margin": -0.019582139816797572
+  },
+  "51": {
+    "queue": "Technical Support",
+    "sim": 0.2624360449726506,
+    "new_margin": -0.25636251277429883,
+    "old_margin": -0.016499482353131367
+  },
+  "52": {
+    "queue": "Sales and Pre-Sales",
+    "sim": 0.4933215383695648,
+    "new_margin": -0.3624870746287967,
+    "old_margin": -0.03220063147455343
+  },
+  "53": {
+    "queue": "Product Support",
+    "sim": 0.3745676465461374,
+    "new_margin": -0.30971513963620967,
+    "old_margin": -0.017898624346536662
+  },
+  "54": {
+    "queue": "IT Support",
+    "sim": 0.6167523354138739,
+    "new_margin": -0.352767540465254,
+    "old_margin": -0.024179390959012337
+  },
+  "55": {
+    "queue": "Sales and Pre-Sales",
+    "sim": 0.45016070309174794,
+    "new_margin": -0.13693102733164841,
+    "old_margin": -0.008303491593733281
+  },
+  "56": {
+    "queue": "Technical Support",
+    "sim": 0.5270530863372641,
+    "new_margin": -0.25587365169676046,
+    "old_margin": -0.017146485892267527
+  },
+  "57": {
+    "queue": "Technical Support",
+    "sim": 0.5441964159187472,
+    "new_margin": 0.03166886472585195,
+    "old_margin": 0.00133009506555537
+  },
+  "59": {
+    "queue": "Service Outages and Maintenance",
+    "sim": 0.5191378748160025,
+    "new_margin": 0.1554621620326071,
+    "old_margin": 0.02898037640302742
+  },
+  "60": {
+    "queue": "Technical Support",
+    "sim": 0.4819585989738354,
+    "new_margin": -0.06423834370088849,
+    "old_margin": -0.006093944366903026
+  },
+  "61": {
+    "queue": "Sales and Pre-Sales",
+    "sim": 0.6175704002380371,
+    "new_margin": -0.23062774468789168,
+    "old_margin": -0.019606529564561437
+  },
+  "62": {
+    "queue": "Technical Support",
+    "sim": 0.4908773308469465,
+    "new_margin": 0.0009804043597534395,
+    "old_margin": -0.007511700108823072
+  },
+  "63": {
+    "queue": "Technical Support",
+    "sim": 0.568168656389393,
+    "new_margin": 0.08608913249922834,
+    "old_margin": 0.0016073628349554392
+  },
+  "64": {
+    "queue": "Technical Support",
+    "sim": 0.40734412713909984,
+    "new_margin": -0.07189199097530084,
+    "old_margin": -0.011112616901327477
+  },
+  "65": {
+    "queue": "Technical Support",
+    "sim": 0.3985019149181972,
+    "new_margin": -0.08642163638432077,
+    "old_margin": -0.0072876099031876085
+  },
+  "66": {
+    "queue": "Sales and Pre-Sales",
+    "sim": 0.5994110703468323,
+    "new_margin": -0.18698815909191974,
+    "old_margin": -0.026667892176962305
+  },
+  "68": {
+    "queue": "Technical Support",
+    "sim": 0.5509462028177865,
+    "new_margin": -0.12957456568979822,
+    "old_margin": -0.006696335372180284
+  },
+  "69": {
+    "queue": "Technical Support",
+    "sim": 0.425851953800081,
+    "new_margin": -0.10102968562993903,
+    "old_margin": -0.005582350546102233
+  },
+  "70": {
+    "queue": "Technical Support",
+    "sim": 0.43658436100669684,
+    "new_margin": -0.11500595879756242,
+    "old_margin": -0.011835924957573962
+  },
+  "71": {
+    "queue": "Product Support",
+    "sim": 0.36713931756381357,
+    "new_margin": -0.14518451845810976,
+    "old_margin": -0.007892900121065194
+  },
+  "72": {
+    "queue": "IT Support",
+    "sim": 0.4210020648835866,
+    "new_margin": -0.26116104885893876,
+    "old_margin": -0.017601112208590175
+  },
+  "73": {
+    "queue": "Technical Support",
+    "sim": 0.4645282424283441,
+    "new_margin": -0.12910662021464522,
+    "old_margin": -0.0048656444843182545
+  },
+  "74": {
+    "queue": "Technical Support",
+    "sim": 0.6258688719116341,
+    "new_margin": -0.065563269162767,
+    "old_margin": -0.011111511196436608
+  },
+  "168": {
+    "queue": "Technical Support",
+    "sim": 0.4837789862551126,
+    "new_margin": -0.14769252602665034,
+    "old_margin": -0.009430350157449752
+  },
+  "169": {
+    "queue": "IT Support",
+    "sim": 0.43013645051283234,
+    "new_margin": -0.33750305083487075,
+    "old_margin": -0.03717972757770982
+  },
+  "170": {
+    "queue": "Technical Support",
+    "sim": 0.5899453338964449,
+    "new_margin": -0.25897276232870536,
+    "old_margin": -0.02076551258059889
+  },
+  "171": {
+    "queue": "Technical Support",
+    "sim": 0.38311852417963455,
+    "new_margin": -0.23670236869368058,
+    "old_margin": -0.012987956913374288
+  },
+  "172": {
+    "queue": "Sales and Pre-Sales",
+    "sim": 0.5867330678264469,
+    "new_margin": -0.28704366432168404,
+    "old_margin": -0.02082876500530828
+  },
+  "173": {
+    "queue": "IT Support",
+    "sim": 0.7240545204926627,
+    "new_margin": -0.004521210866736791,
+    "old_margin": -0.008856446289821185
+  },
+  "174": {
+    "queue": "Billing and Payments",
+    "sim": 0.6068687673289329,
+    "new_margin": 0.3939009853711258,
+    "old_margin": 0.06339280033224048
+  },
+  "175": {
+    "queue": "Sales and Pre-Sales",
+    "sim": 0.7077522066905465,
+    "new_margin": -0.48058914495983046,
+    "old_margin": -0.06979220048088353
+  },
+  "176": {
+    "queue": "Product Support",
+    "sim": 0.4871772252600395,
+    "new_margin": -0.06537614097903494,
+    "old_margin": -0.004068833004053807
+  },
+  "177": {
+    "queue": "IT Support",
+    "sim": 0.3898481494278825,
+    "new_margin": -0.2324100053546087,
+    "old_margin": -0.02336146193738803
+  },
+  "178": {
+    "queue": "Product Support",
+    "sim": 0.5200281298168938,
+    "new_margin": -0.08504600225181447,
+    "old_margin": -0.00035967254625635103
+  },
+  "179": {
+    "queue": "Service Outages and Maintenance",
+    "sim": 0.7021044074234732,
+    "new_margin": 0.2025205381036303,
+    "old_margin": 0.04612797037383398
+  },
+  "180": {
+    "queue": "Sales and Pre-Sales",
+    "sim": 0.6097868317492715,
+    "new_margin": -0.10931724365914997,
+    "old_margin": -0.005694164845316707
+  },
+  "181": {
+    "queue": "IT Support",
+    "sim": 0.4706178360072676,
+    "new_margin": -0.3887492758175335,
+    "old_margin": -0.029699015123662964
+  },
+  "182": {
+    "queue": "Technical Support",
+    "sim": 0.3327544133213518,
+    "new_margin": -0.1267573802519208,
+    "old_margin": -0.0062869588655910524
+  },
+  "183": {
+    "queue": "Product Support",
+    "sim": 0.30913234894678954,
+    "new_margin": -0.2498867515590097,
+    "old_margin": -0.018327590284367534
+  },
+  "184": {
+    "queue": "IT Support",
+    "sim": 0.603248930171078,
+    "new_margin": -0.4521529239552864,
+    "old_margin": -0.015592524275255037
+  },
+  "185": {
+    "queue": "General Inquiry",
+    "sim": 0.5720104234212394,
+    "new_margin": -0.39477632714507827,
+    "old_margin": -0.04677623896945615
+  },
+  "186": {
+    "queue": "Technical Support",
+    "sim": 0.7221291710849884,
+    "new_margin": -0.20350868017274654,
+    "old_margin": -0.019582139816797572
+  },
+  "187": {
+    "queue": "Technical Support",
+    "sim": 0.2624360449726506,
+    "new_margin": -0.25636251277429883,
+    "old_margin": -0.016499482353131367
+  },
+  "188": {
+    "queue": "Technical Support",
+    "sim": 0.4933215383695648,
+    "new_margin": -0.2851750060911383,
+    "old_margin": -0.012872577858188183
+  },
+  "189": {
+    "queue": "Product Support",
+    "sim": 0.3745676465461374,
+    "new_margin": -0.30971513963620967,
+    "old_margin": -0.017898624346536662
+  },
+  "190": {
+    "queue": "IT Support",
+    "sim": 0.6167523354138739,
+    "new_margin": -0.352767540465254,
+    "old_margin": -0.024179390959012337
+  },
+  "191": {
+    "queue": "Sales and Pre-Sales",
+    "sim": 0.45016070309174794,
+    "new_margin": -0.13693102733164841,
+    "old_margin": -0.008303491593733281
+  },
+  "192": {
+    "queue": "Technical Support",
+    "sim": 0.5270530863372641,
+    "new_margin": -0.25587365169676046,
+    "old_margin": -0.017146485892267527
+  },
+  "193": {
+    "queue": "Technical Support",
+    "sim": 0.544079065322876,
+    "new_margin": 0.03075694273852647,
+    "old_margin": 0.0011515941086528425
+  },
+  "194": {
+    "queue": "Service Outages and Maintenance",
+    "sim": 0.5191379785537756,
+    "new_margin": 0.15546215594101587,
+    "old_margin": 0.02898037678168952
+  },
+  "195": {
+    "queue": "Technical Support",
+    "sim": 0.4819585989738354,
+    "new_margin": -0.06423834370088849,
+    "old_margin": -0.006093944366903026
+  },
+  "196": {
+    "queue": "Sales and Pre-Sales",
+    "sim": 0.6172672282020597,
+    "new_margin": -0.23125698985088244,
+    "old_margin": -0.01972228168861101
+  },
+  "197": {
+    "queue": "Technical Support",
+    "sim": 0.49169695476329867,
+    "new_margin": 0.000660536271920753,
+    "old_margin": -0.007567414472870682
+  },
+  "198": {
+    "queue": "Technical Support",
+    "sim": 0.5670115511444929,
+    "new_margin": 0.08484542160094843,
+    "old_margin": 0.001541132095314146
+  },
+  "199": {
+    "queue": "Technical Support",
+    "sim": 0.40626357123094237,
+    "new_margin": -0.0747155880022063,
+    "old_margin": -0.011338561235445133
+  },
+  "200": {
+    "queue": "Technical Support",
+    "sim": 0.39643518882217554,
+    "new_margin": -0.08759492754132114,
+    "old_margin": -0.00734641913510764
+  },
+  "201": {
+    "queue": "Sales and Pre-Sales",
+    "sim": 0.60075443983078,
+    "new_margin": -0.1868675886086933,
+    "old_margin": -0.026616781052011707
+  },
+  "202": {
+    "queue": "Technical Support",
+    "sim": 0.5515431700297392,
+    "new_margin": -0.13008807303338948,
+    "old_margin": -0.006721843435526953
+  },
+  "203": {
+    "queue": "Technical Support",
+    "sim": 0.42490264773368835,
+    "new_margin": -0.1003855921721323,
+    "old_margin": -0.005630013942558576
+  },
+  "204": {
+    "queue": "Technical Support",
+    "sim": 0.43725324606179583,
+    "new_margin": -0.11634147193199773,
+    "old_margin": -0.011816216388599754
+  },
+  "205": {
+    "queue": "Product Support",
+    "sim": 0.36498845428297266,
+    "new_margin": -0.14166286167053083,
+    "old_margin": -0.0073706945093867104
+  },
+  "206": {
+    "queue": "IT Support",
+    "sim": 0.4183870255947143,
+    "new_margin": -0.25971520854419977,
+    "old_margin": -0.017623734562189908
+  },
+  "207": {
+    "queue": "Technical Support",
+    "sim": 0.4637330174446106,
+    "new_margin": -0.13097665195955036,
+    "old_margin": -0.004974541752779671
+  },
+  "208": {
+    "queue": "Technical Support",
+    "sim": 0.6250001192092896,
+    "new_margin": -0.0655713055592943,
+    "old_margin": -0.01103137933342857
+  }
+}
