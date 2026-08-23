@@ -4,7 +4,7 @@ AI support-ticket triage agent with a glass-box ops console: every run is traced
 evaluated, cost-capped, and — where stakes require it — routed to a human review queue.
 
 **Live console:** https://triage-desk-xi.vercel.app ·
-**API:** https://agenticproject-production.up.railway.app
+**API:** https://site--triagedesk-api--26d8jdlxzvsv.code.run
 
 **📖 Start with the [documentation map](docs/README.md)** — it says where everything is.
 
@@ -36,18 +36,37 @@ Five stages, each one a plain function that takes a ticket and a tracer:
 
 ## Verified results
 
-| Metric | Value |
+Every metric is shown beside what a **one-line `return "escalate"` stub** scores on the
+same golden set. On a corpus that is 22-of-25 expected-escalate, several otherwise
+impressive-looking numbers are reproduced by that stub — they measure the base rate, not
+the pipeline. The comparison is derived programmatically
+([`results/null-baseline.json`](results/null-baseline.json)) and printed on every suite
+run, so it cannot quietly stop being true.
+
+| Metric | Value | Null stub | |
+|---|---|---|---|
+| **Adversarial catch rate (design-intent)** | **5 / 5 = 1.00** | **0.00** | ✅ real — the stub cannot name a catching layer |
+| Adversarial catch rate (strict, per-primary-layer) | 3 / 5 = 0.60 | 0.00 | ✅ real — the honest diagnostic: two traps were caught by a backstop, not their primary layer |
+| Routing accuracy vs. dataset labels | 0.29 | 0.00 | ✅ real — and a documented **dataset-noise finding**, not a defect (see below) |
+| Escalation recall | 1.00 | **1.00** | ⚠️ **not distinguishing** — the stub escalates everything, so it never misses one |
+| Escalation precision | 0.88 | **0.88** | ⚠️ **not distinguishing** — this is the corpus's 22/25 base rate |
+| Adversarial escalate rate (outcome-only) | 1.00 | **1.00** | ⚠️ **not distinguishing** — kept only for continuity with the pre-hardening definition |
+
+**The reason-aware catch rate is the headline, and it is the one a stub cannot fake.**
+A case counts as caught only when the observed `escalation_reason` matches the layer that
+was supposed to catch it. That metric was introduced in the Week-2.5 hardening
+specifically to close the "tautology of conservatism", and this baseline is the proof it
+worked: the stub scores 0.00.
+
+| Other measurements | |
 |---|---|
-| **Adversarial catch rate (design-intent)** | **5 / 5 = 100%** — every trap stopped by a layer designed to stop it |
-| Adversarial catch rate (strict, per-primary-layer) | 3 / 5 = 0.60 — the honest diagnostic: two traps were caught by a backstop, not their primary layer |
-| **Escalation recall** | **1.0** (precision 0.88) — real, but partly a product of conservatism, which is why the strict catch rate above exists |
-| Routing accuracy vs. dataset labels | 0.29 — a documented **dataset-noise finding**, not a defect: the queue taxonomy overlaps in embedding space |
 | Judge calibration (v1, tool-blind) | 41 blind human labels · raw agreement 0.512 · **κ = 0.279** |
 | Judge v2 (tool-evidence fix) | **κ = 0.133** official (round-2 labels) — the judge improved *invariantly* (0.279 → 0.418 on round-1 labels, 0.038 → 0.133 on round-2); the number fell because the human standard moved |
 | **Human self-agreement, same 41 replies 3 days apart** | **κ = 0.212** — lower than the judge's agreement with either round. Single-rater ground truth is the measured bottleneck; the fix is a second rater, not more judge tuning |
-| Cost per full pipeline run | ~3¢ with prompt caching · hard-capped at 10¢, fail-closed |
-| Latency | p50 ~30–35s |
-| Test suite | 228 tests + lint + gitleaks secret-scan, gating every merge |
+| Gate signal separation (held-out labels) | The classification margin could **not** be shown to separate good replies from bad — AUC 0.337 / 0.442, both 95% CIs spanning 0.50 — so it was demoted from veto to observability. [Measurement](docs/week-4-launch/reports/margin-separation-measurement.md) |
+| Cost per full pipeline run | ~3–4¢ with prompt caching · hard-capped at 10¢, fail-closed · the act loop is **91%** of it |
+| Latency | p50 ~30–40s · the act loop is **87%** of it |
+| Test suite | 290 tests + lint + gitleaks secret-scan, gating every merge |
 | Golden set | 25 cases (20 stratified real + 5 authored adversarial) from 11,922 ingested tickets |
 
 Full table with provenance: [`docs/00-spec/PITCH.md`](docs/00-spec/PITCH.md).
