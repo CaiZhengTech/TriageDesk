@@ -3,11 +3,27 @@ on: [push]
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+
+# Split into two jobs so an external free-tier outage cannot block work that
+# does not depend on it. Before the split, `alembic upgrade head` ran ahead of
+# the whole suite, so when Neon expired (#64) the 266 database-free unit tests
+# could not run either and a docs-only change was unmergeable.
+#
+# The unit job is deliberately still named `test`: it is the branch-protection
+# required check, and renaming it would silently disable protection on main.
 jobs:
+  # NOTE: do not add a `name:` to this job. Branch protection on main requires
+  # a check literally called "test", and a `name:` overrides the check name --
+  # setting it to "test (unit + lint)" makes the required check never report,
+  # so PRs wait forever on a status that no longer exists. Verified with:
+  #   gh api repos/<owner>/<repo>/branches/main/protection   #     --jq '.required_status_checks.contexts'   ->  ["test"]
   test:
     runs-on: ubuntu-latest
-    env:
-      TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+    # No DATABASE_URL / TEST_DATABASE_URL on purpose. tests/unit must stay
+    # runnable with no external service reachable — tests/unit/test_gate.py and
+    # friends are pure functions over committed data. If a test added to
+    # tests/unit starts needing a database, this job fails and that is correct:
+    # it belongs in tests/integration.
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,9 +38,25 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: ruff check .
+      - run: pytest tests/unit -v
+
+  integration:
+    runs-on: ubuntu-latest
+    env:
+      TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt
       - name: Run migrations on Neon test branch
         if: ${{ env.TEST_DATABASE_URL != '' }}
         run: alembic upgrade head
         env:
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
-      - run: pytest -v
+      # Without TEST_DATABASE_URL these skip rather than fail (see
+      # tests/conftest.py::integration), so a fork or a secretless environment
+      # reports green-with-skips instead of a misleading red.
+      - run: pytest tests/integration -v
