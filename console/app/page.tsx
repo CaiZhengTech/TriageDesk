@@ -166,9 +166,17 @@ export default async function LandingPage() {
               </li>
             </ul>
             {counts.completed === 0 && (
+              // Rewritten in #76. The old copy said "nothing auto-resolves
+              // below the calibrated thresholds" — false on both counts once
+              // tickets began auto-resolving, and it credited the thresholds,
+              // which measurably gate almost nothing. This version stays true
+              // whether the window is empty because the database is fresh or
+              // because the recent tickets were genuinely adverse.
               <p className="muted dist-note">
-                0 completed isn&apos;t a bug — nothing auto-resolves below the
-                calibrated thresholds. The gate is doing its job.
+                No auto-resolutions in this window. Tickets only close
+                themselves when the reply is grounded in the knowledge base and
+                nothing is being denied — every customer-facing &ldquo;no&rdquo;
+                goes to a human by design.
               </p>
             )}
           </div>
