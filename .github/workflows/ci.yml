@@ -12,8 +12,12 @@ concurrency:
 # The unit job is deliberately still named `test`: it is the branch-protection
 # required check, and renaming it would silently disable protection on main.
 jobs:
+  # NOTE: do not add a `name:` to this job. Branch protection on main requires
+  # a check literally called "test", and a `name:` overrides the check name --
+  # setting it to "test (unit + lint)" makes the required check never report,
+  # so PRs wait forever on a status that no longer exists. Verified with:
+  #   gh api repos/<owner>/<repo>/branches/main/protection   #     --jq '.required_status_checks.contexts'   ->  ["test"]
   test:
-    name: test (unit + lint)
     runs-on: ubuntu-latest
     # No DATABASE_URL / TEST_DATABASE_URL on purpose. tests/unit must stay
     # runnable with no external service reachable — tests/unit/test_gate.py and
@@ -37,7 +41,6 @@ jobs:
       - run: pytest tests/unit -v
 
   integration:
-    name: integration (Neon test branch)
     runs-on: ubuntu-latest
     env:
       TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
