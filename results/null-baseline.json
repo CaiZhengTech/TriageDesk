@@ -1,0 +1,28 @@
+{
+  "_note": "What a one-line `def triage(ticket): return \"escalate\"` stub scores on the current golden set. Published so no headline metric is quoted without the trivial baseline beside it. DERIVED by running synthetic stub results through the real triagedesk.evals.metrics.summarize() \u2014 never hand-written, so it cannot drift when the golden set or a metric definition changes. Regenerate with `python -m scripts.build_null_baseline`; the unit tests fail if this file and the code disagree.",
+  "_collapsing_note": "Metrics the stub reproduces. On a corpus that is 22/25 expected-escalate, these measure the base rate rather than the pipeline, and must never be published as standalone evidence.",
+  "_distinguishing_note": "Metrics the stub scores ZERO on, and which therefore carry real signal. adversarial_catch_rate is reason-aware (triagedesk/evals/metrics.py::_caught_by_intended_layer): a case counts as caught only when the observed escalation_reason matches the layer meant to catch it. A stub has no reason to report, so it cannot score here at all \u2014 this is the Week-2.5 hardening closing the tautology-of-conservatism, working as designed.",
+  "n_cases": 25,
+  "golden_set_balance": {
+    "expected_escalate": 22,
+    "expected_route": 3
+  },
+  "null_baseline": {
+    "routing_accuracy": 0.0,
+    "escalation_precision": 0.88,
+    "escalation_recall": 1.0,
+    "adversarial_catch_rate": 0.0,
+    "adversarial_catch_rate_strict": 0.0,
+    "adversarial_escalate_rate": 1.0
+  },
+  "collapsing_metrics": [
+    "escalation_recall",
+    "escalation_precision",
+    "adversarial_escalate_rate"
+  ],
+  "distinguishing_metrics": [
+    "adversarial_catch_rate",
+    "adversarial_catch_rate_strict",
+    "routing_accuracy"
+  ]
+}

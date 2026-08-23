@@ -233,11 +233,17 @@ budget. Each cut is a talking point, not a gap:
 
 ## The numbers (live, as of Week 3 — in progress)
 
-| Metric | Value |
-|---|---|
-| **Adversarial catch rate (design-intent)** | **5 / 5 = 100%** — every trap stopped by a layer designed to stop it (documented equivalence policy) |
-| **Adversarial catch rate (strict, per-primary-layer)** | **3 / 5 = 0.60** — the honest diagnostic: two traps were caught by backstops, not their primary layer; regression-guarded in CI so it can only improve visibly |
-| **Escalation recall** | **1.0** — nothing needing a human slipped through (precision 0.88) — real, but partly a product of total conservatism; that's exactly why the strict catch rate exists |
+*Every row carries what a one-line `return "escalate"` stub scores on the same golden
+set — derived in `results/null-baseline.json`, printed on every suite run. On a corpus
+that is 22-of-25 expected-escalate, some metrics are just the base rate wearing a
+metric's name.*
+
+| Metric | Value | Null stub |
+|---|---|---|
+| **Adversarial catch rate (design-intent)** | **5 / 5 = 1.00** | **0.00** — the stub cannot name a catching layer, so this one is real |
+| **Adversarial catch rate (strict, per-primary-layer)** | **3 / 5 = 0.60** | **0.00** — the honest diagnostic: two traps were caught by backstops, not their primary layer; regression-guarded in CI so it can only improve visibly |
+| Escalation recall | 1.00 | **1.00** — ⚠️ not distinguishing: a stub that escalates everything never misses one |
+| Escalation precision | 0.88 | **0.88** — ⚠️ not distinguishing: this is the corpus's 22/25 base rate |
 | Real tickets in the database | 11,922 (public Kaggle dataset, English) |
 | Golden evaluation set | 25 cases (20 stratified real + 5 authored adversarial) |
 | Judge calibration (v1, tool-blind) | 41 blind human labels · raw agreement 0.512 · **kappa 0.279** (stricter than human in 18/20 disagreements — fails safe) |
@@ -277,9 +283,15 @@ are for your reference; strip them before pasting.
   loop, and a multi-signal confidence gate. *(`triagedesk/pipeline/`)*
 - Designed the evaluation layer as the primary artifact: a **25-case golden set with 5
   authored adversarial traps** and a CI eval gate with a $1 in-workflow cap; holds a
-  **100% design-intent adversarial catch rate (5/5)** and **escalation recall 1.0 /
-  precision 0.88**, regression-guarded on every behavior-relevant merge.
-  *(`results/eval-baseline.json`)*
+  **100% design-intent adversarial catch rate (5/5)** — a reason-aware metric a
+  trivial always-escalate baseline scores **0** on — regression-guarded on every
+  behavior-relevant merge.
+  *(`results/eval-baseline.json`, `results/null-baseline.json`)*
+- **Published the trivial baseline beside every headline metric** after finding that two
+  of them (escalation recall 1.0, precision 0.88) were reproduced exactly by a one-line
+  `return "escalate"` stub on a corpus that is 22-of-25 expected-escalate; retracted
+  those as standalone evidence and automated the comparison so it cannot silently lapse.
+  *(`triagedesk/evals/null_baseline.py`)*
 - Calibrated an LLM-as-judge against **41 blind human labels**, root-caused weak agreement
   (**Cohen's κ = 0.279**) to the judge being tool-blind, and verified the fix improved it
   **invariantly across two independent label rounds** (κ 0.279 → 0.418); then measured
