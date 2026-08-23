@@ -50,6 +50,42 @@ measured offline shows up in live runs.
 ⚠️ **n=1, on a ticket authored the same day.** This is a *capability existence
 proof*, never a resolution rate. Do not quote it as one — see #68.
 
+### Shipped 2026-08-23 — evidence and correctness batch
+
+| # | What | Cost |
+|---|---|---|
+| #68 | **Null baseline published beside every metric.** Derived through the real `summarize()`, printed on every suite run with a `NOT DISTINGUISHING` marker. | $0 |
+| #76 | Landing copy no longer claims nothing auto-resolves. | $0 |
+| — | **CI split into `test` (unit) and `integration`.** 266 of 290 tests (92%) now run with no external service reachable. | $0 |
+| — | Pinned `voyageai<1.0` — same unpinned-major class as the #71 outage. | $0 |
+
+**The #68 correction worth knowing:** the design-intent adversarial catch rate does
+**not** collapse to a stub. It is reason-aware, so a stub with no `escalation_reason`
+scores 0.00. Three metrics collapse — `escalation_recall` (1.00),
+`escalation_precision` (0.88, which is the 22/25 base rate), and
+`adversarial_escalate_rate` (1.00). Three carry real signal — both catch rates and
+`routing_accuracy`.
+
+`PITCH.md:128` already recorded the insight from Week 2.5 ("a system that blindly
+escalates everything would score 100%"). It was applied to one metric; this extended it
+to the rest. The résumé bullet was rewritten accordingly.
+
+**One near-miss worth recording:** the CI split initially set `name:` on the jobs, which
+overrides the *check* name — and branch protection on main requires a check literally
+called `test`. That would have left PRs waiting forever on a status that no longer
+existed, silently disabling protection rather than failing loudly. Caught before merge;
+the constraint and its verification command are now a comment in `ci.yml`.
+
+### 🔴 #61 is now the critical path
+
+`EVAL_DATABASE_URL` points at a deleted Neon branch, so the eval gate has been
+**non-functional through every gate change this week** — it dies at `alembic upgrade
+head` before spending anything. Queued behind it: #75 (re-derive the stale baseline),
+the risk-coverage curve, and any claim that this week's gate changes did not regress
+anything.
+
+Needs the Neon dashboard: create a dedicated eval branch, migrate it, repoint the secret.
+
 ### Gate behaviour, verified live (2026-08-21)
 
 | Ticket | Outcome | Why |

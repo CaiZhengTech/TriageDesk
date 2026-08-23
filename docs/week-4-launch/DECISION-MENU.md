@@ -3,11 +3,17 @@
 **Purpose:** one place to decide what ships and what gets cut, rather than tracking
 recommendations across a dozen issues and reports. Council-ready.
 
+> **STATUS 2026-08-23 — Tier 1 and Tier 2's first item are DONE.** Shipped: #68
+> (null baseline, derived + automated), #76 (landing copy), the CI unit/integration
+> split, and the `voyageai` pin. **#61 is now the critical path** — #75, the
+> risk-coverage curve, and the re-baseline all queue behind it, and it needs the Neon
+> dashboard.
+
 **Constraints as of 2026-08-22:** ~**$8.5 of $20** remaining. Two planned deliverables
 never started (#17 demo video, #18 case study). Job-hunt cycle is the deadline.
 
 **State:** live on Northflank, database rebuilt, **2 of 4 demo tickets auto-resolve**,
-both escalations are genuine denials. 278 tests green.
+both escalations are genuine denials. 290 tests green.
 
 ---
 
@@ -46,19 +52,19 @@ expected-escalate golden case that now completes drops `escalation_recall` below
 *which case moved and is that defensible*.
 
 ### 1.3 · #76 — landing page says "nothing auto-resolves"
-**Cost:** $0 · **Risk:** none · **Recommend: DO** (mobile-friendly)
+**Cost:** $0 · ✅ **DONE** (PR #78)
 
 Latent, not active: renders only when the last 50 runs contain zero completions — i.e.
 after a fresh bootstrap, exactly when a visitor most needs an accurate explanation.
 
 ### 1.4 · Pin `voyageai>=0.3`
-**Cost:** $0 · **Risk:** none · **Recommend: DO**
+**Cost:** $0 · ✅ **DONE** (PR #78)
 
 Same unpinned-major-version class as #71, which took production down for an afternoon.
 Lower blast radius (build-time scripts, not the request path) but identical latent failure.
 
 ### 1.5 · Split CI into unit and integration jobs
-**Cost:** $0, ~1h · **Risk:** none · **Recommend: DO**
+**Cost:** $0, ~1h · ✅ **DONE** (PR #78) — 266 of 290 tests (92%) now run with no external service
 
 CI runs `alembic upgrade head` before `pytest`, so **~250 database-free unit tests cannot
 run when an external free-tier service is down**. During the Neon outage a doc typo was
@@ -69,12 +75,17 @@ unmergeable. Would have helped twice this week.
 ## Tier 2 — Evidence. Making claims match reality.
 
 ### 2.1 · #68 — publish the null baseline
-**Cost:** $0 · **Risk:** none · **Recommend: DO FIRST, ahead of everything**
+**Cost:** $0 · ✅ **DONE** (PR #77)
 
-Verified arithmetic: on a 22-escalate/3-route golden set, `return "escalate"` scores
-escalation recall 1.00, precision 0.88, adversarial catch 5/5 — **identical to what the
-README publishes**. The strict 3/5 catch rate does *not* collapse to the stub and is
-currently the only headline safety number that distinguishes the system from it.
+On a 22-escalate/3-route golden set, `return "escalate"` scores escalation recall 1.00
+and precision 0.88 — **identical to what the README published**. Both are now marked
+as base-rate artifacts rather than evidence about the pipeline.
+
+**Correction found while implementing:** the design-intent adversarial catch rate does
+**not** collapse — it is reason-aware, so a stub with no `escalation_reason` scores
+0.00. Three metrics collapse (recall, precision, `adversarial_escalate_rate`); three
+carry real signal. `PITCH.md:128` shows the insight was already had in Week 2.5 and
+applied to one metric; this extended it to the rest.
 
 An interviewer finds this in thirty seconds. *"My headline metrics were reproducible by a
 one-line stub, so I retracted them and published the baseline"* is a self-falsification
