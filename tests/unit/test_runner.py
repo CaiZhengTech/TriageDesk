@@ -244,3 +244,35 @@ def test_unexpected_exception_maps_to_failed(monkeypatch):
     assert run.state == "failed"
     assert run.escalation_reason == "unexpected:RuntimeError"
     assert "RuntimeError" in run.internal_rationale
+
+
+# --- provider errors must not be labelled "unexpected" (#81) ---------------
+
+def test_embedding_rate_limit_is_recorded_as_an_api_error_not_unexpected(monkeypatch):
+    """Real production defect. Four inbound runs died with
+    `unexpected:RateLimitError` after Voyage's free-tier ceiling, because the
+    runner only recognised `anthropic.APIError` and Voyage raises its own
+    exception hierarchy.
+
+    A provider rate limit is the most EXPECTED failure a hosted pipeline has.
+    Labelling it `unexpected:` sends whoever reads the trace hunting for a bug
+    that isn't there — the trace is the product here, so a misleading reason is
+    a real defect, not cosmetics."""
+    import voyageai.error as voyage_error
+
+    monkeypatch.setattr(runner, "run_precheck",
+                        lambda ticket, tracer: PrecheckVerdict(safe=True))
+    monkeypatch.setattr(runner, "run_classify",
+                        lambda ticket, tracer: ClassifyResult(queue="IT Support",
+                                                              category="vpn"))
+
+    def rate_limited(ticket, tracer, session):
+        raise voyage_error.RateLimitError("3 RPM and 10K TPM")
+
+    monkeypatch.setattr(runner, "run_retrieve", rate_limited)
+
+    run = runner.run_ticket(3, FakeSession())
+
+    assert run.state == "failed"
+    assert run.escalation_reason == "api_error:RateLimitError"
+    assert "unexpected" not in run.escalation_reason
