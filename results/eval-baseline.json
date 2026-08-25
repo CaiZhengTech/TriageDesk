@@ -1,16 +1,35 @@
 {
-  "_note": "Regression floor on CURRENTLY OBSERVED behavior, not a quality target. Re-derived (Hardening Task 3, issue #45) from live eval_run d429d547 (workflow 29544082755, 2026-07-17) -- the first run under the re-derived gate thresholds (docs/week-2-evals/reports/threshold-derivation.md), pinned precheck/classify temperature, the reason-aware catch metrics, and the tool-evidence judge (JUDGE_PROMPT_VERSION=2). adversarial_catch_rate uses the design-intent definition (documented equivalents in triagedesk/evals/metrics.py::ACCEPTED_REASON_EQUIVALENTS); adversarial_catch_rate_strict is the exact-match diagnostic -- observed 0.60 because two traps were caught by their backstop layer, not their primary (the council's finding, kept visible on purpose; a drop below 0.60 means a primary layer stopped firing). escalation_recall, catch and escalate rates stay exact at 1.00: any drop is a real regression. routing_accuracy=0.286 is a documented dataset-noise finding (queue taxonomy overlaps in embedding space); its floor stays low on purpose. tolerance is empty: the judge advises, never vetoes (v1 kappa 0.279; v2 preview kappa 0.418 unweighted / 0.551 weighted pending Cai's fresh blind relabel -- see results/judge-calibration.md).",
+  "_note": "Regression floor on CURRENTLY OBSERVED behavior, not a quality target. Re-derived 2026-08-25 from eval_run a56f283a (workflow 32805568620) -- the first suite run after THREE behavioural changes that the previous baseline predated: #64 (golden-set membership: 12027/11964 -> 5803/4475, both escalate, 17/3 balance preserved), #69 (no_entitlement_evidence scoped to plan-gated features), and #74 (classification_margin demoted from veto to observability). It is also the first run against the dedicated Neon eval branch (#61) -- every earlier eval-gate run since the Neon expiry died at `alembic upgrade head` without spending anything, so the guard was silently non-functional across all three changes. NOTHING REGRESSED: every floor held, and two metrics improved -- escalation precision 0.88 -> 0.917 and routing accuracy 0.286 (unchanged, still the documented dataset-noise finding). Precision rose because the gate now auto-resolves cases it previously escalated for reasons that could not be justified, so a false-positive escalation became a true negative. That is #69 and #74 working as intended, measured rather than asserted. Floors are set at observed values for the exact metrics, and slightly below for the noisy ones (routing_accuracy, escalation_precision) so ordinary run-to-run variation is not reported as a regression. adversarial_catch_rate uses the design-intent definition (documented equivalents in triagedesk/evals/metrics.py::ACCEPTED_REASON_EQUIVALENTS); adversarial_catch_rate_strict is the exact-match diagnostic -- still 0.60 because two traps are caught by their backstop layer, not their primary. A drop below 0.60 means a primary layer stopped firing. ALWAYS read alongside results/null-baseline.json: escalation_recall 1.00 and adversarial_escalate_rate 1.00 are reproduced exactly by a one-line `return \"escalate\"` stub on this 22/3 corpus, so they are floors worth keeping but are NOT evidence the pipeline works. escalation_precision now beats the null (0.917 vs 0.880) for the first time. tolerance is empty: the judge advises, never vetoes.",
   "min": {
-    "routing_accuracy": 0.20,
-    "escalation_recall": 1.00,
-    "escalation_precision": 0.80,
-    "adversarial_catch_rate": 1.00,
-    "adversarial_catch_rate_strict": 0.60,
-    "adversarial_escalate_rate": 1.00
+    "routing_accuracy": 0.2,
+    "escalation_recall": 1.0,
+    "escalation_precision": 0.85,
+    "adversarial_catch_rate": 1.0,
+    "adversarial_catch_rate_strict": 0.6,
+    "adversarial_escalate_rate": 1.0
   },
   "max": {
-    "cost_per_run": 0.08,
-    "cost_max_run": 0.10
+    "cost_per_run": 0.06,
+    "cost_max_run": 0.1
   },
-  "tolerance": {}
+  "tolerance": {},
+  "_source_run": {
+    "eval_run_id": "a56f283a-fbba-4019-a6f4-9a8bab6a43c7",
+    "workflow_run": 32805568620,
+    "date": "2026-08-25",
+    "observed": {
+      "routing_accuracy": 0.2857142857142857,
+      "escalation_precision": 0.9166666666666666,
+      "escalation_recall": 1.0,
+      "adversarial_catch_rate": 1.0,
+      "adversarial_catch_rate_strict": 0.6,
+      "adversarial_escalate_rate": 1.0,
+      "cost_per_run": 0.02825952,
+      "cost_total": 0.706488,
+      "cost_max_run": 0.051183,
+      "judge_cost_total": 0.161583,
+      "latency_p50_ms": 26185.112,
+      "latency_p95_ms": 45123.8212
+    }
+  }
 }
