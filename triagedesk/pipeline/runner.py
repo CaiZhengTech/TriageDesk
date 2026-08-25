@@ -3,6 +3,7 @@ Every failure mode maps to a terminal state + reason. Spans are already on
 disk if anything here crashes (incremental writes in RunTracer)."""
 
 import anthropic
+import voyageai.error as voyage_error
 
 from triagedesk.llm import PIPELINE_MODEL, LLMRefusalError, RepairFailedError
 from triagedesk.models import Run, Ticket
@@ -111,7 +112,13 @@ def execute_run(run: Run, session) -> Run:
     except AgentIncompleteError as exc:
         finish_run(session, run, "escalated", reason="agent_incomplete")
         _note(session, run, exc)
-    except anthropic.APIError as exc:
+    # Both providers' error hierarchies, deliberately together. Voyage raises
+    # its own exceptions, so before #81 an embedding rate limit fell through to
+    # the generic handler below and was recorded as `unexpected:RateLimitError`
+    # -- a provider rate limit is the most EXPECTED failure a hosted pipeline
+    # has, and the trace is this project's product, so a reason that sends the
+    # reader hunting for a nonexistent bug is a real defect.
+    except (anthropic.APIError, voyage_error.VoyageError) as exc:
         finish_run(session, run, "failed", reason=f"api_error:{type(exc).__name__}")
         _note(session, run, exc)
     except Exception as exc:
