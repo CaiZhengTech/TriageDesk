@@ -6,7 +6,7 @@ from typing import Literal
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -66,6 +66,28 @@ class ReviewDecisionIn(BaseModel):
 
 class DemoRunIn(BaseModel):
     ticket_id: int
+
+
+# Bounds on untrusted input. Generous enough for a real support ticket (the
+# Kaggle corpus tops out around 4KB) but far below anything that could burn a
+# meaningful number of input tokens. Enforced by the schema, so an oversized
+# body is a 422 before any handler code runs -- and before any spend.
+MAX_SUBJECT_CHARS = 300
+MAX_BODY_CHARS = 8000
+
+
+class TicketIn(BaseModel):
+    """An inbound ticket from outside the system. Every field is untrusted."""
+
+    subject: str = Field(min_length=1, max_length=MAX_SUBJECT_CHARS)
+    body: str = Field(min_length=1, max_length=MAX_BODY_CHARS)
+
+    @field_validator("subject", "body")
+    @classmethod
+    def _not_only_whitespace(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("must not be empty or whitespace-only")
+        return v
 
 
 @app.get("/health")
@@ -192,6 +214,87 @@ def api_demo_run(
 
     background_tasks.add_task(_execute_demo_run, run.id)
     return {"run_id": str(run.id)}
+
+
+@app.post("/api/tickets", status_code=202)
+def api_intake(
+    body: TicketIn,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    x_intake_token: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Accept a ticket from outside the system and run it through the pipeline.
+
+    THIS IS THE ONLY ENDPOINT THAT ACCEPTS UNTRUSTED TEXT AND SPENDS MONEY.
+    Everywhere else is safe because it reads a fixed server-side allowlist --
+    `/api/demo/run` calls `get_demo_ticket` first, so a caller can only name a
+    ticket the operator seeded. Intake removes that property deliberately, which
+    is the point (the pre-check stage exists to screen untrusted input and had
+    never seen any) and also the risk. Hence the guards, in this order:
+
+      1. shared secret, fail-closed when unset
+      2. per-IP rate limit -- AFTER auth, so an unauthenticated flood cannot
+         burn a legitimate caller's quota
+      3. daily spend cap, re-checked inside the dispatch lock
+      4. length bounds, enforced by TicketIn before this function is entered
+
+    Nothing is persisted and nothing is spent until every guard passes: the
+    ticket row is created inside the lock alongside the run, so a blocked
+    request leaves no orphan rows behind.
+    """
+    # 1. Auth first. An unset token means 503, never open -- same fail-closed
+    #    rule as the review endpoint.
+    if not settings.intake_token:
+        raise HTTPException(status_code=503, detail="intake token not configured")
+    if x_intake_token != settings.intake_token:
+        raise HTTPException(status_code=401, detail="invalid intake token")
+
+    with _dispatch_lock:
+        host = request.client.host if request.client else "unknown"
+        # 2. Rate limit. Shares the demo's limiter: one caller should not get a
+        #    fresh quota just by switching doors.
+        if not _demo_rate_limiter.check(
+            host, datetime.now(UTC), settings.intake_rate_limit_per_hour
+        ):
+            return JSONResponse(
+                status_code=429, content={"paused": False, "reason": "rate_limited"}
+            )
+
+        # 3. Daily cap. Also shared with the demo -- two doors, one wallet.
+        if daily_cap_would_be_exceeded(
+            db, datetime.now(UTC), settings.demo_daily_cap_usd, settings.cost_cap_usd
+        ):
+            return JSONResponse(
+                status_code=402,
+                content={"paused": True, "reason": "daily_budget_reached"},
+            )
+
+        # source='inbound' keeps untrusted text out of the curated demo pool
+        # (which filters on source='demo'), so an inbound ticket can never
+        # become a one-click button for a visitor.
+        ticket = Ticket(subject=body.subject, body=body.body,
+                        queue="General Inquiry", language="en", source="inbound")
+        db.add(ticket)
+        db.commit()
+        db.refresh(ticket)
+        run = create_run(ticket.id, db)
+
+    background_tasks.add_task(_execute_inbound_run, run.id)
+    return {"run_id": str(run.id), "ticket_id": ticket.id}
+
+
+def _execute_inbound_run(run_id) -> None:
+    """Background half of intake dispatch. Same shape as the demo's: the
+    request-scoped session dies with the response, so this opens its own."""
+    session = SessionLocal()
+    try:
+        run = session.get(Run, run_id)
+        if run is None:
+            return
+        execute_run(run, session)
+    finally:
+        session.close()
 
 
 def _execute_demo_run(run_id) -> None:

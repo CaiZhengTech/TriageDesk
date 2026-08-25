@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     log_json: bool = False
     demo_daily_cap_usd: float = 1.00
     demo_rate_limit_per_hour: int = 5
+    # Untrusted ticket intake (POST /api/tickets). A SEPARATE secret from
+    # admin_token on purpose: the intake token goes to whatever forwards
+    # tickets in (mail gateway, helpdesk webhook), the admin token goes to
+    # the human reviewer. Different actors, independent rotation, and a
+    # leaked intake token cannot approve a reply. Unset => endpoint 503s.
+    intake_token: str = ""
+    intake_rate_limit_per_hour: int = 20
 
 
 settings = Settings()
