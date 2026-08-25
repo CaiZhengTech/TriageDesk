@@ -50,6 +50,64 @@ measured offline shows up in live runs.
 ⚠️ **n=1, on a ticket authored the same day.** This is a *capability existence
 proof*, never a resolution rate. Do not quote it as one — see #68.
 
+### Shipped 2026-08-25 — the eval gate works again, and nothing regressed
+
+**#61 — dedicated Neon `eval` branch.** Host `ep-winter-paper-ats1h5wu`, verified
+distinct from prod and test, migrated and seeded, `EVAL_DATABASE_URL` repointed. Every
+eval-gate run since the Neon expiry had died at `alembic upgrade head` without spending
+anything, so the regression guard was **silently non-functional across #64, #69 and
+#74** — three behavioural changes merged with nothing checking them.
+
+**#75 — baseline re-derived. EVERY FLOOR HELD.**
+
+| metric | floor | observed |
+|---|---|---|
+| routing_accuracy | 0.20 | **0.286** |
+| escalation_recall | 1.00 | **1.000** |
+| escalation_precision | 0.80 | **0.917** (was 0.88) |
+| adversarial_catch_rate | 1.00 | **1.000** |
+| adversarial_catch_rate_strict | 0.60 | **0.600** |
+| cost_per_run | ≤$0.08 | **$0.0283** |
+
+The #75 worry — that a looser gate would drop recall below 1.00 and block merges — did
+not materialise. The cases that now auto-resolve are ones that *should* route, so recall
+is untouched and precision **rose**: a false-positive escalation became a true negative.
+#69 and #74 working as designed, measured rather than asserted. `escalation_precision`
+now beats the null baseline (0.917 vs 0.880) for the first time.
+
+**#79 — cost per accepted task, on 13 runs of real history:**
+
+```
+API spend            $0.4368
+human review labour  $30.00     (6 min @ $30/h, 10 escalations)
+TOTAL                $30.44
+cost per accepted task  $15.22
+deflection rate         15.4%
+break-even deflection    1.12%
+```
+
+**Labour is 98.6% of the bill.** This reframes the optimization research: model cascading
+was declined for targeting 8.6% of API spend — and API spend is 1.4% of total cost, so
+the literature's flagship optimization addresses ~**0.1%** of what this system costs to
+run. The lever that matters is the escalation rate, which is gate design, not model
+selection. Break-even at 1.12% means the pipeline pays for itself deflecting 1 ticket in
+89; at 15.4% it is ~14x past that.
+
+⚠️ Caveat carried in the code: assumes reviewing a draft is not *slower* than answering
+from scratch. Unmeasured, and it is the assumption that would invalidate the result.
+
+**Ingest guard, found the hard way.** Bootstrap failed partway while seeding the eval
+branch, was re-run with `--force`, and ingest ran twice. Ticket ids encode insertion
+order and `golden_expectations.json` names tickets by id — so the second pass appended a
+full copy at ids 11923+, and `build_calibration_pool` (which samples at runtime) drew
+**14 of 25 cases from phantom rows**. The golden 20 survived only because their ids are
+committed to a file. `ingest_tickets` now refuses a second pass without `--reingest`.
+
+### ✅ Tier 1 and Tier 2 of the decision menu are COMPLETE
+
+Remaining: **#17 (demo video)** and **#18 (case study)** — the actual deliverables — plus
+optional Tier 3. Budget ~$7.2 of $20.
+
 ### Shipped 2026-08-23 — evidence and correctness batch
 
 | # | What | Cost |

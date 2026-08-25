@@ -3,7 +3,12 @@
 **Purpose:** one place to decide what ships and what gets cut, rather than tracking
 recommendations across a dozen issues and reports. Council-ready.
 
-> **STATUS 2026-08-23 — Tier 1 and Tier 2's first item are DONE.** Shipped: #68
+> **STATUS 2026-08-25 — TIER 1 AND TIER 2 ARE COMPLETE.** #61 (eval branch), #75
+> (baseline re-derived, every floor held, precision improved 0.88 -> 0.917), #79
+> (cost per accepted task: labour is 98.6% of the bill). Only the deliverables and
+> optional Tier 3 remain.
+>
+> _Earlier: Tier 1 and Tier 2's first item were DONE._ Shipped: #68
 > (null baseline, derived + automated), #76 (landing copy), the CI unit/integration
 > split, and the `voyageai` pin. **#61 is now the critical path** — #75, the
 > risk-coverage curve, and the re-baseline all queue behind it, and it needs the Neon
@@ -33,7 +38,7 @@ below are pure B and are marked as such — they are the ones to cut first if ti
 ## Tier 1 — Correctness. Things that are currently wrong.
 
 ### 1.1 · #61 — eval-gate points at a deleted Neon branch
-**Cost:** $0 + Neon dashboard access · **Risk:** none · **Recommend: DO**
+**Cost:** $0 + Neon dashboard access · ✅ **DONE** (PR #79)
 
 The eval gate has been **silently non-functional through every gate change this week**.
 It fires on `triagedesk/**`, so #70 and #74 both triggered it; both died at
@@ -41,7 +46,7 @@ It fires on `triagedesk/**`, so #70 and #74 both triggered it; both died at
 decorative since the Neon expiry.
 
 ### 1.2 · #75 — `eval-baseline.json` is stale, and #61 will unmask it
-**Cost:** ~$0.90 (one golden suite run) · **Risk:** may reveal a real regression · **Recommend: DO, immediately after 1.1**
+**Cost:** ~$0.87 actual · ✅ **DONE** (PR #79) — every floor held; precision improved 0.88 -> 0.917
 
 Three changes invalidated the recorded floors: #64 (membership), #69 (entitlement
 scoping), #74 (margin demoted). The gate is now more willing to auto-resolve, so any
@@ -103,7 +108,7 @@ coverage ≈ 0** — which is why a stub reproduces it. A curve cannot be faked 
 ⚠️ Computed against kappa-0.212 labels, so it carries that error bar and must say so.
 
 ### 2.3 · Cost per accepted task
-**Cost:** $0 · **Risk:** none · **Recommend: DO**
+**Cost:** $0 · ✅ **DONE** (PR #79) — labour is **98.6%** of total cost
 
 The literature's own metric: per-token cost is misleading when a cheaper model sends more
 work to humans. This project has a real review queue and `review_decisions` — so it can
