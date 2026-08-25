@@ -17,8 +17,17 @@ with a test proving it fires BEFORE any spend.
 | A megabyte body burns input tokens | length bounds on subject and body, enforced by the schema |
 | Empty/whitespace ticket wastes a run | non-empty validation |
 
-The ordering matters and is asserted: auth is checked before the rate limiter,
-so an unauthenticated flood cannot consume a legitimate caller's quota.
+ORDERING
+--------
+Two orderings, both verified against live production:
+
+  schema -> auth   FastAPI validates the body while parsing the request, so an
+                   oversized payload is a 422 before the handler is entered and
+                   before any token comparison. Cheaper, and fine: nothing is
+                   persisted and nothing is spent either way.
+  auth -> limiter  Asserted below. If the limiter ran first, an unauthenticated
+                   flood would burn the per-IP quota a legitimate caller shares
+                   -- a denial of service achievable with no credentials.
 """
 
 import uuid
