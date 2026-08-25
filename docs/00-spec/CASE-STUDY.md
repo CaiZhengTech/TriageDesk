@@ -144,6 +144,64 @@ what was retrieved, what the tools returned, what the reply actually says.
 
 ---
 
+## Then I let real tickets in
+
+For most of the project nothing *arrived*. A human clicked Run on a curated pool — which
+meant the pre-check stage, the injection/PII screen that is stage one of the pipeline, had
+**never run against untrusted input**. Zero of 13 production runs had ever stopped there.
+
+So I built an intake endpoint and pointed hostile traffic at it. `POST /api/tickets`
+accepts arbitrary text and dispatches the paid pipeline, which deliberately inverts the
+trust model — every other endpoint is safe because it reads a fixed server-side allowlist.
+Each guard is therefore a named threat with a test proving it fires *before any spend*:
+shared secret (fail-closed), per-IP rate limit, daily cap re-checked inside the dispatch
+lock, schema-enforced length bounds. Auth is asserted to run **before** the rate limiter —
+otherwise an unauthenticated flood burns a legitimate caller's quota, a denial of service
+needing no credentials.
+
+Then 13 payloads: 4 injection, 3 PII exfiltration, 3 off-topic, and **3 controls** —
+legitimate tickets that superficially resemble attacks.
+
+| | result |
+|---|---|
+| Attacks caught by the layer built for them | **10 / 10** |
+| False positives on the controls | **0 / 3** |
+
+The controls are the half that makes it deployable. A screen that catches injections by
+flagging an angry customer on their third contact is useless, so "does it leave real
+tickets alone" is tested as deliberately as "does it catch attacks."
+
+**And safety turns out to be nearly free:**
+
+| outcome | avg cost |
+|---|---|
+| attack stopped at pre-check | **$0.0021** |
+| customer served end to end | **$0.0332** |
+
+Rejecting an attack costs **6%** of serving a customer — a design consequence, not luck.
+The screen runs first, so a caught payload never reaches retrieval or the act loop, the
+stages holding 91% of the cost. Safety being cheap is what makes running it on every
+ticket defensible.
+
+### What real traffic broke, within minutes
+
+The batch of 12 genuine tickets produced **4 failures**, all at `retrieve`, all Voyage's
+free-tier rate limit. Two defects, neither visible before:
+
+- **No retry on the embedding path.** My stated policy — *"retries: 429/5xx, backoff,
+  max 3"* — was implemented for Anthropic and not for Voyage. One provider hardened, one
+  forgotten.
+- **The failure was labelled `unexpected:`.** A provider rate limit is the most *expected*
+  failure a hosted pipeline has. The trace is this project's product, so a reason that
+  sends the reader hunting for a nonexistent bug is a defect.
+
+Both fixed. **The gap had existed for four weeks and was invisible to 323 passing tests.**
+It surfaced within minutes of tickets arriving unattended — because concurrency is a
+property of *arrival*, and nothing about a click-to-run demo produces it.
+→ `docs/week-4-launch/reports/intake-first-untrusted-traffic.md`
+
+---
+
 ## Five things I got wrong
 
 Each was found by measurement, and each has a commit.
@@ -279,6 +337,10 @@ second rater, not more tuning.
 | Semantic caching | Needs query repetition; a demo pool has none. |
 | Real OTel export | Spans use `gen_ai.*` conventions in Postgres — the naming is the portable part. |
 
+**Still unbuilt:** a queue. Inbound tickets dispatch straight to background tasks, which
+is why 12 concurrent arrivals hit a provider rate limit. Retry absorbs it now; real volume
+would need a proper queue with concurrency control.
+
 **Extractions I'd ship next, and haven't:** the null-baseline harness is ~200 lines and
 reusable by any team whose eval suite has never been checked against a constant predictor.
 The taxonomy-separability audit — embed your label set, compute mean pairwise centroid
@@ -294,10 +356,11 @@ number in this document, and it needs a person, not money.
 
 | | |
 |---|---|
-| API spend | **~$13 of $20**, no top-ups |
-| Tests | **323**, gating every merge |
+| API spend | **~$13.4 of $20**, no top-ups |
+| Tests | **329**, gating every merge |
 | Per-run cost | $0.028 avg, hard-capped at $0.10, fail-closed |
 | Latency | p50 26.2s |
+| Production runs | 39, including 15 blocked attacks |
 
 `results/` holds the artifacts, `docs/week-4-launch/reports/` holds the measurements, and
 the scripts that generate them are committed. Every figure is reproducible.
