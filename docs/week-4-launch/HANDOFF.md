@@ -38,8 +38,28 @@ it is created. Fourth instance of this failure; the first that was unrecoverable
 
 **Spend this session: $0.** No eval-path files touched, so the gate did not fire.
 
-**Remaining for #18:** one console screenshot for the README, then #17 (video),
-which needs Cai. Nothing else is blocked.
+**#18 is DONE** — all four acceptance criteria met (case study, `results/`,
+adversarial catch rate standalone, README as the 90-second entry point with the
+console screenshot above the fold). Left open only because it declares a
+dependency on #17.
+
+**#81 verified in production (2026-08-26).** The retry had shipped but was never
+proven under the conditions that broke it. Re-sent the same five tickets at
+1-second intervals against a 3 RPM ceiling: **5/5 completed, zero
+RateLimitError**, against four failures before. Run ids and costs are in
+`reports/intake-first-untrusted-traffic.md`. Cost **$0.1297**.
+
+**ONLY #17 (demo video) REMAINS.** It needs Cai at a screen. Script, already
+settled: hostile ticket arrives unattended → stopped at pre-check for $0.002 →
+a clean ticket runs all five stages → open its trace. The demo pause banner has
+a placeholder waiting for the video URL.
+
+**Open question for Cai (not actioned):** branch protection has
+`enforce_admins: false`, so admin pushes bypass the required `test` check —
+which is how one docs commit reached `main` directly this week. Given this repo
+already has an incident on record for protection being silently disabled,
+consider `enforce_admins: true`. It would bind Cai too, so it was flagged rather
+than changed.
 
 ---
 
