@@ -1,9 +1,10 @@
 # RESUME HERE — Week 4 state + how to continue
 
-**Any new session starts with this file.** Last updated: 2026-07-21 — **#56
-and #58 both CLOSED, merged to `main`, deployed and verified live.**
+**Any new session starts with this file.** Last updated: 2026-08-25 — intake
+endpoint live (#80), embedding retry shipped (#81), `results/` finalized (#18).
 Console: https://triage-desk-xi.vercel.app · API:
-https://agenticproject-production.up.railway.app.
+https://site--triagedesk-api--26d8jdlxzvsv.code.run (Northflank — Railway is gone;
+older Railway URLs below and in `week-3-console/` are historical deploy records).
 
 > The **operating manual** (environment facts, per-task choreography, budget
 > rules, binding decisions) lives in

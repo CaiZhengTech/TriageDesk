@@ -1,0 +1,40 @@
+{
+  "_note": "Ticket text deliberately excluded; only labels are committed. See results/judge-calibration.md for what each round supports.",
+  "n_cases": 41,
+  "round_1": {
+    "status": "COMPLETE \u2014 reproduces the published v1 confusion matrix exactly",
+    "source": "judge_labels.csv (local, git-ignored: contains ticket text)",
+    "marginals": {
+      "pass": 26,
+      "fail": 13,
+      "needs_review": 2
+    },
+    "published_marginals": {
+      "pass": 26,
+      "fail": 13,
+      "needs_review": 2
+    }
+  },
+  "round_2_partial": {
+    "status": "INCOMPLETE \u2014 a mid-labeling snapshot, NOT the set the published v2 kappa was computed from",
+    "source": "judge_labels_v2.csv (local, git-ignored)",
+    "marginals": {
+      "pass": 28,
+      "fail": 11,
+      "needs_review": 2
+    },
+    "published_marginals": {
+      "pass": 34,
+      "fail": 5,
+      "needs_review": 2
+    },
+    "why_lost": "The completed round-2 labels were imported to eval_results.human_label and were destroyed when the Neon branch expired (#64). eval_results is now empty."
+  },
+  "self_agreement_from_surviving_files": {
+    "cohens_kappa": 0.1861,
+    "flips": 16,
+    "published_kappa": 0.212,
+    "published_flips": 14,
+    "interpretation": "Close to but not equal to the published 0.212, consistent with a snapshot taken partway through round 2. Quote the published figure as archived, not as reproducible."
+  }
+}

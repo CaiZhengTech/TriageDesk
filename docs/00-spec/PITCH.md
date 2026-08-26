@@ -202,12 +202,13 @@ a logged run — nothing here is aspirational.*
 > merges without green checks."
 
 **On honest limitations (say this proactively — it builds trust):**
-> "Right now nothing auto-resolves — and my metrics can finally say precisely why: not
-> the thresholds (those are now derived from held-out data and reachable), but the
-> model's own conservatism and my entitlement-receipt rule. My 'escalation recall 1.0'
-> is real but partly a consequence of total conservatism — which is why my baseline
-> also tracks the strict per-layer catch rate, the number that can't be gamed by
-> escalating everything."
+> "My honest number is the one I can't fake. Escalation recall 1.0 sounds great until
+> you notice a one-line stub that escalates everything scores 1.0 too — my golden set is
+> 22-of-25 expected-escalate, so that metric measures the corpus, not my pipeline. I
+> print that comparison on every eval run so I can't fool myself. The number a stub
+> can't reproduce is the reason-aware adversarial catch rate: a case only counts as
+> caught when the layer that was *supposed* to stop it is the one that did. Stub scores
+> zero there. Mine is 5 of 5, and 10 of 10 on live untrusted traffic."
 
 ---
 

@@ -84,8 +84,12 @@ local — now also excluded via `.gitignore` alongside the rest of `.superpowers
 - **Key incidents on record:** (1) plan's `structured_call` broken vs real SDK despite green
   mocked tests → SDK-reality rule in plan Global Constraints; (2) strict structured outputs
   need `additionalProperties:false` — caught by a $0 live 400, now regression-tested;
-  (3) both live runs' classification margin was negative (−0.008) — nothing auto-resolves
-  until Week 2 calibration sets real thresholds (deliberate; do not hand-tune).
+  (3) both live runs' classification margin was negative (−0.008), so nothing
+  auto-resolved — RESOLVED in Wk4: root cause was a query/document embedding mismatch
+  (#67), not the thresholds. The repaired margin was then measured against held-out
+  labels, failed to separate (AUC 0.337/0.442, CIs spanning 0.5), and was demoted from
+  veto to observability (#74). The gate now auto-resolves; thresholds were never
+  hand-tuned.
 
 **Spec remains the design record:** `docs/00-spec/DESIGN-SPEC.md`.
 **Data schema (READ BEFORE ANY DB QUERY):** `docs/00-spec/DATA-SCHEMA.md` — every table and
