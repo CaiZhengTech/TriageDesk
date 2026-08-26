@@ -48,35 +48,57 @@ Before implementing it, I measured where my cost actually was:
 | pre-check + classify | 8.6% | 12.1% |
 
 Cascading the cheap stages targets **8.6% of API spend**. Then I measured what the system
-costs to *operate*, across 13 runs of real production history:
+costs to *operate*, across all 45 runs of real production history:
 
 ```
-API spend            $0.44
-human review labour  $30.00     (10 escalations × 6 min @ $30/h)
-TOTAL                $30.44
-cost per accepted task  $15.22
-break-even deflection    1.12%   (actual: 15.4%)
+API spend             $0.93
+human review labour   $111.00    (37 escalations × 6 min @ $30/h)
+TOTAL                 $111.93
+cost per accepted task   $37.31
+break-even deflection     0.69%   (actual: 6.7%)
 ```
 
-**Labour is 98.6% of the bill.** The optimization everyone recommends first would have
-addressed roughly **0.1%** of what this system costs to run.
+**Labour is 99.2% of the bill.** The optimization everyone recommends first would have
+addressed roughly **0.07%** of what this system costs to run.
 
 The lever that matters is the **escalation rate** — which is gate design, not model
 selection.
 
+### Why 6.7% is not the failure it looks like
+
+Three tickets in forty-five resolved without a human. Stated alone, that number reads as a
+system that doesn't work, and I'm not going to state it alone again.
+
+**Break-even is 0.69% deflection.** Above that line, the pipeline costs less than routing
+every ticket to a person. It runs at 6.7% — roughly **ten times past break-even** — and it
+would still pay for itself if it auto-resolved one ticket in every 145.
+
+That is the whole argument for building the gate conservative. Deflection is cheap to buy
+and expensive to get wrong: each auto-resolve saves about $3.00 of review time, and one bad
+auto-resolve — a denial delivered to a customer with no human in the loop — costs more than
+every ticket the system has ever handled. The economics do not ask for a higher rate. They
+ask for the rate to be *correct*, which is why the gate escalates 11 of 20 on the
+adverse-action rule and I have not touched it.
+
+**A number that moved the wrong way, reported anyway:** cost per accepted task rose from
+$15.22 (at 13 runs) to $37.31, because the tickets that arrived since were more
+escalation-heavy than the demo pool. That is the honest trend. It does not change the
+conclusion — break-even fell too, from 1.12% to 0.69% — but a metric that only gets quoted
+while it's improving isn't a metric, it's marketing.
+
 ⚠️ **The labour rate is an assumption, so here is the sweep**, because a conclusion that
 only survives its authors' favourite inputs isn't a conclusion:
 
-| reviewer rate | labour share | break-even deflection |
-|---|---|---|
-| $15/h | 97.2% | 2.24% |
-| $30/h *(used above)* | 98.6% | 1.12% |
-| $60/h | 99.3% | 0.56% |
-| **$15/h at 3 min** *(most aggressive)* | **94.5%** | **4.48%** |
+| reviewer rate | labour share | break-even deflection | cost / accepted task |
+|---|---|---|---|
+| $15/h | 98.4% | 1.38% | $18.81 |
+| $30/h *(used above)* | 99.2% | 0.69% | $37.31 |
+| $60/h | 99.6% | 0.34% | $74.31 |
+| **$15/h at 3 min** *(most aggressive)* | **96.8%** | **2.76%** | **$9.56** |
 
-Even at the most aggressive assumption, labour dominates and the system is past
-break-even. The rate is a CLI flag (`--review-minutes`, `--hourly`) so anyone can
-disagree cheaply.
+Even at the most aggressive assumption, labour dominates and the observed 6.7% clears
+break-even with room to spare. The rate is a CLI flag (`--review-minutes`, `--hourly`) so
+anyone can disagree cheaply.
 → `triagedesk/evals/unit_economics.py`
 
 **The honest caveat:** this assumes reviewing a drafted reply isn't *slower* than
