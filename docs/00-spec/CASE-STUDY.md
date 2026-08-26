@@ -123,6 +123,12 @@ diagnostic, not the headline — a drop below it means a primary layer stopped f
 
 ---
 
+![Judge-human agreement](../../results/judge-vs-human-agreement.svg)
+
+*The whole calibration in one image. The dashed line is my own self-agreement: judge v2
+agrees with my round-1 labels more than I agree with myself. Full record and provenance:
+[`results/`](../../results/README.md).*
+
 ## How the decision is made
 
 ```
@@ -202,7 +208,7 @@ property of *arrival*, and nothing about a click-to-run demo produces it.
 
 ---
 
-## Five things I got wrong
+## Six things I got wrong
 
 Each was found by measurement, and each has a commit.
 
@@ -279,6 +285,45 @@ floor held and precision improved 0.88 → 0.917.** But I didn't know that for a
 
 ---
 
+### 6 · I lost the most expensive artifact in the project
+
+Writing this case study, I went to regenerate the calibration chart from the label files
+and the numbers didn't match. Round 1 reproduced exactly. Round 2 did not: the file on
+disk gives 28 pass / 11 fail / 2 needs-review, and every published round-2 figure was
+computed from 34 / 5 / 2.
+
+The file is a mid-labeling snapshot — saved the evening of 2026-07-16, a day before I
+finished that round. The completed labels went into the database, and the database
+expired while the project sat idle. I checked rather than assumed: `eval_results` now
+holds zero rows.
+
+So the 41 hand-applied labels — the only artifact here that no script can regenerate,
+the thing that cost human hours and encodes a judgment nothing else reproduces — existed
+in exactly two places, and one of them was a free-tier branch with a clock on it. The
+other was one laptop. `.gitignore` had excluded them wholesale on a reasonable-sounding
+rule: *contains ticket text, never commit.*
+
+That rule was right about the ticket text and wrong about the labels. They are different
+things living in one file, and I never separated them. `results/human-labels.csv` now
+commits the labels alone — `result_id` and verdict, a few hundred bytes, no ticket
+bodies. Both halves of the original concern are satisfied, and always could have been.
+
+**What I did about the numbers.** I did not withdraw them and I did not quietly restate
+them. They were computed correctly, from data that existed at the time. They are now
+*archived*: recorded, not re-derivable. The calibration file says so at the top, the
+provenance is machine-readable in `results/human-labels-provenance.json`, and the chart
+draws every round-2 bar hatched so nobody reads it as verified. Round 1 and the finding
+that actually carries the calibration — *the judge improved invariantly, and the human is
+the noisier instrument* — rest on data that survives.
+
+**This is the fourth time.** The Railway start command, the demo pool, and two golden
+test cases were all lost the same way, and I wrote the lesson down each time: *it lived
+outside version control.* I wrote it down three times and still lost the one thing I
+could not rebuild. Writing the lesson is not the same as applying it — the check has to
+run on its own, or it doesn't run.
+
+---
+
 ## The number I can't fix, and won't hide
 
 Routing accuracy against the dataset's own labels is **0.286**. Two independent methods
@@ -318,9 +363,9 @@ report.
 ### And a ceiling on the evaluation itself
 
 My own label self-agreement — relabelling the same 41 replies three days apart — is
-**Cohen's κ = 0.212**, *lower* than the judge's agreement with either round.
+**Cohen's κ = 0.212** (archived; see §6), *lower* than the judge's agreement with either round.
 **Single-rater ground truth is the binding constraint**, not the model. Every confidence
-interval in this project is pinned open by having 39 labels from one person. The fix is a
+interval in this project is pinned open by having 41 labels from one person. The fix is a
 second rater, not more tuning.
 
 ---

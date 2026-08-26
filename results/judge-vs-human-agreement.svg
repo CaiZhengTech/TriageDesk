@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 470" width="940" height="470" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+<defs><pattern id="hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#b9c6cf"/><line x1="0" y1="0" x2="0" y2="6" stroke="#5b6570" stroke-width="2.2"/></pattern></defs>
+<rect width="940" height="470" fill="#ffffff"/>
+<text x="34" y="40" font-size="19" fill="#1b1f24" font-weight="700">Judge-human agreement: the human is the noisier instrument</text>
+<text x="34" y="62" font-size="12.5" fill="#5b6570">Cohen&#8217;s &#954; on 41 blind labels. Same judge, two human label rounds; same human, same 41 replies, 3 days apart.</text>
+<text x="34" y="94" font-size="12" fill="#5b6570" font-weight="700">AGREEMENT (&#954;)</text>
+<line x1="300.0" y1="102" x2="300.0" y2="294" stroke="#d6dbe1" stroke-width="1"/>
+<text x="300" y="314" font-size="10.5" fill="#5b6570" text-anchor="middle">0.0</text>
+<line x1="356.0" y1="102" x2="356.0" y2="294" stroke="#d6dbe1" stroke-width="1"/>
+<text x="356" y="314" font-size="10.5" fill="#5b6570" text-anchor="middle">0.1</text>
+<line x1="412.0" y1="102" x2="412.0" y2="294" stroke="#d6dbe1" stroke-width="1"/>
+<text x="412" y="314" font-size="10.5" fill="#5b6570" text-anchor="middle">0.2</text>
+<line x1="468.0" y1="102" x2="468.0" y2="294" stroke="#d6dbe1" stroke-width="1"/>
+<text x="468" y="314" font-size="10.5" fill="#5b6570" text-anchor="middle">0.3</text>
+<line x1="524.0" y1="102" x2="524.0" y2="294" stroke="#d6dbe1" stroke-width="1"/>
+<text x="524" y="314" font-size="10.5" fill="#5b6570" text-anchor="middle">0.4</text>
+<line x1="580.0" y1="102" x2="580.0" y2="294" stroke="#d6dbe1" stroke-width="1"/>
+<text x="580" y="314" font-size="10.5" fill="#5b6570" text-anchor="middle">0.5</text>
+<text x="288" y="128" font-size="12.5" fill="#1b1f24" text-anchor="end">Judge v2  vs  human round 1</text>
+<rect x="300" y="108" width="234.1" height="30" fill="#2f6f4f" rx="2"/>
+<text x="544" y="128" font-size="13" fill="#1b1f24" font-weight="700">0.418</text>
+<text x="596" y="128" font-size="11" fill="#5b6570">the tool-evidence fix, best case</text>
+<text x="288" y="178" font-size="12.5" fill="#1b1f24" text-anchor="end">Judge v1  vs  human round 1</text>
+<rect x="300" y="158" width="156.2" height="30" fill="#2f6f4f" rx="2"/>
+<text x="466" y="178" font-size="13" fill="#1b1f24" font-weight="700">0.279</text>
+<text x="518" y="178" font-size="11" fill="#5b6570">official v1</text>
+<text x="288" y="228" font-size="12.5" fill="#1b1f24" text-anchor="end">Judge v2  vs  human round 2</text>
+<rect x="300" y="208" width="74.5" height="30" fill="url(#hatch)" rx="2"/>
+<text x="384" y="228" font-size="13" fill="#1b1f24" font-weight="700">0.133</text>
+<text x="436" y="228" font-size="11" fill="#5b6570">official v2 - the quoted number</text>
+<text x="288" y="278" font-size="12.5" fill="#1b1f24" text-anchor="end">Judge v1  vs  human round 2</text>
+<rect x="300" y="258" width="21.3" height="30" fill="url(#hatch)" rx="2"/>
+<text x="331" y="278" font-size="13" fill="#1b1f24" font-weight="700">0.038</text>
+<line x1="418.7" y1="88" x2="418.7" y2="290" stroke="#b4413c" stroke-width="2" stroke-dasharray="5,4"/>
+<text x="426" y="83" font-size="11.5" fill="#b4413c" font-weight="700">human vs. himself, &#954; = 0.212</text>
+<text x="34" y="350" font-size="11.5" fill="#1b1f24"><tspan font-weight="700">Read the dashed line first.</tspan> Judge v2 agrees with the human&#8217;s round-1 labels (0.418) <tspan font-weight="700">more than the human agrees with himself</tspan> (0.212).</text>
+<text x="34" y="368" font-size="11.5" fill="#5b6570">Single-rater ground truth is the measured bottleneck, so the fix is a second rater, not more judge tuning. The judge gates nothing.</text>
+<rect x="34" y="382" width="13" height="13" fill="url(#hatch)" rx="2"/>
+<text x="53" y="393" font-size="11" fill="#5b6570">hatched = archived, not reproducible: the completed round-2 labels were lost with the database (#64)</text>
+<text x="640" y="94" font-size="12" fill="#5b6570" font-weight="700">JUDGE v2 vs HUMAN ROUND 2 (n=41)</text>
+<text x="669" y="100" font-size="10.5" fill="#5b6570" text-anchor="middle">pass</text>
+<text x="727" y="100" font-size="10.5" fill="#5b6570" text-anchor="middle">fail</text>
+<text x="785" y="100" font-size="10.5" fill="#5b6570" text-anchor="middle">needs review</text>
+<text x="630" y="141" font-size="10.5" fill="#5b6570" text-anchor="end">pass</text>
+<rect x="640" y="108" width="55" height="55" fill="#2f6f4f" fill-opacity="0.90" rx="3"/>
+<rect x="640" y="108" width="55" height="55" fill="none" stroke="#1b1f24" stroke-width="1.6" rx="3"/>
+<text x="668" y="142" font-size="15" fill="#ffffff" font-weight="700" text-anchor="middle">16</text>
+<rect x="698" y="108" width="55" height="55" fill="#2f6f4f" fill-opacity="0.45" rx="3"/>
+<text x="726" y="142" font-size="15" fill="#1b1f24" font-weight="700" text-anchor="middle">7</text>
+<rect x="756" y="108" width="55" height="55" fill="#2f6f4f" fill-opacity="0.65" rx="3"/>
+<text x="784" y="142" font-size="15" fill="#ffffff" font-weight="700" text-anchor="middle">11</text>
+<text x="630" y="199" font-size="10.5" fill="#5b6570" text-anchor="end">fail</text>
+<rect x="640" y="166" width="55" height="55" fill="#2f6f4f" fill-opacity="0.15" rx="3"/>
+<text x="668" y="200" font-size="15" fill="#1b1f24" font-weight="700" text-anchor="middle">1</text>
+<rect x="698" y="166" width="55" height="55" fill="#2f6f4f" fill-opacity="0.25" rx="3"/>
+<rect x="698" y="166" width="55" height="55" fill="none" stroke="#1b1f24" stroke-width="1.6" rx="3"/>
+<text x="726" y="200" font-size="15" fill="#1b1f24" font-weight="700" text-anchor="middle">3</text>
+<rect x="756" y="166" width="55" height="55" fill="#2f6f4f" fill-opacity="0.15" rx="3"/>
+<text x="784" y="200" font-size="15" fill="#1b1f24" font-weight="700" text-anchor="middle">1</text>
+<text x="630" y="257" font-size="10.5" fill="#5b6570" text-anchor="end">needs review</text>
+<rect x="640" y="224" width="55" height="55" fill="#2f6f4f" fill-opacity="0.15" rx="3"/>
+<text x="668" y="258" font-size="15" fill="#1b1f24" font-weight="700" text-anchor="middle">1</text>
+<rect x="698" y="224" width="55" height="55" fill="#2f6f4f" fill-opacity="0.10" rx="3"/>
+<text x="726" y="258" font-size="15" fill="#1b1f24" font-weight="700" text-anchor="middle">0</text>
+<rect x="756" y="224" width="55" height="55" fill="#2f6f4f" fill-opacity="0.15" rx="3"/>
+<rect x="756" y="224" width="55" height="55" fill="none" stroke="#1b1f24" stroke-width="1.6" rx="3"/>
+<text x="784" y="258" font-size="15" fill="#1b1f24" font-weight="700" text-anchor="middle">1</text>
+<text x="630" y="306" font-size="10.5" fill="#5b6570">rows = human &#183; cols = judge &#183; outlined = agreement</text>
+<text x="630" y="330" font-size="11.5" fill="#1b1f24"><tspan font-weight="700">18 of 20 disagreements</tspan> are the judge being</text>
+<text x="630" y="347" font-size="11.5" fill="#1b1f24">stricter than the human - it fails safe.</text>
+<text x="34" y="456" font-size="10" fill="#5b6570">Regenerate: python -m scripts.render_calibration_chart &#183; source: results/judge-calibration.md &#183; provenance: results/human-labels-provenance.json</text>
+</svg>

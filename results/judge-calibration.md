@@ -4,6 +4,41 @@
 > Never quote a kappa without saying which pair it comes from** (see the reliability
 > analysis below — the 2×2 table is the only honest summary).
 
+## Provenance: which of these numbers still reproduce (added 2026-08-25)
+
+The 41 human labels were the most expensive artifact in this project and the only
+one no script can regenerate. They were also the least protected: `.gitignore`
+excluded `judge_labels*.csv` wholesale ("contains ticket text, never commit"), so
+the complete set lived in exactly two places -- one laptop, and a Neon branch that
+expired (#64). `eval_results` is now empty; verified, not assumed.
+
+| | Status |
+|---|---|
+| **Round 1** (2026-07-14) | **Reproduces exactly.** `judge_labels.csv` recomputes to 26 pass / 13 fail / 2 needs_review, matching the v1 confusion matrix below. |
+| **Round 2** (2026-07-17) | **Lost.** The surviving `judge_labels_v2.csv` is a mid-labeling snapshot (mtime 2026-07-16 21:43, a day before the round closed): 28/11/2, not the published 34/5/2. Self-agreement recomputes to 0.186 / 16 flips, not 0.212 / 14. The completed labels went to `eval_results.human_label` and died with the database. |
+
+**What this changes, and what it does not.** Every round-2 figure -- official v2
+kappa 0.133, the 0.212 self-agreement, the v2 confusion matrix -- is now an
+**archived** result: recorded when the data existed, no longer re-derivable from
+surviving files. They are not withdrawn (they were computed correctly at the time,
+from data that existed) but they must be quoted as archived, never as reproducible.
+The chart marks them hatched for exactly this reason. Round-1 figures, and the
+finding that carries the calibration -- *the judge improved invariantly, and the
+human is the noisier instrument* -- rest on data that survives.
+
+**The fix, applied.** `results/human-labels.csv` now commits the labels with the
+ticket text stripped out: `result_id` and verdict only, a few hundred bytes. The
+original rule was right about the ticket text and wrong about the labels; splitting
+them satisfies both halves. Regenerate with `python -m scripts.export_label_record`.
+
+**The recurring lesson, for the fourth time.** The Railway start command, the demo
+pool, two golden cases, and now the human labels were all lost the same way: they
+lived outside version control. The first three were rebuildable. This one was not.
+
+![Judge-human agreement](judge-vs-human-agreement.svg)
+
+*Regenerate: `python -m scripts.render_calibration_chart`*
+
 ## Official judge-v2 calibration (2026-07-17, fresh labeling round 2)
 
 - Judge prompt version: **2** (bumped whenever the judge's

@@ -10,6 +10,7 @@ evaluated, cost-capped, and — where stakes require it — routed to a human re
 
 Quick links: [design record](docs/00-spec/DESIGN-SPEC.md) ·
 [the pitch](docs/00-spec/PITCH.md) ·
+[the evidence folder](results/README.md) ·
 [judge calibration](results/judge-calibration.md) ·
 [what Week 1 built, in plain language](docs/week-1-pipeline/STORY.md) ·
 [what Week 2 built](docs/week-2-evals/STORY.md)
@@ -20,8 +21,8 @@ for implementation detail.
 ## Architecture
 
     ticket → [pre-check] → [classify] → [retrieve] → [act loop] → [confidence gate]
-                 ↓ fail        ↓ low margin              ↓ exhausted      ↓ low / adverse
-              escalate       escalate               agent_incomplete   review queue
+                 ↓ unsafe                                 ↓ exhausted       ↓ low sim / adverse
+              escalate                             agent_incomplete    review queue
 
 Five stages, each one a plain function that takes a ticket and a tracer:
 
@@ -52,6 +53,8 @@ run, so it cannot quietly stop being true.
 | Escalation precision | 0.88 | **0.88** | ⚠️ **not distinguishing** — this is the corpus's 22/25 base rate |
 | Adversarial escalate rate (outcome-only) | 1.00 | **1.00** | ⚠️ **not distinguishing** — kept only for continuity with the pre-hardening definition |
 
+![Judge-human agreement](results/judge-vs-human-agreement.svg)
+
 **The reason-aware catch rate is the headline, and it is the one a stub cannot fake.**
 A case counts as caught only when the observed `escalation_reason` matches the layer that
 was supposed to catch it. That metric was introduced in the Week-2.5 hardening
@@ -66,8 +69,10 @@ worked: the stub scores 0.00.
 | Gate signal separation (held-out labels) | The classification margin could **not** be shown to separate good replies from bad — AUC 0.337 / 0.442, both 95% CIs spanning 0.50 — so it was demoted from veto to observability. [Measurement](docs/week-4-launch/reports/margin-separation-measurement.md) |
 | Cost per full pipeline run | ~3–4¢ with prompt caching · hard-capped at 10¢, fail-closed · the act loop is **91%** of it |
 | Latency | p50 ~30–40s · the act loop is **87%** of it |
-| Test suite | 290 tests + lint + gitleaks secret-scan, gating every merge |
+| Test suite | 329 tests + lint + gitleaks secret-scan, gating every merge |
 | Golden set | 25 cases (20 stratified real + 5 authored adversarial) from 11,922 ingested tickets |
+| **Live untrusted traffic** | **10/10 attacks caught at the right layer, 0/3 false positives on controls** — sent through the public intake endpoint, not the curated pool. [Report](docs/week-4-launch/reports/intake-first-untrusted-traffic.md) |
+| Cost asymmetry | An attack stopped at pre-check costs **$0.0021**; a customer served end to end costs **$0.0332**. Rejecting an attack is 6% of serving someone. |
 
 Full table with provenance: [`docs/00-spec/PITCH.md`](docs/00-spec/PITCH.md).
 Never quote a kappa without saying which judge version and which label round it came
@@ -142,8 +147,13 @@ belongs in a real task queue, not in `BackgroundTasks`.
 - **Judge agreement is noise-capped by a single rater** (self-agreement κ = 0.212).
   The judge advises and never vetoes: `tolerance: {}` in the eval baseline means judge
   metrics gate nothing. Deterministic metrics carry the gate.
-- **Nothing currently auto-resolves.** Root-caused: not the thresholds (re-derived and
-  reachable), but model conservatism and the entitlement-receipt rule.
+- **No queue.** Inbound tickets dispatch straight to `BackgroundTasks`, which is
+  exactly why 12 arriving at once hit the embedding provider's rate limit. Retry absorbs
+  it; real volume needs a task queue, not a bigger threadpool.
+- **The judge's residual blind spot is known and unfixed**: it fails replies that state a
+  feature is *absent* from a plan, because it verifies positive facts against the account
+  block and does not treat the entitlement list as exhaustive. Candidate v3 fix recorded,
+  not applied — changing the judge invalidates the calibration it was measured against.
 - Everything deliberately cut gets a "what I'd add in production" paragraph in
   [PITCH.md](docs/00-spec/PITCH.md) — contract tests, nightly evals, Docker, real OTel
   export, a dead-letter queue.
