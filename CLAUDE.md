@@ -156,6 +156,14 @@ spans, kb_docs, eval_cases, eval_results, review_decisions.
   evidence, LLM rationale = post-hoc context, never ground truth).
 - **Fail closed on cost:** per-run cap ~$0.10; if cost can't be computed, treat as breach
   → escalate.
+- **The auto-resolve rate is a byproduct, never a target (council, 2026-08-26).** It may
+  rise only as a side effect of fixing a *defect in a signal*, verified against the
+  baseline. It may NEVER rise by moving a threshold or narrowing `adverse_action`. The
+  precedent: #67 fixed a query/document embedding mismatch and a ticket auto-resolved for
+  the first time; #74 then measured the repaired margin, found it still non-separating,
+  and removed it from the gate entirely. Deflection is cheap to buy and expensive to get
+  wrong — break-even is 0.69%, observed is 6.7%, so the economics ask for the rate to be
+  *correct*, not higher. Never quote 6.7% without break-even beside it.
 - **Gate never uses LLM self-reported confidence** — retrieval similarity + classification
   margin only (validated by the Wk2 calibration table before adding signals).
 - **Evals-first.** Judge: pinned model, temp 0, pass/fail/`needs_review`, calibrated vs

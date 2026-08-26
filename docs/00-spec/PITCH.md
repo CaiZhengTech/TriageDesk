@@ -210,6 +210,28 @@ a logged run — nothing here is aspirational.*
 > caught when the layer that was *supposed* to stop it is the one that did. Stub scores
 > zero there. Mine is 5 of 5, and 10 of 10 on live untrusted traffic."
 
+**On the question you WILL be asked — "only 6.7% auto-resolves?":**
+> "Right — 3 of 45, and I lead with it. Break-even is 0.69% deflection: above that the
+> pipeline costs less than sending every ticket to a person. So it runs about ten times
+> past break-even, and it would still pay for itself at one in 145. That's the case for
+> building the gate conservative — deflection is cheap to buy and expensive to get wrong.
+> Each auto-resolve saves ~$3 of review time; one bad auto-resolve, a denial delivered
+> with no human in the loop, costs more than every ticket the system has handled. 99% of
+> the bill is labour, not tokens. So the economics never asked me for a higher rate —
+> they asked me to make the rate *correct*."
+
+**On why you didn't just raise it:**
+> "There were exactly two ways to move that number: loosen the gate, or narrow what counts
+> as an adverse action. The first needs held-out data I don't have, and the second is the
+> safety rule I'd be describing to you right now as the whole point. Either one turns the
+> project into a number-chasing exercise. The rule I hold instead: the auto-resolve rate
+> may rise as a side effect of fixing a defect in a signal, never by moving a threshold.
+> It did rise, once — I found a query/document embedding mismatch corrupting the
+> classification margin, fixed it, and a ticket auto-resolved for the first time. Then I
+> measured the repaired signal against held-out labels, it still couldn't separate good
+> replies from bad, so I removed it from the gate entirely. Acting on my own null result
+> was the harder half."
+
 ---
 
 ## "What I'd add in production" (deliberately cut — knowing what NOT to build)
