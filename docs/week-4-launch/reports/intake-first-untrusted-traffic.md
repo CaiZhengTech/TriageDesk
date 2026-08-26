@@ -80,6 +80,35 @@ click-to-run demo produces it.
 
 ---
 
+## The retry, verified in production (2026-08-26)
+
+Shipping a fix is not the same as knowing it works. #81 added the retry and 302 unit
+tests passed -- but the tests mock the provider, and the defect they missed was a real
+provider's real rate limit under real concurrency. The only honest verification was to
+reproduce the conditions that broke it.
+
+**The same five tickets, re-sent at 1-second intervals** (five requests inside five
+seconds, against a 3 RPM ceiling -- harder than the batch that originally failed):
+
+| Run | Outcome | Reason | Cost |
+|---|---|---|---|
+| `8ad55925` | escalated | `adverse_action` | $0.0487 |
+| `3e96abdc` | escalated | `adverse_action` | $0.0344 |
+| `ed76c5ad` | escalated | `agent_requested_human` | $0.0421 |
+| `65789f9d` | escalated | `precheck_off_topic` | $0.0023 |
+| `a8839b84` | escalated | `precheck_off_topic` | $0.0021 |
+
+**5/5 completed. Zero failures, zero `RateLimitError`.** The same tickets under the same
+pressure previously produced four failures at `retrieve`. The backoff absorbed the limit
+and every run reached a terminal state with a reason that names why.
+
+Two of them landing on `adverse_action` is the adverse-action rule doing its job on
+traffic nobody curated: a denial-shaped reply routed to human review rather than sent.
+
+Cost of the verification: **$0.1297**.
+
+---
+
 ## An unplanned finding: the screen acts as a domain filter
 
 5 of the 12 real Kaggle tickets were caught as `precheck_off_topic` — "Boost Digital

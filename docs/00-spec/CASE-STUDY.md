@@ -201,7 +201,13 @@ free-tier rate limit. Two defects, neither visible before:
   failure a hosted pipeline has. The trace is this project's product, so a reason that
   sends the reader hunting for a nonexistent bug is a defect.
 
-Both fixed. **The gap had existed for four weeks and was invisible to 323 passing tests.**
+Both fixed — and then verified the only way that counts. Tests mock the provider; the
+defect they missed was a real provider's real limit under real concurrency. So I re-sent
+the same five tickets at 1-second intervals, harder than the batch that broke them:
+**5/5 completed, zero rate-limit failures**, against four failures before. $0.13 to know
+rather than assume.
+
+**The gap had existed for four weeks and was invisible to 323 passing tests.**
 It surfaced within minutes of tickets arriving unattended — because concurrency is a
 property of *arrival*, and nothing about a click-to-run demo produces it.
 → `docs/week-4-launch/reports/intake-first-untrusted-traffic.md`

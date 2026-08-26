@@ -18,6 +18,13 @@ Quick links: [design record](docs/00-spec/DESIGN-SPEC.md) ·
 Issues #1–#18 are the build sequence; plan docs in `docs/week-N-*/PLAN.md` are canonical
 for implementation detail.
 
+[![The TriageDesk console](docs/assets/console.png)](https://triage-desk-xi.vercel.app)
+
+*The live console. Every run in that feed is real: an escalation reason on each one, a
+cost in cents, and a full trace behind it. `precheck_off_topic` at 0.2¢ is a ticket
+stopped at the door; `adverse_action` at 4.9¢ is the rule that a denial never
+auto-delivers, firing on inbound traffic.*
+
 ## Architecture
 
     ticket → [pre-check] → [classify] → [retrieve] → [act loop] → [confidence gate]
