@@ -14,6 +14,35 @@ older Railway URLs below and in `week-3-console/` are historical deploy records)
 
 ---
 
+## 📌 LATEST SESSION (2026-08-25): `results/` done, label provenance repaired
+
+**Merged #82.** `results/` is finalized for #18: the agreement chart, an index
+README, and -- the reason this took a session instead of an hour -- the human
+labels are now in version control.
+
+**The finding.** The published round-2 calibration numbers do not reproduce.
+Round 1 does, exactly. Round 2's surviving file is a mid-labeling snapshot; the
+completed labels died with the Neon branch (#64) and `eval_results` is empty
+(verified). Four published figures -- official v2 kappa 0.133, self-agreement
+0.212, the v2 confusion matrix, the 14-flip count -- are now **archived**:
+correct when computed, no longer re-derivable. They are quoted as such
+everywhere, and the chart hatches them.
+
+**Do not "fix" these numbers by recomputing from `judge_labels_v2.csv`.** That
+file is the snapshot, not the round. Recomputing silently replaces an archived
+figure with a different one and destroys the audit trail. If round 2 is ever
+wanted back, it must be **relabelled**, and that is a new round with a new date.
+
+**Rule going forward:** anything a script cannot regenerate goes in git the day
+it is created. Fourth instance of this failure; the first that was unrecoverable.
+
+**Spend this session: $0.** No eval-path files touched, so the gate did not fire.
+
+**Remaining for #18:** one console screenshot for the README, then #17 (video),
+which needs Cai. Nothing else is blocked.
+
+---
+
 ## ✅ CURRENT STATE (2026-08-21): LIVE, and the gate auto-resolves
 
 **Console:** https://triage-desk-xi.vercel.app
