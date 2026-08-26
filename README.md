@@ -6,24 +6,38 @@ evaluated, cost-capped, and — where stakes require it — routed to a human re
 **Live console:** https://triage-desk-xi.vercel.app ·
 **API:** https://site--triagedesk-api--26d8jdlxzvsv.code.run
 
-**📖 Start with the [documentation map](docs/README.md)** — it says where everything is.
-
-Quick links: [design record](docs/00-spec/DESIGN-SPEC.md) ·
-[the pitch](docs/00-spec/PITCH.md) ·
-[the evidence folder](results/README.md) ·
-[judge calibration](results/judge-calibration.md) ·
-[what Week 1 built, in plain language](docs/week-1-pipeline/STORY.md) ·
-[what Week 2 built](docs/week-2-evals/STORY.md)
-
-Issues #1–#18 are the build sequence; plan docs in `docs/week-N-*/PLAN.md` are canonical
-for implementation detail.
-
 [![The TriageDesk console](docs/assets/console.png)](https://triage-desk-xi.vercel.app)
 
 *The live console. Every run in that feed is real: an escalation reason on each one, a
 cost in cents, and a full trace behind it. `precheck_off_topic` at 0.2¢ is a ticket
 stopped at the door; `adverse_action` at 4.9¢ is the rule that a denial never
 auto-delivers, firing on inbound traffic.*
+
+## Three numbers
+
+| | |
+|---|---|
+| **10 / 10** | prompt-injection and data-exfiltration attempts caught at the layer built for each, on live untrusted traffic through the public intake endpoint — with **0 / 3** false positives on legitimate tickets written to resemble attacks. [How it was measured](docs/week-4-launch/reports/intake-first-untrusted-traffic.md) |
+| **6 %** | what rejecting an attack costs relative to serving a customer — $0.0021 against $0.0332, because the screen runs before the expensive stages |
+| **κ = 0.212** | my own label self-agreement, relabelling the same 41 replies three days apart. *Lower than the judge's agreement with either round.* The evaluation's ceiling is me, and the project says so out loud. [Archived, not re-derivable](results/judge-calibration.md#provenance-which-of-these-numbers-still-reproduce-added-2026-08-25) — and the README says that too. |
+
+The third number is the one that matters most. Anyone can publish the first two.
+
+---
+
+**📖 [Read the case study](docs/00-spec/CASE-STUDY.md)** — the five-minute
+version: what it does, what it cost, and six things I got wrong.
+
+Then: [the evidence folder](results/README.md) ·
+[judge calibration](results/judge-calibration.md) ·
+[design record](docs/00-spec/DESIGN-SPEC.md) ·
+[interview one-liners](docs/00-spec/PITCH.md) ·
+[documentation map](docs/README.md) ·
+[Week 1 in plain language](docs/week-1-pipeline/STORY.md) ·
+[Week 2](docs/week-2-evals/STORY.md)
+
+Issues #1–#18 are the build sequence; plan docs in `docs/week-N-*/PLAN.md` are canonical
+for implementation detail.
 
 ## Architecture
 
